@@ -6,6 +6,7 @@ import (
 	"testing"
 )
 
+// SkipIfNotEval skips the test if "go test" is not being run with "-test.run=TestEval*".
 func SkipIfNotEval(t *testing.T) {
 	t.Helper()
 

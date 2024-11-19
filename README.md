@@ -1,6 +1,14 @@
-# template
+# llm
+
+<img src="logo.png" alt="Logo" width="300" align="right">
 
 [![Go](https://github.com/maragudk/llm/actions/workflows/ci.yml/badge.svg)](https://github.com/maragudk/llm/actions/workflows/ci.yml)
+
+LLM tools and helpers in Go.
+
+```shell
+go get maragu.dev/llm
+```
 
 Made with ✨sparkles✨ by [maragu](https://www.maragu.dev/).
 
