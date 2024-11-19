@@ -33,6 +33,23 @@ jobs:
       - name: Test
         run: go test -v -coverprofile=cover.out -shuffle on ./...
 
+  evaluate:
+    name: Evaluate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          check-latest: true
+
+      - name: Evaluate
+        run: go test -v -shuffle on -run TestEval ./...
+
   lint:
     name: Lint
     runs-on: ubuntu-latest
