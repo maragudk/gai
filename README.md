@@ -2,6 +2,7 @@
 
 <img src="logo.png" alt="Logo" width="300" align="right">
 
+[![GoDoc](https://pkg.go.dev/badge/maragu.dev/llm)](https://pkg.go.dev/maragu.dev/llm)
 [![Go](https://github.com/maragudk/llm/actions/workflows/ci.yml/badge.svg)](https://github.com/maragudk/llm/actions/workflows/ci.yml)
 
 LLM tools and helpers in Go.
