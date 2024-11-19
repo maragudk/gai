@@ -6,6 +6,8 @@
 
 LLM tools and helpers in Go.
 
+⚠️ **This library is in development**. Things will probably break, but existing functionality is usable. ⚠️
+
 ```shell
 go get maragu.dev/llm
 ```
