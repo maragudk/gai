@@ -6,6 +6,10 @@ benchmark:
 cover:
 	go tool cover -html=cover.out
 
+.PHONY: evaluate
+evaluate:
+	go test -json -run TestEval ./... | jq 'select(.Test != null and (.Action == "pass" or .Action == "fail" or .Action == "skip"))'
+
 .PHONY: lint
 lint:
 	golangci-lint run
@@ -13,4 +17,3 @@ lint:
 .PHONY: test
 test:
 	go test -coverprofile=cover.out -shuffle on ./...
-
