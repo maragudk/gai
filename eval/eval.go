@@ -53,6 +53,12 @@ func Similarity(t errorer, s1, s2 string, se SimilarityEvaluator) {
 // Score between 0 and 1.
 type Score float64
 
+func (s Score) IsValid() {
+	if s < 0 || s > 1 {
+		panic(fmt.Sprintf("score is %v, must be between 0 and 1", s))
+	}
+}
+
 func (s Score) String() string {
 	// floating point with two decimals
 	return fmt.Sprintf("%.2f", float64(s))
@@ -61,6 +67,8 @@ func (s Score) String() string {
 // LevenshteinEvaluator returns a [SimilarityEvaluator] that uses the [LevenshteinDistanceScore] to compare strings,
 // and returns true if the similarity [Score] is greater than or equal to the given threshold.
 func LevenshteinEvaluator(threshold Score) SimilarityEvaluator {
+	threshold.IsValid()
+
 	return func(s1, s2 string) bool {
 		return LevenshteinDistanceScore(s1, s2) >= threshold
 	}
