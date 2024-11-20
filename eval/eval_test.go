@@ -17,25 +17,25 @@ func TestSkipIfNotEvaluating(t *testing.T) {
 	})
 }
 
-func TestSimilar(t *testing.T) {
-	t.Run("fails the test if the score is lower than expected", func(t *testing.T) {
+func TestSimilarity(t *testing.T) {
+	t.Run("fails the test if the score is lower than a threshold", func(t *testing.T) {
 		mt := &mockT{}
-		eval.Similarity(mt, "a", "b", 0.5, eval.LevenshteinSimilarityScore)
+		eval.Similarity(mt, "a", "b", eval.LevenshteinEvaluator(0.5))
 		is.True(t, mt.failed)
-		is.Equal(t, `Similarity between "a" and "b" is 0 < 0.5`, mt.message)
+		is.Equal(t, `"a" and "b" are dissimilar`, mt.message)
 	})
 
 	t.Run("does not fail the test if the score is equal to the expected", func(t *testing.T) {
 		mt := &mockT{}
-		eval.Similarity(mt, "a", "a", 1, eval.LevenshteinSimilarityScore)
+		eval.Similarity(mt, "a", "a", eval.LevenshteinEvaluator(1))
 		is.True(t, !mt.failed)
 	})
 }
 
-func TestLevenshteinSimilarityScore(t *testing.T) {
+func TestLevenshteinDistanceScore(t *testing.T) {
 	tests := []struct {
 		s1, s2 string
-		score  float64
+		score  eval.Score
 	}{
 		{"", "", 1},
 		{"a", "", 0},
@@ -49,8 +49,8 @@ func TestLevenshteinSimilarityScore(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.s1+" "+tt.s2, func(t *testing.T) {
-			score := eval.LevenshteinSimilarityScore(tt.s1, tt.s2)
-			is.True(t, math.Abs(tt.score-score) < 0.01)
+			score := eval.LevenshteinDistanceScore(tt.s1, tt.s2)
+			is.True(t, math.Abs(float64(tt.score-score)) < 0.01)
 		})
 	}
 }

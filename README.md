@@ -39,7 +39,7 @@ func TestEvalPrompt(t *testing.T) {
 	t.Run("answers with a pong", func(t *testing.T) {
 		llm := &llm{response: "plong"}
 		response := llm.Prompt("ping")
-		eval.Similarity(t, "pong", response, 0.8, eval.LevenshteinSimilarityScore)
+		eval.Similarity(t, "pong", response, eval.LevenshteinEvaluator(0.8))
 	})
 }
 
