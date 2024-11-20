@@ -16,8 +16,8 @@ type skipper interface {
 	Skip(args ...any)
 }
 
-// SkipIfNotEval skips the test if "go test" is not being run with "-test.run=TestEval".
-func SkipIfNotEval(t skipper) {
+// SkipIfNotEvaluating skips the test if "go test" is not being run with "-test.run=TestEval".
+func SkipIfNotEvaluating(t skipper) {
 	t.Helper()
 
 	for _, arg := range os.Args {
@@ -39,19 +39,18 @@ type errorer interface {
 // and 1 means the strings are identical.
 type SimilarityScoreFunc = func(s1, s2 string) float64
 
-// Similar compares two strings and fails the test if the similarity score is less than the expected score,
-// using the given similarity score function.
-func Similar(t errorer, s1, s2 string, expected float64, fn SimilarityScoreFunc) {
+// Similarity compares two strings according to the given similarity score function,
+// and fails the test if the score is lower than the threshold.
+func Similarity(t errorer, s1, s2 string, threshold float64, fn SimilarityScoreFunc) {
 	t.Helper()
 
-	if expected < 0 || expected > 1 {
-		panic("expected similarity score should be between 0 and 1")
+	if threshold < 0 || threshold > 1 {
+		panic("similarity score threshold should be between 0 and 1")
 	}
 
-	actual := fn(s1, s2)
-
-	if actual < expected {
-		t.Errorf(`Similarity between "%v" and "%v" is %v < %v`, s1, s2, actual, expected)
+	score := fn(s1, s2)
+	if score < threshold {
+		t.Errorf(`Similarity between "%v" and "%v" is %v < %v`, s1, s2, score, threshold)
 	}
 }
 

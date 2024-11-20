@@ -9,10 +9,10 @@ import (
 	"maragu.dev/llm/eval"
 )
 
-func TestSkipIfNotEval(t *testing.T) {
+func TestSkipIfNotEvaluating(t *testing.T) {
 	t.Run("skips if called like a regular test", func(t *testing.T) {
 		mt := &mockT{}
-		eval.SkipIfNotEval(mt)
+		eval.SkipIfNotEvaluating(mt)
 		is.True(t, mt.skipped)
 	})
 }
@@ -20,14 +20,14 @@ func TestSkipIfNotEval(t *testing.T) {
 func TestSimilar(t *testing.T) {
 	t.Run("fails the test if the score is lower than expected", func(t *testing.T) {
 		mt := &mockT{}
-		eval.Similar(mt, "a", "b", 0.5, eval.LevenshteinSimilarityScore)
+		eval.Similarity(mt, "a", "b", 0.5, eval.LevenshteinSimilarityScore)
 		is.True(t, mt.failed)
 		is.Equal(t, `Similarity between "a" and "b" is 0 < 0.5`, mt.message)
 	})
 
 	t.Run("does not fail the test if the score is equal to the expected", func(t *testing.T) {
 		mt := &mockT{}
-		eval.Similar(mt, "a", "a", 1, eval.LevenshteinSimilarityScore)
+		eval.Similarity(mt, "a", "a", 1, eval.LevenshteinSimilarityScore)
 		is.True(t, !mt.failed)
 	})
 }
