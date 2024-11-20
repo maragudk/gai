@@ -19,7 +19,7 @@ Does your company depend on this project? [Contact me at markus@maragu.dk](mailt
 
 ## Usage
 
-This test will only run with `go test -run TestEval ./...` because of the `evals.SkipIfNotEval(t)` call:
+This test will only run with `go test -run TestEval ./...` because of the `eval.SkipIfNotEvaluating(t)` call:
 
 ```go
 package examples_test
