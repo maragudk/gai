@@ -1,4 +1,4 @@
-package evals
+package eval
 
 import (
 	"os"
@@ -16,7 +16,7 @@ type skipper interface {
 	Skip(args ...any)
 }
 
-// SkipIfNotEval skips the test if "go test" is not being run with "-test.run=TestEval*".
+// SkipIfNotEval skips the test if "go test" is not being run with "-test.run=TestEval".
 func SkipIfNotEval(t skipper) {
 	t.Helper()
 

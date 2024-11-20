@@ -3,16 +3,16 @@ package examples_test
 import (
 	"testing"
 
-	"maragu.dev/llm/evals"
+	"maragu.dev/llm/eval"
 )
 
 func TestEvalPrompt(t *testing.T) {
-	evals.SkipIfNotEval(t)
+	eval.SkipIfNotEval(t)
 
 	t.Run("answers with a pong", func(t *testing.T) {
 		llm := &llm{response: "plong"}
 		response := llm.Prompt("ping")
-		evals.Similar(t, "pong", response, 0.8, evals.LevenshteinSimilarityScore)
+		eval.Similar(t, "pong", response, 0.8, eval.LevenshteinSimilarityScore)
 	})
 }
 
