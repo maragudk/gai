@@ -8,6 +8,7 @@ require (
 	github.com/google/generative-ai-go v0.18.0
 	github.com/openai/openai-go v0.1.0-alpha.38
 	google.golang.org/api v0.189.0
+	maragu.dev/env v0.2.0
 	maragu.dev/is v0.2.0
 )
 

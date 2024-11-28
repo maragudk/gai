@@ -38,6 +38,8 @@ jobs:
 
       - name: Test
         run: go test -v -coverprofile=cover.out -shuffle on ./...
+        env:
+          OPENAI_TOKEN: ${{ secrets.OPENAI_TOKEN }}
 
   evaluate:
     name: Evaluate
