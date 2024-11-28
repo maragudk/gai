@@ -3,6 +3,7 @@ package llm
 import (
 	"io"
 	"log/slog"
+	"strings"
 
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
@@ -27,6 +28,9 @@ func NewOpenAIClient(opts NewOpenAIClientOptions) *OpenAIClient {
 	var clientOpts []option.RequestOption
 
 	if opts.BaseURL != "" {
+		if !strings.HasSuffix(opts.BaseURL, "/") {
+			opts.BaseURL += "/"
+		}
 		clientOpts = append(clientOpts, option.WithBaseURL(opts.BaseURL))
 	}
 

@@ -1,0 +1,5 @@
+services:
+  llama32-1b:
+    image: maragudk/llama-3.2-1b-instruct-q4_k_m
+    ports:
+      - "8090:8080"
