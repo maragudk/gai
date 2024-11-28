@@ -40,6 +40,7 @@ jobs:
         run: go test -v -coverprofile=cover.out -shuffle on ./...
         env:
           OPENAI_TOKEN: ${{ secrets.OPENAI_TOKEN }}
+          ANTHROPIC_TOKEN: ${{ secrets.ANTHROPIC_TOKEN }}
 
   evaluate:
     name: Evaluate
