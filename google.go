@@ -15,8 +15,8 @@ type GoogleClient struct {
 }
 
 type NewGoogleClientOptions struct {
-	Log   *slog.Logger
-	Token string
+	Key string
+	Log *slog.Logger
 }
 
 func NewGoogleClient(opts NewGoogleClientOptions) *GoogleClient {
@@ -24,7 +24,7 @@ func NewGoogleClient(opts NewGoogleClientOptions) *GoogleClient {
 		opts.Log = slog.New(slog.NewTextHandler(io.Discard, nil))
 	}
 
-	client, err := genai.NewClient(context.Background(), option.WithAPIKey(opts.Token))
+	client, err := genai.NewClient(context.Background(), option.WithAPIKey(opts.Key))
 	if err != nil {
 		panic(err)
 	}

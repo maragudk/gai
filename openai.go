@@ -16,8 +16,8 @@ type OpenAIClient struct {
 
 type NewOpenAIClientOptions struct {
 	BaseURL string
+	Key     string
 	Log     *slog.Logger
-	Token   string
 }
 
 func NewOpenAIClient(opts NewOpenAIClientOptions) *OpenAIClient {
@@ -34,8 +34,8 @@ func NewOpenAIClient(opts NewOpenAIClientOptions) *OpenAIClient {
 		clientOpts = append(clientOpts, option.WithBaseURL(opts.BaseURL))
 	}
 
-	if opts.Token != "" {
-		clientOpts = append(clientOpts, option.WithAPIKey(opts.Token))
+	if opts.Key != "" {
+		clientOpts = append(clientOpts, option.WithAPIKey(opts.Key))
 	}
 
 	return &OpenAIClient{

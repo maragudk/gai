@@ -13,8 +13,8 @@ import (
 )
 
 func TestNewOpenAIClient(t *testing.T) {
-	t.Run("can create a new client with a token", func(t *testing.T) {
-		client := llm.NewOpenAIClient(llm.NewOpenAIClientOptions{Token: "123"})
+	t.Run("can create a new client with a key", func(t *testing.T) {
+		client := llm.NewOpenAIClient(llm.NewOpenAIClientOptions{Key: "123"})
 		is.NotNil(t, client)
 	})
 }
@@ -23,7 +23,7 @@ func TestOpenAIClientCompletion(t *testing.T) {
 	_ = env.Load(".env.test.local")
 
 	t.Run("can do a basic chat completion", func(t *testing.T) {
-		client := llm.NewOpenAIClient(llm.NewOpenAIClientOptions{Token: env.GetStringOrDefault("OPENAI_TOKEN", "")})
+		client := llm.NewOpenAIClient(llm.NewOpenAIClientOptions{Key: env.GetStringOrDefault("OPENAI_KEY", "")})
 		is.NotNil(t, client)
 
 		res, err := client.Client.Chat.Completions.New(context.Background(), openai.ChatCompletionNewParams{

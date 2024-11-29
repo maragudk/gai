@@ -14,8 +14,8 @@ import (
 )
 
 func TestNewAnthropicClient(t *testing.T) {
-	t.Run("can create a new client with a token", func(t *testing.T) {
-		client := llm.NewAnthropicClient(llm.NewAnthropicClientOptions{Token: "123"})
+	t.Run("can create a new client with a key", func(t *testing.T) {
+		client := llm.NewAnthropicClient(llm.NewAnthropicClientOptions{Key: "123"})
 		is.NotNil(t, client)
 	})
 }
@@ -24,7 +24,7 @@ func TestAnthropicClientCompletion(t *testing.T) {
 	_ = env.Load(".env.test.local")
 
 	t.Run("can do a basic chat completion", func(t *testing.T) {
-		client := llm.NewAnthropicClient(llm.NewAnthropicClientOptions{Token: env.GetStringOrDefault("ANTHROPIC_TOKEN", "")})
+		client := llm.NewAnthropicClient(llm.NewAnthropicClientOptions{Key: env.GetStringOrDefault("ANTHROPIC_KEY", "")})
 		is.NotNil(t, client)
 
 		res, err := client.Client.Messages.New(context.Background(), anthropic.MessageNewParams{

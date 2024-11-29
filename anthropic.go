@@ -14,8 +14,8 @@ type AnthropicClient struct {
 }
 
 type NewAnthropicClientOptions struct {
-	Log   *slog.Logger
-	Token string
+	Key string
+	Log *slog.Logger
 }
 
 func NewAnthropicClient(opts NewAnthropicClientOptions) *AnthropicClient {
@@ -24,7 +24,7 @@ func NewAnthropicClient(opts NewAnthropicClientOptions) *AnthropicClient {
 	}
 
 	return &AnthropicClient{
-		Client: anthropic.NewClient(option.WithAPIKey(opts.Token)),
+		Client: anthropic.NewClient(option.WithAPIKey(opts.Key)),
 		log:    opts.Log,
 	}
 }

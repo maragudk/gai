@@ -14,8 +14,8 @@ import (
 )
 
 func TestNewGoogleClient(t *testing.T) {
-	t.Run("can create a new client with a token", func(t *testing.T) {
-		client := llm.NewGoogleClient(llm.NewGoogleClientOptions{Token: "123"})
+	t.Run("can create a new client with a key", func(t *testing.T) {
+		client := llm.NewGoogleClient(llm.NewGoogleClientOptions{Key: "123"})
 		is.NotNil(t, client)
 	})
 }
@@ -24,7 +24,7 @@ func TestGoogleClientCompletion(t *testing.T) {
 	_ = env.Load(".env.test.local")
 
 	t.Run("can do a basic chat completion", func(t *testing.T) {
-		client := llm.NewGoogleClient(llm.NewGoogleClientOptions{Token: env.GetStringOrDefault("GOOGLE_TOKEN", "")})
+		client := llm.NewGoogleClient(llm.NewGoogleClientOptions{Key: env.GetStringOrDefault("GOOGLE_KEY", "")})
 		is.NotNil(t, client)
 
 		model := client.Client.GenerativeModel("models/gemini-1.5-flash-latest")

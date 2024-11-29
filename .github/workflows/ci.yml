@@ -39,9 +39,9 @@ jobs:
       - name: Test
         run: go test -v -coverprofile=cover.out -shuffle on ./...
         env:
-          OPENAI_TOKEN: ${{ secrets.OPENAI_TOKEN }}
-          ANTHROPIC_TOKEN: ${{ secrets.ANTHROPIC_TOKEN }}
-          GOOGLE_TOKEN: ${{ secrets.GOOGLE_TOKEN }}
+          OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
+          ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_KEY }}
+          GOOGLE_KEY: ${{ secrets.GOOGLE_KEY }}
 
   evaluate:
     name: Evaluate
