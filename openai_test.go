@@ -19,7 +19,7 @@ func TestNewOpenAIClient(t *testing.T) {
 	})
 }
 
-func TestOpenAIClientPrompt(t *testing.T) {
+func TestOpenAIClientCompletion(t *testing.T) {
 	_ = env.Load(".env.test.local")
 
 	t.Run("can do a basic chat completion", func(t *testing.T) {

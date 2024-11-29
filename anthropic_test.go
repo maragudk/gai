@@ -20,7 +20,7 @@ func TestNewAnthropicClient(t *testing.T) {
 	})
 }
 
-func TestAnthropicClientPrompt(t *testing.T) {
+func TestAnthropicClientCompletion(t *testing.T) {
 	_ = env.Load(".env.test.local")
 
 	t.Run("can do a basic chat completion", func(t *testing.T) {

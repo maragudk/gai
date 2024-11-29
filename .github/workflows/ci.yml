@@ -41,6 +41,7 @@ jobs:
         env:
           OPENAI_TOKEN: ${{ secrets.OPENAI_TOKEN }}
           ANTHROPIC_TOKEN: ${{ secrets.ANTHROPIC_TOKEN }}
+          GOOGLE_TOKEN: ${{ secrets.GOOGLE_TOKEN }}
 
   evaluate:
     name: Evaluate
