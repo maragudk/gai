@@ -58,7 +58,7 @@ jobs:
           check-latest: true
 
       - name: Evaluate
-        run: go test -v -shuffle on -run TestEval ./...
+        run: go test -json -run TestEval ./... | jq 'select(.Test != null and .Action == "output" and (.Output | contains("score"))) | del(.Action)'
 
   lint:
     name: Lint
