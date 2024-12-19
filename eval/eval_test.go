@@ -1,36 +1,13 @@
 package eval_test
 
 import (
-	"fmt"
 	"math"
 	"testing"
 
 	"maragu.dev/is"
+
 	"maragu.dev/llm/eval"
 )
-
-func TestSkipIfNotEvaluating(t *testing.T) {
-	t.Run("skips if called like a regular test", func(t *testing.T) {
-		mt := &mockT{}
-		eval.SkipIfNotEvaluating(mt)
-		is.True(t, mt.skipped)
-	})
-}
-
-func TestSimilarity(t *testing.T) {
-	t.Run("fails the test if the score is lower than a threshold", func(t *testing.T) {
-		mt := &mockT{}
-		eval.Similarity(mt, "a", "b", eval.LevenshteinEvaluator(0.5))
-		is.True(t, mt.failed)
-		is.Equal(t, `"a" and "b" are dissimilar`, mt.message)
-	})
-
-	t.Run("does not fail the test if the score is equal to the expected", func(t *testing.T) {
-		mt := &mockT{}
-		eval.Similarity(mt, "a", "a", eval.LevenshteinEvaluator(1))
-		is.True(t, !mt.failed)
-	})
-}
 
 func TestLevenshteinDistanceScore(t *testing.T) {
 	tests := []struct {
@@ -53,21 +30,4 @@ func TestLevenshteinDistanceScore(t *testing.T) {
 			is.True(t, math.Abs(float64(tt.score-score)) < 0.01)
 		})
 	}
-}
-
-type mockT struct {
-	failed  bool
-	message string
-	skipped bool
-}
-
-func (t *mockT) Helper() {}
-
-func (t *mockT) Errorf(format string, args ...any) {
-	t.failed = true
-	t.message = fmt.Sprintf(format, args...)
-}
-
-func (t *mockT) Skip(args ...any) {
-	t.skipped = true
 }
