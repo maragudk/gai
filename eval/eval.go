@@ -26,13 +26,20 @@ func (s Score) String() string {
 	return fmt.Sprintf("%.2f", float64(s))
 }
 
-// Scorer produces a [Score] for a [Sample].
-type Scorer = func(s Sample) Score
+// Result of an evaluation with a [Score] and the type of the [Score].
+type Result struct {
+	Score Score
+	Type  string
+}
+
+// Scorer produces a [Result] with a [Score] for a [Sample].
+type Scorer = func(s Sample) Result
 
 // LevenshteinDistanceScorer returns a [Scorer] that uses the [LevenshteinDistanceScore] to compare strings.
 func LevenshteinDistanceScorer() Scorer {
-	return func(s Sample) Score {
-		return LevenshteinDistanceScore(s.Expected, s.Output)
+	return func(sample Sample) Result {
+		score := LevenshteinDistanceScore(sample.Expected, sample.Output)
+		return Result{Score: score, Type: "LevenshteinDistance"}
 	}
 }
 

@@ -27,10 +27,10 @@ func TestEvalPrompt(t *testing.T) {
 
 		// Score the sample using the Levenshtein distance scorer.
 		// The scorer is created inline, but for scorers that need more setup, this can be done elsewhere.
-		score := e.Score(sample, eval.LevenshteinDistanceScorer())
+		result := e.Score(sample, eval.LevenshteinDistanceScorer())
 
-		// Log the score to stdout.
-		e.Log(score)
+		// Log the result to stdout.
+		e.Log(result)
 	})
 }
 
