@@ -51,16 +51,16 @@ type E struct {
 	T *testing.T
 }
 
-// Score a [Sample] using a [Scorer], making sure the score is valid.
+// Score a [Sample] using a [Scorer] and return the [Result].
 // This is just a convenience method to make it easier to swap out scorers.
-func (e *E) Score(s Sample, scorer Scorer) Score {
-	score := scorer(s)
-	score.IsValid()
-	return score
+func (e *E) Score(s Sample, scorer Scorer) Result {
+	r := scorer(s)
+	r.Score.IsValid()
+	return r
 }
 
-// Log a [Score].
-func (e *E) Log(s Score) {
+// Log a [Result].
+func (e *E) Log(r Result) {
 	e.T.Helper()
-	e.T.Logf("score=%v", s)
+	e.T.Logf("result=%+v", r)
 }
