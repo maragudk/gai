@@ -1,3 +1,5 @@
+// Package eval lets you evaluate LLM output by scoring it with various scoring methods, and logging the result.
+// It provides a convenient way to run evaluations as part of the standard Go tests using the [Run] function.
 package eval
 
 import (
