@@ -54,3 +54,13 @@ func LevenshteinDistanceScore(s1, s2 string) Score {
 	}
 	return Score(1 - float64(levenshtein.ComputeDistance(s1, s2))/float64(max(len(s1), len(s2))))
 }
+
+// ExactMatchScorer returns a [Scorer] that scores 1 if the expected and output strings are equal, and 0 otherwise.
+func ExactMatchScorer() Scorer {
+	return func(sample Sample) Result {
+		if sample.Expected == sample.Output {
+			return Result{Score: 1, Type: "ExactMatch"}
+		}
+		return Result{Score: 0, Type: "ExactMatch"}
+	}
+}
