@@ -4,6 +4,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 )
 
 type helper interface {
@@ -43,12 +44,22 @@ func Run(t runnerSkipper, name string, f func(e *E)) {
 	t.Run(name, func(t *testing.T) {
 		skipIfNotEvaluating(t)
 
-		f(&E{T: t})
+		e := &E{T: t}
+		e.ResetTimer()
+
+		f(e)
 	})
 }
 
 type E struct {
-	T *testing.T
+	T     *testing.T
+	start time.Time
+}
+
+// ResetTimer zeroes the elapsed eval time.
+// Similar to [testing.B.ResetTimer].
+func (e *E) ResetTimer() {
+	e.start = time.Now()
 }
 
 // Score a [Sample] using a [Scorer] and return the [Result].
@@ -59,8 +70,10 @@ func (e *E) Score(s Sample, scorer Scorer) Result {
 	return r
 }
 
-// Log a [Result].
-func (e *E) Log(r Result) {
+// Log a [Sample] and [Result].
+// This effectively logs the eval name, sample, and result, along with timing information.
+// TODO include token information?
+func (e *E) Log(s Sample, r Result) {
 	e.T.Helper()
-	e.T.Logf("result=%+v", r)
+	e.T.Logf("sample=%+v result=%+v duration=%v", s, r, time.Since(e.start))
 }
