@@ -57,11 +57,11 @@ jobs:
           go-version-file: go.mod
           check-latest: true
 
-      - name: Install evals
-        run: go install maragu.dev/evals
-
       - name: Get dependencies
         run: go mod download
+
+      - name: Install evals
+        run: go install maragu.dev/evals
 
       - name: Evaluate
         run: go test -json -run TestEval ./... | evals >> $GITHUB_STEP_SUMMARY
