@@ -66,9 +66,10 @@ jobs:
       - name: Evaluate
         run: go test -json -run TestEval ./... | evals >> $GITHUB_STEP_SUMMARY
 
-      - name: Evals
-        uses: maragudk/evals-action@main
-
+      - uses: actions/upload-artifact@v4
+        with:
+          name: evals.db
+          path: evals.db
   lint:
     name: Lint
     runs-on: ubuntu-latest
