@@ -68,7 +68,12 @@ jobs:
 
       - name: Read $GITHUB_STEP_SUMMARY file
         id: getsummary
-        run: echo "summary=$(cat $GITHUB_STEP_SUMMARY)" >> $GITHUB_OUTPUT
+        run: |
+          content=$(cat $GITHUB_STEP_SUMMARY)
+          content="${content//'%'/'%25'}"
+          content="${content//$'\n'/'%0A'}"
+          content="${content//$'\r'/'%0D'}"
+          echo "summary=$content" >> $GITHUB_OUTPUT
 
       - name: Add evals comment to PR
         uses: actions/github-script@v7
@@ -78,7 +83,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body: "${{ steps.getsummary.outputs.summary }}"
+              body: `${{ steps.getsummary.outputs.summary }}`
             })
 
       - uses: actions/upload-artifact@v4
