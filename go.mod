@@ -9,7 +9,7 @@ require (
 	github.com/openai/openai-go v0.1.0-alpha.43
 	google.golang.org/api v0.214.0
 	maragu.dev/env v0.2.0
-	maragu.dev/evals v0.0.0-20250109140843-7d1a2af9fa7b
+	maragu.dev/evals v0.0.0-20250110090454-18cd820491c8
 	maragu.dev/is v0.2.0
 )
 
@@ -27,6 +27,8 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.4 // indirect
 	github.com/googleapis/gax-go/v2 v2.14.0 // indirect
+	github.com/jmoiron/sqlx v1.4.0 // indirect
+	github.com/mattn/go-sqlite3 v1.14.24 // indirect
 	github.com/tidwall/gjson v1.14.4 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
@@ -47,4 +49,6 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20241209162323-e6fa225c2576 // indirect
 	google.golang.org/grpc v1.67.1 // indirect
 	google.golang.org/protobuf v1.35.2 // indirect
+	maragu.dev/errors v0.3.0 // indirect
+	maragu.dev/migrate v0.6.0 // indirect
 )
