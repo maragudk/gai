@@ -1,6 +1,7 @@
 package eval
 
 import (
+	"encoding/json"
 	"os"
 	"strings"
 	"testing"
@@ -70,10 +71,32 @@ func (e *E) Score(s Sample, scorer Scorer) Result {
 	return r
 }
 
+type logLine struct {
+	Sample   Sample
+	Result   Result
+	Duration time.Duration
+}
+
 // Log a [Sample] and [Result].
 // This effectively logs the eval name, sample, and result, along with timing information.
 // TODO include token information?
 func (e *E) Log(s Sample, r Result) {
 	e.T.Helper()
-	e.T.Logf("sample=%+v result=%+v duration=%v", s, r, time.Since(e.start))
+
+	l := logLine{
+		Sample:   s,
+		Result:   r,
+		Duration: time.Since(e.start),
+	}
+
+	e.T.Log(mustJSON(l))
+}
+
+func mustJSON(l logLine) string {
+	b, err := json.Marshal(l)
+	if err != nil {
+		panic(err)
+	}
+
+	return string(b)
 }

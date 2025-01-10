@@ -8,7 +8,7 @@ cover:
 
 .PHONY: evaluate
 evaluate:
-	go test -json -run TestEval ./... | jq 'select(.Test != null and .Action == "output" and (.Output | contains("result"))) | del(.Action)'
+	@go test -json -run TestEval ./... | evals
 
 .PHONY: lint
 lint:
