@@ -77,6 +77,11 @@ type logLine struct {
 	Duration time.Duration
 }
 
+const (
+	startDelimiter = "EVALRESULT🌜"
+	endDelimiter   = "🌛EVALRESULT"
+)
+
 // Log a [Sample] and [Result].
 // This effectively logs the eval name, sample, and result, along with timing information.
 // TODO include token information?
@@ -89,7 +94,7 @@ func (e *E) Log(s Sample, r Result) {
 		Duration: time.Since(e.start),
 	}
 
-	e.T.Log(mustJSON(l))
+	e.T.Log(startDelimiter + mustJSON(l) + endDelimiter)
 }
 
 func mustJSON(l logLine) string {
