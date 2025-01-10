@@ -66,24 +66,26 @@ jobs:
       - name: Evaluate
         run: go test -json -run TestEval ./... | evals | tee evals.txt >> $GITHUB_STEP_SUMMARY
 
+      - uses: actions/upload-artifact@v4
+        id: evalsdb
+        with:
+          name: evals.db
+          path: evals.db
+          if-no-files-found: error
+
       - name: Add evals comment to PR
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs')
-            const summary = fs.readFileSync('evals.txt', 'utf8')
+            const table = fs.readFileSync('evals.txt', 'utf8')
             github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body: summary
+              body: `# Evals\n\n${table}\n\n[Download evals.db](${{ steps.evalsdb.outputs.artifact-url }})`
             })
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: evals.db
-          path: evals.db
-          if-no-files-found: error
   lint:
     name: Lint
     runs-on: ubuntu-latest
