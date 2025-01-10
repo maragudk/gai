@@ -63,6 +63,14 @@ jobs:
       - name: Install evals
         run: go install maragu.dev/evals
 
+      - name: Download evals.db
+        id: download-artifact
+        uses: dawidd6/action-download-artifact@v7
+        with:
+          name: evals.db
+          branch: main
+          if_no_artifact_found: warn
+
       - name: Evaluate
         run: go test -json -run TestEval ./... | evals | tee evals.txt >> $GITHUB_STEP_SUMMARY
 
