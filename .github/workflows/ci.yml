@@ -57,11 +57,6 @@ jobs:
           go-version-file: go.mod
           check-latest: true
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
       - name: Get dependencies
         run: go mod download
 
@@ -71,20 +66,19 @@ jobs:
       - name: Evaluate
         run: go test -json -run TestEval ./... | evals >> $GITHUB_STEP_SUMMARY
 
+      - name: Read $GITHUB_STEP_SUMMARY file
+        id: getsummary
+        run: echo "summary=$(cat $GITHUB_STEP_SUMMARY)" >> $GITHUB_OUTPUT
+
       - name: Add evals comment to PR
         uses: actions/github-script@v7
         with:
           script: |
-            const fs = require('fs')
-            const summary = fs.readFileSync(process.env.GITHUB_STEP_SUMMARY, 'utf8')
-
-            console.log(summary)
-
             github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body: summary
+              body: ${{ steps.getsummary.outputs.summary }}
             })
 
       - uses: actions/upload-artifact@v4
