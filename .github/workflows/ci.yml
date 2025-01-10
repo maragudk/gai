@@ -78,7 +78,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body: ${{ steps.getsummary.outputs.summary }}
+              body: "${{ steps.getsummary.outputs.summary }}"
             })
 
       - uses: actions/upload-artifact@v4
