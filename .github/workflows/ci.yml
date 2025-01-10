@@ -78,6 +78,8 @@ jobs:
             const fs = require('fs')
             const summary = fs.readFileSync(process.env.GITHUB_STEP_SUMMARY, 'utf8')
 
+            console.log(summary)
+
             github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
