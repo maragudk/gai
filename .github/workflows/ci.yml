@@ -68,7 +68,6 @@ jobs:
         uses: dawidd6/action-download-artifact@v7
         with:
           name: evals.db
-          path: evals.db
           branch: main
           if_no_artifact_found: warn
 
