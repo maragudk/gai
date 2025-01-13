@@ -6,7 +6,7 @@ require (
 	github.com/agnivade/levenshtein v1.2.0
 	github.com/anthropics/anthropic-sdk-go v0.2.0-alpha.8
 	github.com/google/generative-ai-go v0.19.0
-	github.com/openai/openai-go v0.1.0-alpha.43
+	github.com/openai/openai-go v0.1.0-alpha.45
 	google.golang.org/api v0.214.0
 	maragu.dev/env v0.2.0
 	maragu.dev/evals v0.0.0-20250110140605-d045751e4b4d
