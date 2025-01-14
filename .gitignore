@@ -1,3 +1,4 @@
 /.env*.local
 /cover.out
-evals.db
+/evals.db
+/evals.jsonl
