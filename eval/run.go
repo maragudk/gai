@@ -3,7 +3,10 @@ package eval
 import (
 	"encoding/json"
 	"os"
+	"path"
+	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -72,36 +75,82 @@ func (e *E) Score(s Sample, scorer Scorer) Result {
 }
 
 type logLine struct {
+	Name     string
 	Sample   Sample
 	Result   Result
 	Duration time.Duration
 }
 
-const (
-	startDelimiter = "EVALRESULT🌜"
-	endDelimiter   = "🌛EVALRESULT"
-)
+var evalsFileLock sync.Mutex
+var evalsFileOnce sync.Once
 
-// Log a [Sample] and [Result].
+// Log a [Sample] and [Result] to evals.txt.
 // This effectively logs the eval name, sample, and result, along with timing information.
 // TODO include token information?
 func (e *E) Log(s Sample, r Result) {
 	e.T.Helper()
 
 	l := logLine{
+		Name:     e.T.Name(),
 		Sample:   s,
 		Result:   r,
 		Duration: time.Since(e.start),
 	}
 
-	e.T.Log(startDelimiter + mustJSON(l) + endDelimiter)
+	e.T.Logf("%+v", l)
+
+	evalsFileLock.Lock()
+	defer evalsFileLock.Unlock()
+
+	dir := findProjectRoot(e.T)
+	path := path.Join(dir, "evals.jsonl")
+
+	evalsFileOnce.Do(func() {
+		if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+			e.T.Fatal(err)
+		}
+	})
+
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		e.T.Fatal(err)
+	}
+	defer func() {
+		_ = f.Close()
+	}()
+
+	if _, err := f.Write(mustJSON(l)); err != nil {
+		e.T.Fatal(err)
+	}
 }
 
-func mustJSON(l logLine) string {
+func mustJSON(l logLine) []byte {
 	b, err := json.Marshal(l)
 	if err != nil {
 		panic(err)
 	}
+	b = append(b, '\n')
 
-	return string(b)
+	return b
+}
+
+func findProjectRoot(t *testing.T) string {
+	t.Helper()
+
+	dir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for {
+		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+			return dir
+		}
+
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			t.Fatal("could not find go.mod file")
+		}
+		dir = parent
+	}
 }

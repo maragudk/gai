@@ -8,7 +8,8 @@ cover:
 
 .PHONY: evaluate
 evaluate:
-	@go test -json -run TestEval ./... | evals
+	go test -run TestEval ./...
+	evals | glow
 
 .PHONY: lint
 lint:

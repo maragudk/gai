@@ -76,7 +76,9 @@ jobs:
           if_no_artifact_found: warn
 
       - name: Evaluate
-        run: go test -json -run TestEval ./... | evals | tee evals.txt >> $GITHUB_STEP_SUMMARY
+        run: |
+          go test -run TestEval ./...
+          evals | tee evals.txt >> $GITHUB_STEP_SUMMARY
 
       - name: Upload evals.db
         uses: actions/upload-artifact@v4
