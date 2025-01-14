@@ -32,6 +32,6 @@ func TestGoogleClientCompletion(t *testing.T) {
 		res, err := model.GenerateContent(context.Background(), genai.Text("Hi."))
 		is.NotError(t, err)
 		is.True(t, len(res.Candidates) > 0)
-		is.True(t, strings.Contains(fmt.Sprint(res.Candidates[0].Content.Parts), "Hi"))
+		is.True(t, strings.Contains(fmt.Sprint(res.Candidates[0].Content.Parts[0]), "Hi"))
 	})
 }

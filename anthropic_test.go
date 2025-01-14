@@ -38,6 +38,7 @@ func TestAnthropicClientCompletion(t *testing.T) {
 			MaxTokens: anthropic.F(int64(4)),
 		})
 		is.NotError(t, err)
-		is.True(t, strings.Contains(fmt.Sprint(res.Content), "Hi"))
+		is.True(t, len(res.Content) > 0)
+		is.True(t, strings.Contains(fmt.Sprint(res.Content[0].Text), "Hi"))
 	})
 }

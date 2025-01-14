@@ -12,7 +12,7 @@ func TestEvalPrompt(t *testing.T) {
 	// Evals only run if "go test" is being run with "-test.run=TestEval", e.g.: "go test -test.run=TestEval ./..."
 	eval.Run(t, "answers with a pong", func(e *eval.E) {
 		// Initialize our intensely powerful LLM.
-		llm := &llm{response: "plong"}
+		llm := &powerfulLLM{response: "plong"}
 
 		// Send our input to the LLM and get an output back.
 		input := "ping"
@@ -34,10 +34,10 @@ func TestEvalPrompt(t *testing.T) {
 	})
 }
 
-type llm struct {
+type powerfulLLM struct {
 	response string
 }
 
-func (l *llm) Prompt(request string) string {
+func (l *powerfulLLM) Prompt(request string) string {
 	return l.response
 }
