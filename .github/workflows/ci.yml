@@ -79,6 +79,10 @@ jobs:
         run: |
           go test -run TestEval ./...
           evals | tee evals.txt >> $GITHUB_STEP_SUMMARY
+        env:
+          OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
+          ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_KEY }}
+          GOOGLE_KEY: ${{ secrets.GOOGLE_KEY }}
 
       - name: Upload evals.db
         uses: actions/upload-artifact@v4
