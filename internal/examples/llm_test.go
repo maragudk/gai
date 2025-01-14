@@ -64,7 +64,8 @@ func gpt4oMini(prompt string) string {
 		Messages: openai.F([]openai.ChatCompletionMessageParamUnion{
 			openai.UserMessage(prompt),
 		}),
-		Model: openai.F(openai.ChatModelGPT4oMini),
+		Model:       openai.F(openai.ChatModelGPT4oMini),
+		Temperature: openai.F(0.0),
 	})
 	if err != nil {
 		panic(err)
@@ -75,6 +76,8 @@ func gpt4oMini(prompt string) string {
 func gemini15Flash(prompt string) string {
 	client := llm.NewGoogleClient(llm.NewGoogleClientOptions{Key: env.GetStringOrDefault("GOOGLE_KEY", "")})
 	model := client.Client.GenerativeModel("models/gemini-1.5-flash-latest")
+	var temperature float32 = 0
+	model.Temperature = &temperature
 	res, err := model.GenerateContent(context.Background(), genai.Text(prompt))
 	if err != nil {
 		panic(err)
