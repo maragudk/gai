@@ -75,6 +75,7 @@ func (e *E) Score(s Sample, scorer Scorer) Result {
 }
 
 type logLine struct {
+	Name     string
 	Sample   Sample
 	Result   Result
 	Duration time.Duration
@@ -90,6 +91,7 @@ func (e *E) Log(s Sample, r Result) {
 	e.T.Helper()
 
 	l := logLine{
+		Name:     e.T.Name(),
 		Sample:   s,
 		Result:   r,
 		Duration: time.Since(e.start),
