@@ -37,18 +37,20 @@ type Result struct {
 // Scorer produces a [Result] with a [Score] for a [Sample].
 type Scorer = func(s Sample) Result
 
-// LevenshteinDistanceScorer returns a [Scorer] that uses the [LevenshteinDistanceScore] to compare strings.
+// LevenshteinDistanceScorer returns a [Scorer] that uses the Levenshtein distance to compare strings.
+// It does this by computing the distance between the expected and output strings, and then normalizing
+// it to a [Score] between 0 and 1 using the max length of the two strings.
 func LevenshteinDistanceScorer() Scorer {
 	return func(sample Sample) Result {
-		score := LevenshteinDistanceScore(sample.Expected, sample.Output)
+		score := levenshteinDistanceScore(sample.Expected, sample.Output)
 		return Result{Score: score, Type: "LevenshteinDistance"}
 	}
 }
 
-// LevenshteinDistanceScore computes a [Score] between two strings using the levenshtein distance.
+// levenshteinDistanceScore computes a [Score] between two strings using the levenshtein distance.
 // A score of 1 means the strings are equal, and 0 means they are completely different.
 // Uses https://github.com/agnivade/levenshtein
-func LevenshteinDistanceScore(s1, s2 string) Score {
+func levenshteinDistanceScore(s1, s2 string) Score {
 	if s1 == s2 {
 		return 1
 	}
