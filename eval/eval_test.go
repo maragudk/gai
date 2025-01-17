@@ -9,50 +9,52 @@ import (
 	"maragu.dev/llm/eval"
 )
 
-func TestLevenshteinDistanceScorer(t *testing.T) {
-	tests := []struct {
-		expected, output string
-		score            eval.Score
-	}{
-		{"", "", 1},
-		{"a", "", 0},
-		{"", "a", 0},
-		{"a", "a", 1},
-		{"a", "b", 0},
-		{"a", "aa", 0.5},
-		{"aa", "a", 0.5},
-		{"a", "aaa", 1.0 / 3},
-		{"aaa", "a", 1.0 / 3},
-	}
-	for _, test := range tests {
-		t.Run(test.expected+" "+test.output, func(t *testing.T) {
-			scorer := eval.LevenshteinDistanceScorer()
-			result := scorer(eval.Sample{Expected: test.expected, Output: test.output})
-			is.True(t, math.Abs(float64(test.score-result.Score)) < 0.01)
-		})
-	}
+func TestLexicalSimilarityScorer(t *testing.T) {
+	t.Run("with LevenshteinDistance", func(t *testing.T) {
+		tests := []struct {
+			expected, output string
+			score            eval.Score
+		}{
+			{"", "", 1},
+			{"a", "", 0},
+			{"", "a", 0},
+			{"a", "a", 1},
+			{"a", "b", 0},
+			{"a", "aa", 0.5},
+			{"aa", "a", 0.5},
+			{"a", "aaa", 1.0 / 3},
+			{"aaa", "a", 1.0 / 3},
+		}
+		for _, test := range tests {
+			t.Run(test.expected+" "+test.output, func(t *testing.T) {
+				scorer := eval.LexicalSimilarityScorer(eval.LevenshteinDistance)
+				result := scorer(eval.Sample{Expected: test.expected, Output: test.output})
+				is.True(t, math.Abs(float64(test.score-result.Score)) < 0.01)
+			})
+		}
+	})
+
+	t.Run("with ExactMatch", func(t *testing.T) {
+		tests := []struct {
+			expected, output string
+			score            eval.Score
+		}{
+			{"", "", 1},
+			{"a", "", 0},
+			{"", "a", 0},
+			{"a", "a", 1},
+		}
+		for _, test := range tests {
+			t.Run(test.expected+" "+test.output, func(t *testing.T) {
+				scorer := eval.LexicalSimilarityScorer(eval.ExactMatch)
+				result := scorer(eval.Sample{Expected: test.expected, Output: test.output})
+				is.Equal(t, test.score, result.Score)
+			})
+		}
+	})
 }
 
-func TestExactMatchScorer(t *testing.T) {
-	tests := []struct {
-		expected, output string
-		score            eval.Score
-	}{
-		{"", "", 1},
-		{"a", "", 0},
-		{"", "a", 0},
-		{"a", "a", 1},
-	}
-	for _, test := range tests {
-		t.Run(test.expected+" "+test.output, func(t *testing.T) {
-			scorer := eval.ExactMatchScorer()
-			result := scorer(eval.Sample{Expected: test.expected, Output: test.output})
-			is.Equal(t, test.score, result.Score)
-		})
-	}
-}
-
-func TestSemanticMatchScorer(t *testing.T) {
+func TestSemanticSimilarityScorer(t *testing.T) {
 	tests := []struct {
 		expected, output                   string
 		expectedEmbedding, outputEmbedding []float64
@@ -72,7 +74,7 @@ func TestSemanticMatchScorer(t *testing.T) {
 				},
 			}
 
-			scorer := eval.SemanticMatchScorer(eg, eval.CosineSimilarity)
+			scorer := eval.SemanticSimilarityScorer(eg, eval.CosineSimilarity)
 			result := scorer(eval.Sample{Expected: test.expected, Output: test.output})
 			is.True(t, math.Abs(float64(test.score-result.Score)) < 0.01)
 		})

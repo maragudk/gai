@@ -39,35 +39,36 @@ type Result struct {
 // Scorer produces a [Result] (including a [Score]) for the given [Sample].
 type Scorer = func(s Sample) Result
 
-// LevenshteinDistanceScorer returns a [Scorer] that uses the Levenshtein distance to compare strings.
-// This is a common lexical similarity metric which is useful if you have a reference text.
-// The scorer computes the distance between the expected (reference) and output strings of the [Sample],
-// and then normalizes it to a [Score] between 0 and 1 using the max length of the two strings.
-func LevenshteinDistanceScorer() Scorer {
+// LexicalSimilarityScorer returns a [Scorer] which uses a lexical similarity metric to compare
+// expected and output strings from a [Sample].
+// This is a common way to score texts if you have a reference text.
+// You can choose which similarity function to use, such as [LevenshteinDistance] or [ExactMatch].
+func LexicalSimilarityScorer(similarityFunc func(a, b string) Score) Scorer {
 	return func(sample Sample) Result {
-		score := levenshteinDistanceScore(sample.Expected, sample.Output)
-		return Result{Score: score, Type: "LevenshteinDistance"}
+		score := LevenshteinDistance(sample.Expected, sample.Output)
+		return Result{Score: score, Type: "LexicalSimilarity"}
 	}
 }
 
-// levenshteinDistanceScore computes a [Score] between two strings using the levenshtein distance.
+// LevenshteinDistance computes a [Score] between two strings using the levenshtein distance,
+// and is useful as a lexical similarity metric together with [LexicalSimilarityScorer].
 // A score of 1 means the strings are equal, and 0 means they are completely different.
-// Uses https://github.com/agnivade/levenshtein
-func levenshteinDistanceScore(s1, s2 string) Score {
-	if s1 == s2 {
+// The score is normalized to the length of the longest string.
+// Uses https://github.com/agnivade/levenshtein internally.
+func LevenshteinDistance(a, b string) Score {
+	if a == b {
 		return 1
 	}
-	return Score(1 - float64(levenshtein.ComputeDistance(s1, s2))/float64(max(len(s1), len(s2))))
+	return Score(1 - float64(levenshtein.ComputeDistance(a, b))/float64(max(len(a), len(b))))
 }
 
-// ExactMatchScorer returns a [Scorer] that scores 1 if the expected and output strings are equal, and 0 otherwise.
-func ExactMatchScorer() Scorer {
-	return func(sample Sample) Result {
-		if sample.Expected == sample.Output {
-			return Result{Score: 1, Type: "ExactMatch"}
-		}
-		return Result{Score: 0, Type: "ExactMatch"}
+// ExactMatch computes a [Score] between two strings, returning 1 if they are equal and 0 otherwise.
+// Useful as a simple [Scorer] for exact string matching together with [LexicalSimilarityScorer].
+func ExactMatch(a, b string) Score {
+	if a == b {
+		return 1
 	}
+	return 0
 }
 
 // VectorComponent is a single component of a vector.
@@ -79,9 +80,9 @@ type embeddingGetter[T VectorComponent] interface {
 	GetEmbedding(v string) ([]T, error)
 }
 
-// SemanticMatchScorer returns a [Scorer] which uses embedding vectors to compare expected and output strings from a [Sample].
+// SemanticSimilarityScorer returns a [Scorer] which uses embedding vectors to compare expected and output strings from a [Sample].
 // You can choose which vector similarity function to use. If in doubt, use [CosineSimilarity].
-func SemanticMatchScorer[T VectorComponent](eg embeddingGetter[T], similarityFunc func(a, b []T) Score) Scorer {
+func SemanticSimilarityScorer[T VectorComponent](eg embeddingGetter[T], similarityFunc func(a, b []T) Score) Scorer {
 	return func(sample Sample) Result {
 		expected, err := eg.GetEmbedding(sample.Expected)
 		if err != nil {
@@ -93,7 +94,7 @@ func SemanticMatchScorer[T VectorComponent](eg embeddingGetter[T], similarityFun
 		}
 
 		score := similarityFunc(expected, output)
-		return Result{Score: score, Type: "SemanticMatch"}
+		return Result{Score: score, Type: "SemanticSimilarity"}
 	}
 }
 

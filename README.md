@@ -51,7 +51,7 @@ func TestEvalPrompt(t *testing.T) {
 
 		// Score the sample using the Levenshtein distance scorer.
 		// The scorer is created inline, but for scorers that need more setup, this can be done elsewhere.
-		result := e.Score(sample, eval.LevenshteinDistanceScorer())
+		result := e.Score(sample, eval.LexicalSimilarityScorer(eval.LevenshteinDistance))
 
 		// Log the sample, result, and timing information.
 		e.Log(sample, result)
