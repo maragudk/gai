@@ -1,5 +1,5 @@
-// Package eval lets you evaluate LLM output by scoring it with various scoring methods, and logging the result.
-// It provides a convenient way to run evaluations as part of the standard Go tests using the [Run] function.
+// Package eval lets you evaluate LLM output with various [Scorer] functions.
+// It also provides a convenient way to run evaluations as part of the standard Go tests using the [Run] function.
 package eval
 
 import (
@@ -23,6 +23,7 @@ func (s Score) IsValid() {
 	}
 }
 
+// String satisfies [fmt.Stringer].
 func (s Score) String() string {
 	// floating point with two decimals
 	return fmt.Sprintf("%.2f", float64(s))
@@ -34,7 +35,7 @@ type Result struct {
 	Type  string
 }
 
-// Scorer produces a [Result] with a [Score] for a [Sample].
+// Scorer produces a [Result] (including a [Score]) for the given [Sample].
 type Scorer = func(s Sample) Result
 
 // LevenshteinDistanceScorer returns a [Scorer] that uses the Levenshtein distance to compare strings.
