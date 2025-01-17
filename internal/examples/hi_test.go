@@ -52,7 +52,7 @@ func TestEvalLLMs(t *testing.T) {
 				Expected: test.expected,
 			}
 
-			result := e.Score(sample, eval.LevenshteinDistanceScorer())
+			result := e.Score(sample, eval.LexicalSimilarityScorer(eval.LevenshteinDistance))
 
 			e.Log(sample, result)
 		})
