@@ -4,6 +4,7 @@ package eval
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/agnivade/levenshtein"
 )
@@ -39,8 +40,9 @@ type Result struct {
 type Scorer = func(s Sample) Result
 
 // LevenshteinDistanceScorer returns a [Scorer] that uses the Levenshtein distance to compare strings.
-// It does this by computing the distance between the expected and output strings, and then normalizing
-// it to a [Score] between 0 and 1 using the max length of the two strings.
+// This is a common lexical similarity metric which is useful if you have a reference text.
+// The scorer computes the distance between the expected (reference) and output strings of the [Sample],
+// and then normalizes it to a [Score] between 0 and 1 using the max length of the two strings.
 func LevenshteinDistanceScorer() Scorer {
 	return func(sample Sample) Result {
 		score := levenshteinDistanceScore(sample.Expected, sample.Output)
@@ -66,4 +68,71 @@ func ExactMatchScorer() Scorer {
 		}
 		return Result{Score: 0, Type: "ExactMatch"}
 	}
+}
+
+// VectorComponent is a single component of a vector.
+type VectorComponent interface {
+	~float32 | ~float64
+}
+
+type embeddingGetter[T VectorComponent] interface {
+	GetEmbedding(v string) ([]T, error)
+}
+
+// SemanticMatchScorer returns a [Scorer] which uses embedding vectors to compare expected and output strings from a [Sample].
+// You can choose which vector similarity function to use. If in doubt, use [CosineSimilarity].
+func SemanticMatchScorer[T VectorComponent](eg embeddingGetter[T], similarityFunc func(a, b []T) Score) Scorer {
+	return func(sample Sample) Result {
+		expected, err := eg.GetEmbedding(sample.Expected)
+		if err != nil {
+			panic("could not get embedding for expected string: " + err.Error())
+		}
+		output, err := eg.GetEmbedding(sample.Output)
+		if err != nil {
+			panic("could not get embedding for output string: " + err.Error())
+		}
+
+		score := similarityFunc(expected, output)
+		return Result{Score: score, Type: "SemanticMatch"}
+	}
+}
+
+// CosineSimilarity between two embedding vectors a and b, normalized to a [Score].
+func CosineSimilarity[T VectorComponent](a, b []T) Score {
+	if len(a) != len(b) {
+		panic(fmt.Sprintf("vectors must have equal length, but are lengths %v and %v", len(a), len(b)))
+	}
+
+	if len(a) == 0 {
+		panic("vectors cannot be empty")
+	}
+
+	// Compute dot product and Euclidean norm (L2 norm)
+	var dotProduct, normA, normB T
+	for i := range len(a) {
+		dotProduct += a[i] * b[i]
+		normA += a[i] * a[i]
+		normB += b[i] * b[i]
+	}
+	normA = T(math.Sqrt(float64(normA)))
+	normB = T(math.Sqrt(float64(normB)))
+
+	if normA == 0 || normB == 0 {
+		panic("norm of a or b is zero and cosine similarity is undefined")
+	}
+
+	similarity := dotProduct / (normA * normB)
+
+	// Normalize from [-1, 1] to [0, 1] range
+	normalizedSimilarity := (similarity + 1) / 2
+
+	// Clamp to [0, 1] range, may be necessary because of floating point rounding errors
+	if normalizedSimilarity < 0 {
+		return 0
+	}
+	if normalizedSimilarity > 1 {
+		return 1
+	}
+
+	return Score(normalizedSimilarity)
 }
