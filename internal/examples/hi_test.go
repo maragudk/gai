@@ -2,6 +2,7 @@ package examples_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -9,6 +10,7 @@ import (
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/google/generative-ai-go/genai"
 	"github.com/openai/openai-go"
+	"github.com/openai/openai-go/shared"
 	"maragu.dev/env"
 
 	"maragu.dev/llm"
@@ -53,7 +55,9 @@ func TestEvalLLMs(t *testing.T) {
 			}
 
 			result := e.Score(sample, eval.LexicalSimilarityScorer(eval.LevenshteinDistance))
+			e.Log(sample, result)
 
+			result = e.Score(sample, eval.SemanticSimilarityScorer(&embeddingGetter{}, eval.CosineSimilarity))
 			e.Log(sample, result)
 		})
 	}
@@ -100,4 +104,23 @@ func claude35Haiku(prompt string) string {
 		panic(err)
 	}
 	return fmt.Sprint(res.Content[0].Text)
+}
+
+type embeddingGetter struct{}
+
+func (e *embeddingGetter) GetEmbedding(v string) ([]float64, error) {
+	client := llm.NewOpenAIClient(llm.NewOpenAIClientOptions{Key: env.GetStringOrDefault("OPENAI_KEY", "")})
+	res, err := client.Client.Embeddings.New(context.Background(), openai.EmbeddingNewParams{
+		Input:          openai.F[openai.EmbeddingNewParamsInputUnion](shared.UnionString(v)),
+		Model:          openai.F(openai.EmbeddingModelTextEmbedding3Small),
+		EncodingFormat: openai.F(openai.EmbeddingNewParamsEncodingFormatFloat),
+		Dimensions:     openai.F(int64(128)),
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(res.Data) == 0 {
+		return nil, errors.New("no embeddings returned")
+	}
+	return res.Data[0].Embedding, nil
 }
