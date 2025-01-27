@@ -7,7 +7,7 @@ require (
 	github.com/anthropics/anthropic-sdk-go v0.2.0-alpha.9
 	github.com/google/generative-ai-go v0.19.0
 	github.com/openai/openai-go v0.1.0-alpha.46
-	google.golang.org/api v0.217.0
+	google.golang.org/api v0.218.0
 	maragu.dev/env v0.2.0
 	maragu.dev/evals v0.0.0-20250121115836-88d0af926396
 	maragu.dev/is v0.2.0
@@ -46,9 +46,9 @@ require (
 	golang.org/x/text v0.21.0 // indirect
 	golang.org/x/time v0.9.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20241209162323-e6fa225c2576 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250106144421-5f5ef82da422 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250115164207-1a7da9e5054f // indirect
 	google.golang.org/grpc v1.69.4 // indirect
-	google.golang.org/protobuf v1.36.2 // indirect
+	google.golang.org/protobuf v1.36.3 // indirect
 	maragu.dev/errors v0.3.0 // indirect
 	maragu.dev/migrate v0.6.0 // indirect
 )
