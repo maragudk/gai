@@ -3,7 +3,7 @@ module maragu.dev/llm
 go 1.23
 
 require (
-	github.com/agnivade/levenshtein v1.2.0
+	github.com/agnivade/levenshtein v1.2.1
 	github.com/anthropics/anthropic-sdk-go v0.2.0-alpha.9
 	github.com/google/generative-ai-go v0.19.0
 	github.com/openai/openai-go v0.1.0-alpha.51
