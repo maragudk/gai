@@ -9,7 +9,7 @@ require (
 	github.com/openai/openai-go v0.1.0-alpha.51
 	google.golang.org/api v0.219.0
 	maragu.dev/env v0.2.0
-	maragu.dev/evals v0.0.0-20250206105339-c07b5fbecd36
+	maragu.dev/evals v0.0.0-20250206122034-4fd98b76df39
 	maragu.dev/is v0.2.0
 )
 
