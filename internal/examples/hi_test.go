@@ -54,11 +54,9 @@ func TestEvalLLMs(t *testing.T) {
 				Expected: test.expected,
 			}
 
-			result := e.Score(sample, eval.LexicalSimilarityScorer(eval.LevenshteinDistance))
-			e.Log(sample, result)
-
-			result = e.Score(sample, eval.SemanticSimilarityScorer(&embeddingGetter{}, eval.CosineSimilarity))
-			e.Log(sample, result)
+			lexicalSimilarityResult := e.Score(sample, eval.LexicalSimilarityScorer(eval.LevenshteinDistance))
+			semanticSimilarityResult := e.Score(sample, eval.SemanticSimilarityScorer(&embeddingGetter{}, eval.CosineSimilarity))
+			e.Log(sample, lexicalSimilarityResult, semanticSimilarityResult)
 		})
 	}
 }

@@ -77,23 +77,23 @@ func (e *E) Score(s Sample, scorer Scorer) Result {
 type logLine struct {
 	Name     string
 	Sample   Sample
-	Result   Result
+	Results  []Result
 	Duration time.Duration
 }
 
 var evalsFileLock sync.Mutex
 var evalsFileOnce sync.Once
 
-// Log a [Sample] and [Result] to evals.txt.
-// This effectively logs the eval name, sample, and result, along with timing information.
+// Log a [Sample] and [Result]-s to evals.jsonl.
+// This effectively logs the eval name, sample, and results, along with timing information.
 // TODO include token information?
-func (e *E) Log(s Sample, r Result) {
+func (e *E) Log(s Sample, rs ...Result) {
 	e.T.Helper()
 
 	l := logLine{
 		Name:     e.T.Name(),
 		Sample:   s,
-		Result:   r,
+		Results:  rs,
 		Duration: time.Since(e.start),
 	}
 
