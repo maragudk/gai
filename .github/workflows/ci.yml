@@ -78,7 +78,7 @@ jobs:
       - name: Evaluate
         run: |
           go test -run TestEval ./...
-          evals | tee evals.txt >> $GITHUB_STEP_SUMMARY
+          evals -branch ${{ github.ref_name }} | tee evals.txt >> $GITHUB_STEP_SUMMARY
         env:
           OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
           ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_KEY }}
