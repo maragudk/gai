@@ -1,6 +1,6 @@
 module maragu.dev/llm
 
-go 1.23
+go 1.24
 
 require (
 	github.com/agnivade/levenshtein v1.2.1
@@ -9,7 +9,6 @@ require (
 	github.com/openai/openai-go v0.1.0-alpha.56
 	google.golang.org/api v0.220.0
 	maragu.dev/env v0.2.0
-	maragu.dev/evals v0.0.0-20250211175526-44a9af27cd78
 	maragu.dev/is v0.2.0
 )
 
@@ -51,5 +50,8 @@ require (
 	google.golang.org/grpc v1.70.0 // indirect
 	google.golang.org/protobuf v1.36.4 // indirect
 	maragu.dev/errors v0.3.0 // indirect
+	maragu.dev/evals v0.0.0-20250213130912-a8d39b751df1 // indirect
 	maragu.dev/migrate v0.6.0 // indirect
 )
+
+tool maragu.dev/evals
