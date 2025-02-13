@@ -203,3 +203,7 @@ func (e *embeddingGetter) GetEmbedding(v string) ([]float64, error) {
 	return res.Data[0].Embedding, nil
 }
 ```
+
+## Evals
+
+![Evals](https://api.evals.fun/evals.svg?key=p_public_key_3cce2e69199da00dc5ae46643b42a001&branch=main)
