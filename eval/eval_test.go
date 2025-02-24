@@ -6,7 +6,7 @@ import (
 
 	"maragu.dev/is"
 
-	"maragu.dev/llm/eval"
+	"maragu.dev/gai/eval"
 )
 
 func TestLexicalSimilarityScorer(t *testing.T) {

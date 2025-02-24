@@ -3,7 +3,7 @@ package examples_test
 import (
 	"testing"
 
-	"maragu.dev/llm/eval"
+	"maragu.dev/gai/eval"
 )
 
 // TestEvalPrompt evaluates the Prompt method.

@@ -1,4 +1,4 @@
-module maragu.dev/llm
+module maragu.dev/gai
 
 go 1.24
 

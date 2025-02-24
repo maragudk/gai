@@ -1,4 +1,4 @@
-package llm_test
+package gai_test
 
 import (
 	"context"
@@ -8,14 +8,13 @@ import (
 
 	"github.com/google/generative-ai-go/genai"
 	"maragu.dev/env"
+	"maragu.dev/gai"
 	"maragu.dev/is"
-
-	"maragu.dev/llm"
 )
 
 func TestNewGoogleClient(t *testing.T) {
 	t.Run("can create a new client with a key", func(t *testing.T) {
-		client := llm.NewGoogleClient(llm.NewGoogleClientOptions{Key: "123"})
+		client := gai.NewGoogleClient(gai.NewGoogleClientOptions{Key: "123"})
 		is.NotNil(t, client)
 	})
 }
@@ -24,7 +23,7 @@ func TestGoogleClientCompletion(t *testing.T) {
 	_ = env.Load(".env.test.local")
 
 	t.Run("can do a basic chat completion", func(t *testing.T) {
-		client := llm.NewGoogleClient(llm.NewGoogleClientOptions{Key: env.GetStringOrDefault("GOOGLE_KEY", "")})
+		client := gai.NewGoogleClient(gai.NewGoogleClientOptions{Key: env.GetStringOrDefault("GOOGLE_KEY", "")})
 		is.NotNil(t, client)
 
 		model := client.Client.GenerativeModel("models/gemini-1.5-flash-latest")
