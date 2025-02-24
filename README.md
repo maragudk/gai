@@ -7,6 +7,8 @@
 
 Go Artificial Intelligence (GAI) helps you work with foundational models, large language models, and other AI models.
 
+Pronounced like "guy".
+
 ⚠️ **This library is in development**. Things will probably break, but existing functionality is usable. ⚠️
 
 ```shell
