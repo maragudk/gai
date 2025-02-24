@@ -17,6 +17,21 @@ type Prompt struct {
 	Temperature *float64
 }
 
+type Message struct {
+	Role  MessageRole
+	Parts []MessagePart
+}
+
+// NewUserTextMessage is a convenience function to create a new user text message.
+func NewUserTextMessage(text string) Message {
+	return Message{
+		Role: MessageRoleUser,
+		Parts: []MessagePart{
+			TextMessagePart(text),
+		},
+	}
+}
+
 // MessageRole for [Message].
 type MessageRole string
 
@@ -24,18 +39,6 @@ const (
 	MessageRoleUser      MessageRole = "user"
 	MessageRoleAssistant MessageRole = "assistant"
 )
-
-// MessagePartType for [MessagePart].
-type MessagePartType string
-
-const (
-	MessagePartTypeText MessagePartType = "text"
-)
-
-type Message struct {
-	Role  MessageRole
-	Parts []MessagePart
-}
 
 type MessagePart struct {
 	Type MessagePartType
@@ -56,6 +59,13 @@ func (m MessagePart) Text() string {
 	}
 	return string(text)
 }
+
+// MessagePartType for [MessagePart].
+type MessagePartType string
+
+const (
+	MessagePartTypeText MessagePartType = "text"
+)
 
 func TextMessagePart(text string) MessagePart {
 	return MessagePart{
