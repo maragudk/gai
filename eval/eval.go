@@ -1,4 +1,4 @@
-// Package eval lets you evaluate LLM output with various [Scorer] functions.
+// Package eval lets you evaluate models with various [Scorer] functions.
 // It also provides a convenient way to run evaluations as part of the standard Go tests using the [Run] function.
 package eval
 

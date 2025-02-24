@@ -1,11 +1,11 @@
-package llm_test
+package gai_test
 
 import (
 	"testing"
 
 	"maragu.dev/env"
+	"maragu.dev/gai"
 	"maragu.dev/is"
-	"maragu.dev/llm"
 )
 
 func TestChatCompleter(t *testing.T) {
@@ -14,19 +14,19 @@ func TestChatCompleter(t *testing.T) {
 	t.Run("can send a streaming chat completion request", func(t *testing.T) {
 		tests := []struct {
 			name string
-			cc   llm.Completer
+			cc   gai.Completer
 		}{
 			{"openai", newOpenAIClient()},
 		}
 
 		for _, test := range tests {
 			t.Run(test.name, func(t *testing.T) {
-				prompt := llm.Prompt{
-					Model: llm.ModelGPT4oMini,
-					Messages: []llm.Message{
-						{Role: llm.MessageRoleUser, Parts: []llm.MessagePart{llm.TextMessagePart("Hi!")}},
+				prompt := gai.Prompt{
+					Model: gai.ModelGPT4oMini,
+					Messages: []gai.Message{
+						{Role: gai.MessageRoleUser, Parts: []gai.MessagePart{gai.TextMessagePart("Hi!")}},
 					},
-					Temperature: llm.Ptr(0.0),
+					Temperature: gai.Ptr(0.0),
 				}
 
 				res := test.cc.Complete(t.Context(), prompt)
@@ -42,8 +42,8 @@ func TestChatCompleter(t *testing.T) {
 	})
 }
 
-func newOpenAIClient() *llm.OpenAIClient {
+func newOpenAIClient() *gai.OpenAIClient {
 	_ = env.Load(".env.test.local")
 
-	return llm.NewOpenAIClient(llm.NewOpenAIClientOptions{Key: env.GetStringOrDefault("OPENAI_KEY", "")})
+	return gai.NewOpenAIClient(gai.NewOpenAIClientOptions{Key: env.GetStringOrDefault("OPENAI_KEY", "")})
 }

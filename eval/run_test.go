@@ -3,7 +3,7 @@ package eval_test
 import (
 	"testing"
 
-	"maragu.dev/llm/eval"
+	"maragu.dev/gai/eval"
 )
 
 func TestRun(t *testing.T) {

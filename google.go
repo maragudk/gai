@@ -1,4 +1,4 @@
-package llm
+package gai
 
 import (
 	"context"

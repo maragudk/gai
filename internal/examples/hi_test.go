@@ -13,8 +13,8 @@ import (
 	"github.com/openai/openai-go/shared"
 	"maragu.dev/env"
 
-	"maragu.dev/llm"
-	"maragu.dev/llm/eval"
+	"maragu.dev/gai"
+	"maragu.dev/gai/eval"
 )
 
 // TestEvalLLMs evaluates different LLMs with the same prompts.
@@ -62,7 +62,7 @@ func TestEvalLLMs(t *testing.T) {
 }
 
 func gpt4oMini(prompt string) string {
-	client := llm.NewOpenAIClient(llm.NewOpenAIClientOptions{Key: env.GetStringOrDefault("OPENAI_KEY", "")})
+	client := gai.NewOpenAIClient(gai.NewOpenAIClientOptions{Key: env.GetStringOrDefault("OPENAI_KEY", "")})
 	res, err := client.Client.Chat.Completions.New(context.Background(), openai.ChatCompletionNewParams{
 		Messages: openai.F([]openai.ChatCompletionMessageParamUnion{
 			openai.UserMessage(prompt),
@@ -77,7 +77,7 @@ func gpt4oMini(prompt string) string {
 }
 
 func gemini15Flash(prompt string) string {
-	client := llm.NewGoogleClient(llm.NewGoogleClientOptions{Key: env.GetStringOrDefault("GOOGLE_KEY", "")})
+	client := gai.NewGoogleClient(gai.NewGoogleClientOptions{Key: env.GetStringOrDefault("GOOGLE_KEY", "")})
 	model := client.Client.GenerativeModel("models/gemini-1.5-flash-latest")
 	var temperature float32 = 0
 	model.Temperature = &temperature
@@ -89,7 +89,7 @@ func gemini15Flash(prompt string) string {
 }
 
 func claude35Haiku(prompt string) string {
-	client := llm.NewAnthropicClient(llm.NewAnthropicClientOptions{Key: env.GetStringOrDefault("ANTHROPIC_KEY", "")})
+	client := gai.NewAnthropicClient(gai.NewAnthropicClientOptions{Key: env.GetStringOrDefault("ANTHROPIC_KEY", "")})
 	res, err := client.Client.Messages.New(context.Background(), anthropic.MessageNewParams{
 		Messages: anthropic.F([]anthropic.MessageParam{
 			anthropic.NewUserMessage(anthropic.NewTextBlock(prompt)),
@@ -107,7 +107,7 @@ func claude35Haiku(prompt string) string {
 type embeddingGetter struct{}
 
 func (e *embeddingGetter) GetEmbedding(v string) ([]float64, error) {
-	client := llm.NewOpenAIClient(llm.NewOpenAIClientOptions{Key: env.GetStringOrDefault("OPENAI_KEY", "")})
+	client := gai.NewOpenAIClient(gai.NewOpenAIClientOptions{Key: env.GetStringOrDefault("OPENAI_KEY", "")})
 	res, err := client.Client.Embeddings.New(context.Background(), openai.EmbeddingNewParams{
 		Input:          openai.F[openai.EmbeddingNewParamsInputUnion](shared.UnionString(v)),
 		Model:          openai.F(openai.EmbeddingModelTextEmbedding3Small),

@@ -1,4 +1,4 @@
-package llm_test
+package gai_test
 
 import (
 	"context"
@@ -10,12 +10,12 @@ import (
 	"maragu.dev/env"
 	"maragu.dev/is"
 
-	"maragu.dev/llm"
+	"maragu.dev/gai"
 )
 
 func TestNewAnthropicClient(t *testing.T) {
 	t.Run("can create a new client with a key", func(t *testing.T) {
-		client := llm.NewAnthropicClient(llm.NewAnthropicClientOptions{Key: "123"})
+		client := gai.NewAnthropicClient(gai.NewAnthropicClientOptions{Key: "123"})
 		is.NotNil(t, client)
 	})
 }
@@ -24,7 +24,7 @@ func TestAnthropicClientCompletion(t *testing.T) {
 	_ = env.Load(".env.test.local")
 
 	t.Run("can do a basic chat completion", func(t *testing.T) {
-		client := llm.NewAnthropicClient(llm.NewAnthropicClientOptions{Key: env.GetStringOrDefault("ANTHROPIC_KEY", "")})
+		client := gai.NewAnthropicClient(gai.NewAnthropicClientOptions{Key: env.GetStringOrDefault("ANTHROPIC_KEY", "")})
 		is.NotNil(t, client)
 
 		res, err := client.Client.Messages.New(context.Background(), anthropic.MessageNewParams{
