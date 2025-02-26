@@ -45,7 +45,7 @@ type Scorer = func(s Sample) Result
 // You can choose which similarity function to use, such as [LevenshteinDistance] or [ExactMatch].
 func LexicalSimilarityScorer(similarityFunc func(a, b string) Score) Scorer {
 	return func(sample Sample) Result {
-		score := LevenshteinDistance(sample.Expected, sample.Output)
+		score := similarityFunc(sample.Expected, sample.Output)
 		return Result{Score: score, Type: "LexicalSimilarity"}
 	}
 }
