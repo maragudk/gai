@@ -43,6 +43,7 @@ func TestLexicalSimilarityScorer(t *testing.T) {
 			{"a", "", 0},
 			{"", "a", 0},
 			{"a", "a", 1},
+			{"a", "ab", 0},
 		}
 		for _, test := range tests {
 			t.Run(test.expected+" "+test.output, func(t *testing.T) {
