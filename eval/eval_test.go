@@ -44,10 +44,34 @@ func TestLexicalSimilarityScorer(t *testing.T) {
 			{"", "a", 0},
 			{"a", "a", 1},
 			{"a", "ab", 0},
+			{"ab", "a", 0},
+			{"ab", "ab", 1},
 		}
 		for _, test := range tests {
 			t.Run(test.expected+" "+test.output, func(t *testing.T) {
 				scorer := eval.LexicalSimilarityScorer(eval.ExactMatch)
+				result := scorer(eval.Sample{Expected: test.expected, Output: test.output})
+				is.Equal(t, test.score, result.Score)
+			})
+		}
+	})
+
+	t.Run("with Contains", func(t *testing.T) {
+		tests := []struct {
+			output, expected string // note the fields are reversed here, to match [strings.Contains]
+			score            eval.Score
+		}{
+			{"", "", 1},
+			{"a", "", 1},
+			{"", "a", 0},
+			{"a", "a", 1},
+			{"ab", "a", 1},
+			{"ab", "b", 1},
+			{"ab", "ab", 1},
+		}
+		for _, test := range tests {
+			t.Run(test.expected+" "+test.output, func(t *testing.T) {
+				scorer := eval.LexicalSimilarityScorer(eval.Contains)
 				result := scorer(eval.Sample{Expected: test.expected, Output: test.output})
 				is.Equal(t, test.score, result.Score)
 			})
