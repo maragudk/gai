@@ -5,6 +5,7 @@ package eval
 import (
 	"fmt"
 	"math"
+	"strings"
 
 	"github.com/agnivade/levenshtein"
 )
@@ -42,10 +43,10 @@ type Scorer = func(s Sample) Result
 // LexicalSimilarityScorer returns a [Scorer] which uses a lexical similarity metric to compare
 // expected and output strings from a [Sample].
 // This is a common way to score texts if you have a reference text.
-// You can choose which similarity function to use, such as [LevenshteinDistance] or [ExactMatch].
+// You can choose which similarity function to use, such as [LevenshteinDistance], [ExactMatch], or [Contains].
 func LexicalSimilarityScorer(similarityFunc func(a, b string) Score) Scorer {
 	return func(sample Sample) Result {
-		score := similarityFunc(sample.Expected, sample.Output)
+		score := similarityFunc(sample.Output, sample.Expected)
 		return Result{Score: score, Type: "LexicalSimilarity"}
 	}
 }
@@ -66,6 +67,15 @@ func LevenshteinDistance(a, b string) Score {
 // Useful as a simple [Scorer] for exact string matching together with [LexicalSimilarityScorer].
 func ExactMatch(a, b string) Score {
 	if a == b {
+		return 1
+	}
+	return 0
+}
+
+// Contains computes a [Score] between two strings, returning 1 if the first string contains the second string, and 0 otherwise.
+// Useful as a simple [Scorer] for string containment together with [LexicalSimilarityScorer].
+func Contains(a, b string) Score {
+	if strings.Contains(a, b) {
 		return 1
 	}
 	return 0
