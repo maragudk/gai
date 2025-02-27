@@ -57,6 +57,7 @@ func Run(t runnerSkipper, name string, f func(e *E)) {
 
 type E struct {
 	T     *testing.T
+	Group string
 	start time.Time
 }
 
@@ -91,9 +92,12 @@ var evalsFileOnce sync.Once
 func (e *E) Log(s Sample, rs ...Result) {
 	e.T.Helper()
 
-	// split the name and use the first part before the slash as the group
-	parts := strings.Split(e.T.Name(), "/")
-	group := strings.TrimPrefix(parts[0], "TestEval")
+	// If E.Group isn't set, split the name and use the first part before the slash as the group
+	group := e.Group
+	if group == "" {
+		parts := strings.Split(e.T.Name(), "/")
+		group = strings.TrimPrefix(parts[0], "TestEval")
+	}
 
 	l := logLine{
 		Name:     e.T.Name(),
