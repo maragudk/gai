@@ -75,6 +75,11 @@ func (e *E) Score(s Sample, scorer Scorer) Result {
 	return r
 }
 
+// Parallel calls [testing.T.Parallel].
+func (e *E) Parallel() {
+	e.T.Parallel()
+}
+
 type logLine struct {
 	Name     string
 	Group    string
