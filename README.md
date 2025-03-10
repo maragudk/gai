@@ -208,7 +208,3 @@ func (e *embedder) Embed(ctx context.Context, r io.Reader) (gai.EmbedResponse[fl
 	return gai.EmbedResponse[float64]{Embedding: res.Data[0].Embedding}, nil
 }
 ```
-
-## Evals
-
-![Evals](https://api.evals.fun/evals.svg?key=p_public_key_3cce2e69199da00dc5ae46643b42a001&branch=main)

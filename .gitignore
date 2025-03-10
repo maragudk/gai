@@ -1,4 +1,1 @@
-/.env*.local
 /cover.out
-/evals.db
-/evals.jsonl
