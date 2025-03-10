@@ -84,17 +84,23 @@ func Contains(a, b string) Score {
 	return 0
 }
 
+type fataler interface {
+	helper
+	Context() context.Context
+	Fatal(args ...any)
+}
+
 // SemanticSimilarityScorer returns a [Scorer] which uses embedding vectors to compare expected and output strings from a [Sample].
 // You can choose which vector similarity function to use. If in doubt, use [CosineSimilarity].
-func SemanticSimilarityScorer[T gai.VectorComponent](e gai.Embedder[T], similarityFunc func(a, b []T) Score) Scorer {
+func SemanticSimilarityScorer[T gai.VectorComponent](t fataler, e gai.Embedder[T], similarityFunc func(a, b []T) Score) Scorer {
 	return func(sample Sample) Result {
-		expected, err := e.Embed(context.Background(), strings.NewReader(sample.Expected))
+		expected, err := e.Embed(t.Context(), strings.NewReader(sample.Expected))
 		if err != nil {
-			panic("could not get embedding for expected string: " + err.Error())
+			t.Fatal("could not get embedding for expected string:", err)
 		}
-		output, err := e.Embed(context.Background(), strings.NewReader(sample.Output))
+		output, err := e.Embed(t.Context(), strings.NewReader(sample.Output))
 		if err != nil {
-			panic("could not get embedding for output string: " + err.Error())
+			t.Fatal("could not get embedding for output string:", err)
 		}
 
 		score := similarityFunc(expected.Embedding, output.Embedding)

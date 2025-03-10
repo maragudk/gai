@@ -138,7 +138,7 @@ func TestEvalLLMs(t *testing.T) {
 			}
 
 			lexicalSimilarityResult := e.Score(sample, eval.LexicalSimilarityScorer(eval.LevenshteinDistance))
-			semanticSimilarityResult := e.Score(sample, eval.SemanticSimilarityScorer(&embedder{}, eval.CosineSimilarity))
+			semanticSimilarityResult := e.Score(sample, eval.SemanticSimilarityScorer(e.T, &embedder{}, eval.CosineSimilarity))
 			e.Log(sample, lexicalSimilarityResult, semanticSimilarityResult)
 		})
 	}
@@ -190,11 +190,7 @@ func claude35Haiku(prompt string) string {
 type embedder struct{}
 
 func (e *embedder) Embed(ctx context.Context, r io.Reader) (gai.EmbedResponse[float64], error) {
-	d, err := io.ReadAll(r)
-	if err != nil {
-		return gai.EmbedResponse[float64]{}, err
-	}
-	v := string(d)
+	v := gai.ReadAllString(r)
 
 	client := gai.NewOpenAIClient(gai.NewOpenAIClientOptions{Key: env.GetStringOrDefault("OPENAI_KEY", "")})
 	res, err := client.Client.Embeddings.New(context.Background(), openai.EmbeddingNewParams{

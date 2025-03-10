@@ -102,7 +102,7 @@ func TestSemanticSimilarityScorer(t *testing.T) {
 				},
 			}
 
-			scorer := eval.SemanticSimilarityScorer(e, eval.CosineSimilarity)
+			scorer := eval.SemanticSimilarityScorer(t, e, eval.CosineSimilarity)
 			result := scorer(eval.Sample{Expected: test.expected, Output: test.output})
 			is.True(t, math.Abs(float64(test.score-result.Score)) < 0.01)
 		})
