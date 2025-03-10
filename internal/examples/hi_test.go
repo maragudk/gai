@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 	"testing"
 
@@ -55,7 +56,7 @@ func TestEvalLLMs(t *testing.T) {
 			}
 
 			lexicalSimilarityResult := e.Score(sample, eval.LexicalSimilarityScorer(eval.LevenshteinDistance))
-			semanticSimilarityResult := e.Score(sample, eval.SemanticSimilarityScorer(&embeddingGetter{}, eval.CosineSimilarity))
+			semanticSimilarityResult := e.Score(sample, eval.SemanticSimilarityScorer(e.T, &embedder{}, eval.CosineSimilarity))
 			e.Log(sample, lexicalSimilarityResult, semanticSimilarityResult)
 		})
 	}
@@ -104,9 +105,11 @@ func claude35Haiku(prompt string) string {
 	return fmt.Sprint(res.Content[0].Text)
 }
 
-type embeddingGetter struct{}
+type embedder struct{}
 
-func (e *embeddingGetter) GetEmbedding(v string) ([]float64, error) {
+func (e *embedder) Embed(ctx context.Context, r io.Reader) (gai.EmbedResponse[float64], error) {
+	v := gai.ReadAllString(r)
+
 	client := gai.NewOpenAIClient(gai.NewOpenAIClientOptions{Key: env.GetStringOrDefault("OPENAI_KEY", "")})
 	res, err := client.Client.Embeddings.New(context.Background(), openai.EmbeddingNewParams{
 		Input:          openai.F[openai.EmbeddingNewParamsInputUnion](shared.UnionString(v)),
@@ -115,10 +118,10 @@ func (e *embeddingGetter) GetEmbedding(v string) ([]float64, error) {
 		Dimensions:     openai.F(int64(128)),
 	})
 	if err != nil {
-		return nil, err
+		return gai.EmbedResponse[float64]{}, err
 	}
 	if len(res.Data) == 0 {
-		return nil, errors.New("no embeddings returned")
+		return gai.EmbedResponse[float64]{}, errors.New("no embeddings returned")
 	}
-	return res.Data[0].Embedding, nil
+	return gai.EmbedResponse[float64]{Embedding: res.Data[0].Embedding}, nil
 }

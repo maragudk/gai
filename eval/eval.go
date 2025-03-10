@@ -3,11 +3,14 @@
 package eval
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"strings"
 
 	"github.com/agnivade/levenshtein"
+
+	"maragu.dev/gai"
 )
 
 type Sample struct {
@@ -81,35 +84,32 @@ func Contains(a, b string) Score {
 	return 0
 }
 
-// VectorComponent is a single component of a vector.
-type VectorComponent interface {
-	~float32 | ~float64
-}
-
-type embeddingGetter[T VectorComponent] interface {
-	GetEmbedding(v string) ([]T, error)
+type fataler interface {
+	helper
+	Context() context.Context
+	Fatal(args ...any)
 }
 
 // SemanticSimilarityScorer returns a [Scorer] which uses embedding vectors to compare expected and output strings from a [Sample].
 // You can choose which vector similarity function to use. If in doubt, use [CosineSimilarity].
-func SemanticSimilarityScorer[T VectorComponent](eg embeddingGetter[T], similarityFunc func(a, b []T) Score) Scorer {
+func SemanticSimilarityScorer[T gai.VectorComponent](t fataler, e gai.Embedder[T], similarityFunc func(a, b []T) Score) Scorer {
 	return func(sample Sample) Result {
-		expected, err := eg.GetEmbedding(sample.Expected)
+		expected, err := e.Embed(t.Context(), strings.NewReader(sample.Expected))
 		if err != nil {
-			panic("could not get embedding for expected string: " + err.Error())
+			t.Fatal("could not get embedding for expected string:", err)
 		}
-		output, err := eg.GetEmbedding(sample.Output)
+		output, err := e.Embed(t.Context(), strings.NewReader(sample.Output))
 		if err != nil {
-			panic("could not get embedding for output string: " + err.Error())
+			t.Fatal("could not get embedding for output string:", err)
 		}
 
-		score := similarityFunc(expected, output)
+		score := similarityFunc(expected.Embedding, output.Embedding)
 		return Result{Score: score, Type: "SemanticSimilarity"}
 	}
 }
 
 // CosineSimilarity between two embedding vectors a and b, normalized to a [Score].
-func CosineSimilarity[T VectorComponent](a, b []T) Score {
+func CosineSimilarity[T gai.VectorComponent](a, b []T) Score {
 	if len(a) != len(b) {
 		panic(fmt.Sprintf("vectors must have equal length, but are lengths %v and %v", len(a), len(b)))
 	}
