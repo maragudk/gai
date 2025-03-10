@@ -20,12 +20,6 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
 
-    services:
-      llama32-1b:
-        image: "maragudk/llama-3.2-1b-instruct-q4_k_m"
-        ports:
-          - 8090:8080
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -40,11 +34,40 @@ jobs:
         run: go build -v ./...
 
       - name: Test
-        run: go test -v -coverprofile=cover.out -shuffle on ./...
-        env:
-          OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
-          ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_KEY }}
-          GOOGLE_KEY: ${{ secrets.GOOGLE_KEY }}
+        run: go test -v -shuffle on ./...
+
+  evaluate:
+    name: Evaluate
+    runs-on: ubuntu-latest
+    if: ${{ github.triggering_actor != 'dependabot[bot]' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          check-latest: true
+
+      - name: Evaluate
+        run: |
+          go test -run TestEval ./...
+          jq -s '{"Branch": "${{ github.ref_name }}", "Evals": .}' evals.jsonl > evals.json
+          curl -X POST -H "Content-Type: application/json" -H "Authorization: Bearer ${{ secrets.EVALS_FUN_SECRET_KEY }}" -d @evals.json https://api.evals.fun/evals
+
+      - name: Add evals comment to PR
+        uses: actions/github-script@v7
+        if: ${{ github.event_name == 'pull_request' }}
+        with:
+          script: |
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `# Evals\n\n![Evals](https://api.evals.fun/evals.svg?key=${{ secrets.EVALS_FUN_PUBLIC_KEY }}&branch=${{ github.ref_name }}&hash=${{ github.sha }})`
+            })
 
   lint:
     name: Lint

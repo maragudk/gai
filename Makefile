@@ -6,6 +6,10 @@ benchmark:
 cover:
 	go tool cover -html=cover.out
 
+.PHONY: evaluate
+evaluate:
+	go test -run TestEval ./...
+
 .PHONY: lint
 lint:
 	golangci-lint run
