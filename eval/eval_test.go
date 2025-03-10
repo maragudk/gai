@@ -1,11 +1,14 @@
 package eval_test
 
 import (
+	"context"
+	"io"
 	"math"
 	"testing"
 
 	"maragu.dev/is"
 
+	"maragu.dev/gai"
 	"maragu.dev/gai/eval"
 )
 
@@ -92,24 +95,25 @@ func TestSemanticSimilarityScorer(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.expected+" "+test.output, func(t *testing.T) {
 
-			eg := &mockEmbeddingGetter{
+			e := &embedder{
 				embeddings: map[string][]float64{
 					test.expected: test.expectedEmbedding,
 					test.output:   test.outputEmbedding,
 				},
 			}
 
-			scorer := eval.SemanticSimilarityScorer(eg, eval.CosineSimilarity)
+			scorer := eval.SemanticSimilarityScorer(e, eval.CosineSimilarity)
 			result := scorer(eval.Sample{Expected: test.expected, Output: test.output})
 			is.True(t, math.Abs(float64(test.score-result.Score)) < 0.01)
 		})
 	}
 }
 
-type mockEmbeddingGetter struct {
+type embedder struct {
 	embeddings map[string][]float64
 }
 
-func (m *mockEmbeddingGetter) GetEmbedding(v string) ([]float64, error) {
-	return m.embeddings[v], nil
+func (m *embedder) Embed(ctx context.Context, r io.Reader) (gai.EmbedResponse[float64], error) {
+	v := gai.ReadAllString(r)
+	return gai.EmbedResponse[float64]{Embedding: m.embeddings[v]}, nil
 }
