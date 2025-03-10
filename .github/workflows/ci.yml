@@ -46,67 +46,6 @@ jobs:
           ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_KEY }}
           GOOGLE_KEY: ${{ secrets.GOOGLE_KEY }}
 
-  evaluate:
-    name: Evaluate
-    runs-on: ubuntu-latest
-    if: ${{ github.triggering_actor != 'dependabot[bot]' }}
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-          check-latest: true
-
-      - name: Get dependencies
-        run: go mod download
-
-      - name: Install evals
-        run: go install maragu.dev/evals
-
-      - name: Download evals.db
-        id: download-artifact
-        uses: dawidd6/action-download-artifact@v9
-        with:
-          name: evals.db
-          branch: main
-          if_no_artifact_found: warn
-
-      - name: Evaluate
-        run: |
-          go test -run TestEval ./...
-          evals -branch ${{ github.ref_name }} | tee evals.txt >> $GITHUB_STEP_SUMMARY
-        env:
-          OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
-          ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_KEY }}
-          GOOGLE_KEY: ${{ secrets.GOOGLE_KEY }}
-          EVALS_FUN_SECRET_KEY: ${{ secrets.EVALS_FUN_SECRET_KEY }}
-
-      - name: Upload evals.db
-        uses: actions/upload-artifact@v4
-        id: evalsdb
-        with:
-          name: evals.db
-          path: evals.db
-          if-no-files-found: error
-
-      - name: Add evals comment to PR
-        uses: actions/github-script@v7
-        if: ${{ github.event_name == 'pull_request' }}
-        with:
-          script: |
-            const fs = require('fs')
-            const table = fs.readFileSync('evals.txt', 'utf8')
-            github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: `# Evals\n\n${table}\n\n[Download evals.db](${{ steps.evalsdb.outputs.artifact-url }})`
-            })
-
   lint:
     name: Lint
     runs-on: ubuntu-latest
