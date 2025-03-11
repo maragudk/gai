@@ -43,7 +43,7 @@ import (
 // All evals must be prefixed with "TestEval".
 func TestEvalPing(t *testing.T) {
 	// Evals only run if "go test" is being run with "-test.run=TestEval", e.g.: "go test -test.run=TestEval ./..."
-	eval.Run(t, "answers with a pong", func(e *eval.E) {
+	eval.Run(t, "answers with a pong", func(t *testing.T, e *eval.E) {
 		// Initialize our intensely powerful in-memory foundation model,
 		// which can do both chat completion and embedding.
 		model := &powerfulModel{response: "plong", dimensions: 3}
@@ -79,7 +79,7 @@ func TestEvalPing(t *testing.T) {
 		lexicalSimilarityResult := e.Score(sample, eval.LexicalSimilarityScorer(eval.LevenshteinDistance))
 
 		// Also score with a semantic similarity scorer based on embedding vectors and cosine similarity.
-		semanticSimilarityResult := e.Score(sample, eval.SemanticSimilarityScorer(e.T, model, eval.CosineSimilarity))
+		semanticSimilarityResult := e.Score(sample, eval.SemanticSimilarityScorer(t, model, eval.CosineSimilarity))
 
 		// Log the sample, results, and timing information.
 		e.Log(sample, lexicalSimilarityResult, semanticSimilarityResult)
@@ -103,15 +103,15 @@ func (m *powerfulModel) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 var _ gai.ChatCompleter = (*powerfulModel)(nil)
 
 // Embed satisfies [gai.Embedder].
-func (m *powerfulModel) Embed(ctx context.Context, req gai.EmbedRequest) (gai.EmbedResponse[int], error) {
-	var embedding []int
+func (m *powerfulModel) Embed(ctx context.Context, req gai.EmbedRequest) (gai.EmbedResponse[float64], error) {
+	var embedding []float64
 	for range m.dimensions {
-		embedding = append(embedding, rand.IntN(5))
+		embedding = append(embedding, rand.Float64())
 	}
-	return gai.EmbedResponse[int]{Embedding: embedding}, nil
+	return gai.EmbedResponse[float64]{Embedding: embedding}, nil
 }
 
-var _ gai.Embedder[int] = (*powerfulModel)(nil)
+var _ gai.Embedder[float64] = (*powerfulModel)(nil)
 ```
 
 ## Evals
