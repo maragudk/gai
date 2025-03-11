@@ -13,7 +13,7 @@ import (
 // All evals must be prefixed with "TestEval".
 func TestEvalPing(t *testing.T) {
 	// Evals only run if "go test" is being run with "-test.run=TestEval", e.g.: "go test -test.run=TestEval ./..."
-	eval.Run(t, "answers with a pong", func(e *eval.E) {
+	eval.Run(t, "answers with a pong", func(t *testing.T, e *eval.E) {
 		// Initialize our intensely powerful in-memory foundation model,
 		// which can do both chat completion and embedding.
 		model := &powerfulModel{response: "plong", dimensions: 3}
@@ -49,7 +49,7 @@ func TestEvalPing(t *testing.T) {
 		lexicalSimilarityResult := e.Score(sample, eval.LexicalSimilarityScorer(eval.LevenshteinDistance))
 
 		// Also score with a semantic similarity scorer based on embedding vectors and cosine similarity.
-		semanticSimilarityResult := e.Score(sample, eval.SemanticSimilarityScorer(e.T, model, eval.CosineSimilarity))
+		semanticSimilarityResult := e.Score(sample, eval.SemanticSimilarityScorer(t, model, eval.CosineSimilarity))
 
 		// Log the sample, results, and timing information.
 		e.Log(sample, lexicalSimilarityResult, semanticSimilarityResult)

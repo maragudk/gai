@@ -34,31 +34,26 @@ func skipIfNotEvaluating(t skipper) {
 	t.SkipNow()
 }
 
-type runnerSkipper interface {
-	skipper
-	Run(name string, f func(t *testing.T)) bool
-}
-
 // Run an evaluation.
 // Behaves similar to [testing.T.Run], except it skips the test if "go test" is not being run with "-test.run=TestEval".
 // The evaluation function [f] is passed an [E] to help with scoring, logging, etc.
-func Run(t runnerSkipper, name string, f func(e *E)) {
+func Run(t *testing.T, name string, f func(t *testing.T, e *E)) {
 	t.Helper()
 
 	t.Run(name, func(t *testing.T) {
 		skipIfNotEvaluating(t)
 
-		e := &E{T: t}
+		e := &E{t: t}
 		e.ResetTimer()
 
-		f(e)
+		f(t, e)
 	})
 }
 
 type E struct {
-	T     *testing.T
 	Group string
 	start time.Time
+	t     *testing.T
 }
 
 // ResetTimer zeroes the elapsed eval time.
@@ -73,11 +68,6 @@ func (e *E) Score(s Sample, scorer Scorer) Result {
 	r := scorer(s)
 	r.Score.IsValid()
 	return r
-}
-
-// Parallel calls [testing.T.Parallel].
-func (e *E) Parallel() {
-	e.T.Parallel()
 }
 
 type logLine struct {
@@ -95,47 +85,47 @@ var evalsFileOnce sync.Once
 // This effectively logs the eval name, sample, and results, along with timing information.
 // TODO include token information?
 func (e *E) Log(s Sample, rs ...Result) {
-	e.T.Helper()
+	e.t.Helper()
 
 	// If E.Group isn't set, split the name and use the first part before the slash as the group
 	group := e.Group
 	if group == "" {
-		parts := strings.Split(e.T.Name(), "/")
+		parts := strings.Split(e.t.Name(), "/")
 		group = strings.TrimPrefix(parts[0], "TestEval")
 	}
 
 	l := logLine{
-		Name:     e.T.Name(),
+		Name:     e.t.Name(),
 		Group:    group,
 		Sample:   s,
 		Results:  rs,
 		Duration: time.Since(e.start),
 	}
 
-	e.T.Logf("%+v", l)
+	e.t.Logf("%+v", l)
 
 	evalsFileLock.Lock()
 	defer evalsFileLock.Unlock()
 
-	dir := findProjectRoot(e.T)
+	dir := findProjectRoot(e.t)
 	path := path.Join(dir, "evals.jsonl")
 
 	evalsFileOnce.Do(func() {
 		if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
-			e.T.Fatal(err)
+			e.t.Fatal(err)
 		}
 	})
 
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
-		e.T.Fatal(err)
+		e.t.Fatal(err)
 	}
 	defer func() {
 		_ = f.Close()
 	}()
 
 	if _, err := f.Write(mustJSON(l)); err != nil {
-		e.T.Fatal(err)
+		e.t.Fatal(err)
 	}
 }
 
