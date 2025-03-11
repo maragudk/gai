@@ -66,7 +66,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body: `# Evals\n\n![Evals](https://api.evals.fun/evals.svg?key=${{ secrets.EVALS_FUN_PUBLIC_KEY }}&branch=${{ github.ref_name }}&hash=${{ github.sha }})`
+              body: `# Evals\n\n![Evals](https://api.evals.fun/evals.svg?key=${{ secrets.EVALS_FUN_PUBLIC_KEY }}&branch=${{ github.ref_name }}&cacheKey=${{ github.sha }})`
             })
 
   lint:

@@ -5,17 +5,24 @@ import (
 	"io"
 )
 
+// EmbedRequest for [Embedder].
+type EmbedRequest struct {
+	Input io.Reader
+}
+
 // VectorComponent is a single component of a vector.
 type VectorComponent interface {
 	~int | ~float32 | ~float64
 }
 
-type Embedder[T VectorComponent] interface {
-	Embed(ctx context.Context, r io.Reader) (EmbedResponse[T], error)
-}
-
+// EmbedResponse for [Embedder].
 type EmbedResponse[T VectorComponent] struct {
 	Embedding []T
+}
+
+// Embedder is satisfied by models supporting embedding.
+type Embedder[T VectorComponent] interface {
+	Embed(ctx context.Context, p EmbedRequest) (EmbedResponse[T], error)
 }
 
 // ReadAllString is like [io.ReadAll], but returns a string, and panics on errors.

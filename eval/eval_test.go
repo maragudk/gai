@@ -2,7 +2,6 @@ package eval_test
 
 import (
 	"context"
-	"io"
 	"math"
 	"testing"
 
@@ -113,7 +112,7 @@ type embedder struct {
 	embeddings map[string][]float64
 }
 
-func (m *embedder) Embed(ctx context.Context, r io.Reader) (gai.EmbedResponse[float64], error) {
-	v := gai.ReadAllString(r)
+func (m *embedder) Embed(ctx context.Context, req gai.EmbedRequest) (gai.EmbedResponse[float64], error) {
+	v := gai.ReadAllString(req.Input)
 	return gai.EmbedResponse[float64]{Embedding: m.embeddings[v]}, nil
 }

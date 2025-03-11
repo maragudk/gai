@@ -23,7 +23,7 @@ Does your company depend on this project? [Contact me at markus@maragu.dk](mailt
 
 Evals will only run with `go test -run TestEval ./...` and otherwise be skipped.
 
-### Simple example
+### Eval a model with lexical and semantic similarity
 
 Eval a mocked model, construct a sample, score it with a lexical similarity scorer and a semantic similarity scorer, and log the results.
 
@@ -32,24 +32,41 @@ package examples_test
 
 import (
 	"context"
-	"io"
+	"math/rand/v2"
 	"testing"
 
 	"maragu.dev/gai"
 	"maragu.dev/gai/eval"
 )
 
-// TestEvalPing evaluates the Ping method.
+// TestEvalPing evaluates pinging the model.
 // All evals must be prefixed with "TestEval".
 func TestEvalPing(t *testing.T) {
 	// Evals only run if "go test" is being run with "-test.run=TestEval", e.g.: "go test -test.run=TestEval ./..."
 	eval.Run(t, "answers with a pong", func(e *eval.E) {
-		// Initialize our intensely powerful in-memory foundation model.
-		model := &powerfulModel{response: "plong"}
+		// Initialize our intensely powerful in-memory foundation model,
+		// which can do both chat completion and embedding.
+		model := &powerfulModel{response: "plong", dimensions: 3}
 
-		// Send our input to the model and get an output back.
+		// Send our input message to the model and get a streaming output back.
 		input := "ping"
-		output := model.Prompt(input)
+		res, err := model.ChatComplete(t.Context(), gai.ChatCompleteRequest{
+			Messages: []gai.Message{
+				gai.NewUserTextMessage(input),
+			},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// The output is streamed and accessible through an iterator via the Parts() method.
+		var output string
+		for part, err := range res.Parts() {
+			if err != nil {
+				t.Fatal(err)
+			}
+			output += part.Text()
+		}
 
 		// Create a sample to pass to the scorer.
 		sample := eval.Sample{
@@ -70,16 +87,31 @@ func TestEvalPing(t *testing.T) {
 }
 
 type powerfulModel struct {
-	response string
+	dimensions int
+	response   string
 }
 
-func (m *powerfulModel) Prompt(request string) string {
-	return m.response
+// ChatComplete satisfies [gai.ChatCompleter].
+func (m *powerfulModel) ChatComplete(ctx context.Context, req gai.ChatCompleteRequest) (gai.ChatCompleteResponse, error) {
+	return gai.NewChatCompleteResponse(func(yield func(gai.MessagePart, error) bool) {
+		if !yield(gai.TextMessagePart(m.response), nil) {
+			return
+		}
+	}), nil
 }
 
-func (m *powerfulModel) Embed(ctx context.Context, r io.Reader) (gai.EmbedResponse[int], error) {
-	return gai.EmbedResponse[int]{Embedding: []int{1, 2, 3}}, nil
+var _ gai.ChatCompleter = (*powerfulModel)(nil)
+
+// Embed satisfies [gai.Embedder].
+func (m *powerfulModel) Embed(ctx context.Context, req gai.EmbedRequest) (gai.EmbedResponse[int], error) {
+	var embedding []int
+	for range m.dimensions {
+		embedding = append(embedding, rand.IntN(5))
+	}
+	return gai.EmbedResponse[int]{Embedding: embedding}, nil
 }
+
+var _ gai.Embedder[int] = (*powerfulModel)(nil)
 ```
 
 ## Evals
