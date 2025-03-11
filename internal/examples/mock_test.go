@@ -73,12 +73,12 @@ func (m *powerfulModel) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 var _ gai.ChatCompleter = (*powerfulModel)(nil)
 
 // Embed satisfies [gai.Embedder].
-func (m *powerfulModel) Embed(ctx context.Context, req gai.EmbedRequest) (gai.EmbedResponse[int], error) {
-	var embedding []int
+func (m *powerfulModel) Embed(ctx context.Context, req gai.EmbedRequest) (gai.EmbedResponse[float64], error) {
+	var embedding []float64
 	for range m.dimensions {
-		embedding = append(embedding, rand.IntN(5))
+		embedding = append(embedding, rand.Float64())
 	}
-	return gai.EmbedResponse[int]{Embedding: embedding}, nil
+	return gai.EmbedResponse[float64]{Embedding: embedding}, nil
 }
 
-var _ gai.Embedder[int] = (*powerfulModel)(nil)
+var _ gai.Embedder[float64] = (*powerfulModel)(nil)
