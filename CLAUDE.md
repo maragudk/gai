@@ -19,4 +19,4 @@
 - **Error handling**: Explicit checks, return errors to callers, use `is.NotError` in tests
 - **Patterns**: Functional patterns (iterators, yield functions), context for cancellation
 - **Comments**: Godoc-style comments for public APIs
-- **Testing**: Table-driven tests, helper functions with t.Helper(), use maragu.dev/is for assertions, prefer integration tests over mocks
+- **Testing**: Table-driven tests, helper functions with t.Helper(), use maragu.dev/is for assertions, prefer integration tests over mocks, use subtests with `t.Run`
