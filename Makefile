@@ -1,6 +1,6 @@
 .PHONY: benchmark
 benchmark:
-	go test -bench=.
+	go test -bench=. ./...
 
 .PHONY: cover
 cover:
