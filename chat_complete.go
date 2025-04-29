@@ -103,7 +103,7 @@ func (c ChatCompleteResponse) Parts() iter.Seq2[MessagePart, error] {
 // Streaming chat completion is preferred where possible, so that methods on [ChatCompleteResponse],
 // like [ChatCompleteResponse.Parts], can be used to stream the response.
 type ChatCompleter interface {
-	ChatComplete(ctx context.Context, p ChatCompleteRequest) (ChatCompleteResponse, error)
+	ChatComplete(ctx context.Context, req ChatCompleteRequest) (ChatCompleteResponse, error)
 }
 
 func Ptr[T any](v T) *T {
