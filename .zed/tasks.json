@@ -1,0 +1,39 @@
+[
+  {
+    "label": "Test",
+    "command": "go test -shuffle on ./..."
+  },
+  {
+    "label": "Test $ZED_CUSTOM_GO_PACKAGE",
+    "command": "go test -shuffle on $ZED_CUSTOM_GO_PACKAGE"
+  },
+  {
+    "label": "Benchmark",
+    "command": "go test -bench . -shuffle on ./..."
+  },
+  {
+    "label": "Evaluate",
+    "command": "go test -shuffle on -run TestEval ./..."
+  },
+  {
+    "label": "Test $ZED_SYMBOL",
+    "command": "go test -run $ZED_SYMBOL $ZED_CUSTOM_GO_PACKAGE",
+    "tags": ["go-test"]
+  },
+  {
+    "label": "Test $ZED_SYMBOL/$ZED_ROW",
+    "command": "go test -run $ZED_SYMBOL/$(head -n $ZED_ROW $ZED_FILE | tail -1 | grep -o 't.Run(\"[^\"]*' | cut -d '\"' -f 2 | tr ' ' _) $ZED_CUSTOM_GO_PACKAGE",
+    "tags": ["go-subtest"]
+  },
+  {
+    "label": "Benchmark $ZED_SYMBOL",
+    "command": "go test -bench $ZED_SYMBOL $ZED_CUSTOM_GO_PACKAGE",
+    "tags": ["go-benchmark"]
+  },
+  {
+    "label": "Run",
+    "command": "go run $ZED_CUSTOM_GO_PACKAGE",
+    "tags": ["go-run"],
+    "allow_concurrent_runs": true
+  }
+]
