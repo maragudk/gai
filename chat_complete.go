@@ -2,10 +2,13 @@ package gai
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"iter"
 	"strings"
+
+	"github.com/invopop/jsonschema"
 )
 
 type Temperature float64
@@ -23,6 +26,7 @@ func (t Temperature) Float64() float64 {
 type ChatCompleteRequest struct {
 	Messages    []Message
 	Temperature *Temperature
+	Tools       []Tool
 }
 
 type Message struct {
@@ -40,18 +44,32 @@ func NewUserTextMessage(text string) Message {
 	}
 }
 
+func NewUserToolResultMessage(result ToolResult) Message {
+	return Message{
+		Role: MessageRoleUser,
+		Parts: []MessagePart{
+			{
+				Type:       MessagePartTypeToolResult,
+				toolResult: &result,
+			},
+		},
+	}
+}
+
 // MessageRole for [Message].
 type MessageRole string
 
 const (
 	MessageRoleUser      MessageRole = "user"
-	MessageRoleAssistant MessageRole = "assistant"
+	MessageRoleAssistant MessageRole = "assistant" // TODO make this "model", like at Google?
 )
 
 type MessagePart struct {
-	Type MessagePartType
-	Data io.Reader
-	text *string
+	Type       MessagePartType
+	Data       io.Reader
+	text       *string
+	toolCall   *ToolCall
+	toolResult *ToolResult
 }
 
 func (m MessagePart) Text() string {
@@ -68,11 +86,27 @@ func (m MessagePart) Text() string {
 	return string(text)
 }
 
+func (m MessagePart) ToolCall() ToolCall {
+	if m.Type != MessagePartTypeToolCall {
+		panic("not tool call type")
+	}
+	return *m.toolCall
+}
+
+func (m MessagePart) ToolResult() ToolResult {
+	if m.Type != MessagePartTypeToolResult {
+		panic("not tool result type")
+	}
+	return *m.toolResult
+}
+
 // MessagePartType for [MessagePart].
 type MessagePartType string
 
 const (
-	MessagePartTypeText MessagePartType = "text"
+	MessagePartTypeText       MessagePartType = "text"
+	MessagePartTypeToolCall   MessagePartType = "tool_call"
+	MessagePartTypeToolResult MessagePartType = "tool_result"
 )
 
 func TextMessagePart(text string) MessagePart {
@@ -80,6 +114,17 @@ func TextMessagePart(text string) MessagePart {
 		Type: MessagePartTypeText,
 		Data: strings.NewReader(text),
 		text: &text,
+	}
+}
+
+func ToolCallPart(id, name string, args json.RawMessage) MessagePart {
+	return MessagePart{
+		Type: MessagePartTypeToolCall,
+		toolCall: &ToolCall{
+			ID:   id,
+			Name: name,
+			Args: args,
+		},
 	}
 }
 
@@ -108,4 +153,46 @@ type ChatCompleter interface {
 
 func Ptr[T any](v T) *T {
 	return &v
+}
+
+// Tool definition.
+type Tool struct {
+	Name        string
+	Description string
+	Schema      ToolSchema
+	Function    ToolFunction
+}
+
+// ToolSchema in JSON Schema format of the arguments the tool accepts.
+type ToolSchema struct {
+	Properties any
+}
+
+func GenerateSchema[T any]() ToolSchema {
+	reflector := jsonschema.Reflector{
+		AllowAdditionalProperties: false,
+		DoNotReference:            true,
+	}
+
+	var v T
+	schema := reflector.Reflect(v)
+
+	return ToolSchema{
+		Properties: schema.Properties,
+	}
+}
+
+type ToolFunction func(ctx context.Context, args json.RawMessage) (string, error)
+
+type ToolCall struct {
+	ID   string
+	Name string
+	Args json.RawMessage
+}
+
+// TODO tool result can be string but also other types, such as image!
+type ToolResult struct {
+	ID      string
+	Content string
+	Err     error
 }
