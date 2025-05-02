@@ -21,9 +21,21 @@ Does your company depend on this project? [Contact me at markus@maragu.dk](mailt
 
 ## Usage
 
+### Clients
+
+These client implementations are available:
+
+- [gai-openai](https://github.com/maragudk/gai-openai)
+- [gai-google](https://github.com/maragudk/gai-google)
+- [gai-anthropic](https://github.com/maragudk/gai-anthropic)
+
+Also, there's an experimental agent at [gaigent](https://github.com/maragudk/gaigent).
+
+### Evals
+
 Evals will only run with `go test -run TestEval ./...` and otherwise be skipped.
 
-### Eval a model with lexical and semantic similarity
+#### Eval a model with lexical and semantic similarity
 
 Eval a mocked model, construct a sample, score it with a lexical similarity scorer and a semantic similarity scorer, and log the results.
 
