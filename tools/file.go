@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/fs"
 	"path/filepath"
+	"slices"
 
 	"maragu.dev/gai"
 )
@@ -79,6 +80,8 @@ func NewListDir(fsys fs.FS) gai.Tool {
 			if err != nil {
 				return "", err
 			}
+
+			slices.Sort(files)
 
 			result, err := json.Marshal(files)
 			if err != nil {
