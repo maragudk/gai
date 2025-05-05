@@ -182,7 +182,7 @@ func GenerateSchema[T any]() ToolSchema {
 	}
 }
 
-type ToolFunction func(ctx context.Context, args json.RawMessage) (string, error)
+type ToolFunction func(ctx context.Context, rawArgs json.RawMessage) (string, error)
 
 type ToolCall struct {
 	ID   string
