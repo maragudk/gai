@@ -44,6 +44,16 @@ func NewUserTextMessage(text string) Message {
 	}
 }
 
+// NewAssistantTextMessage is a convenience function to create a new assistant text message.
+func NewAssistantTextMessage(text string) Message {
+	return Message{
+		Role: MessageRoleAssistant,
+		Parts: []MessagePart{
+			TextMessagePart(text),
+		},
+	}
+}
+
 func NewUserToolResultMessage(result ToolResult) Message {
 	return Message{
 		Role: MessageRoleUser,
