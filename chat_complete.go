@@ -25,6 +25,7 @@ func (t Temperature) Float64() float64 {
 // ChatCompleteRequest for a chat model.
 type ChatCompleteRequest struct {
 	Messages    []Message
+	System      *string
 	Temperature *Temperature
 	Tools       []Tool
 }
