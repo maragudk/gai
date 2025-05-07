@@ -57,3 +57,36 @@ func NewGetMemories(mg memoryGetter) gai.Tool {
 		},
 	}
 }
+
+type SearchMemoriesArgs struct {
+	Query string `json:"query"`
+}
+
+type memorySearcher interface {
+	SearchMemories(ctx context.Context, query string) ([]string, error)
+}
+
+func NewSearchMemories(ms memorySearcher) gai.Tool {
+	return gai.Tool{
+		Name:        "search_memories",
+		Description: "Search saved memories using a query string.",
+		Schema:      gai.GenerateSchema[SearchMemoriesArgs](),
+		Function: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
+			var args SearchMemoriesArgs
+			if err := json.Unmarshal(rawArgs, &args); err != nil {
+				return "", fmt.Errorf("error unmarshaling search_memories args from JSON: %w", err)
+			}
+
+			memories, err := ms.SearchMemories(ctx, args.Query)
+			if err != nil {
+				return "", fmt.Errorf("error searching memories: %w", err)
+			}
+
+			if len(memories) == 0 {
+				return "No memories found matching the query.", nil
+			}
+
+			return fmt.Sprintf("Found memories: %v", memories), nil
+		},
+	}
+}
