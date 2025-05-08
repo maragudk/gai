@@ -45,10 +45,10 @@ func NewUserTextMessage(text string) Message {
 	}
 }
 
-// NewAssistantTextMessage is a convenience function to create a new assistant text message.
-func NewAssistantTextMessage(text string) Message {
+// NewModelTextMessage is a convenience function to create a new model text message.
+func NewModelTextMessage(text string) Message {
 	return Message{
-		Role: MessageRoleAssistant,
+		Role: MessageRoleModel,
 		Parts: []MessagePart{
 			TextMessagePart(text),
 		},
@@ -71,8 +71,8 @@ func NewUserToolResultMessage(result ToolResult) Message {
 type MessageRole string
 
 const (
-	MessageRoleUser      MessageRole = "user"
-	MessageRoleAssistant MessageRole = "assistant" // TODO make this "model", like at Google?
+	MessageRoleUser  MessageRole = "user"
+	MessageRoleModel MessageRole = "model"
 )
 
 type MessagePart struct {
