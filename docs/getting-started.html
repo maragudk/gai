@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
     <script>hljs.highlightAll();</script>
+    <script src="js/tilt.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -320,14 +321,14 @@ func main() {
                         <div class="grid md:grid-cols-2 gap-4">
                             <a href="chat-completion.html" class="bg-white p-4 border-2 border-black rounded-lg hover:border-blue-500 hover:shadow-[5px_5px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all">
                                 <h3 class="font-bold text-blue-600 mb-1 flex items-center">
-                                    <span class="text-2xl mr-2">=¬</span>
+                                    <span class="text-2xl mr-2">=ï¿½</span>
                                     Chat Completion
                                 </h3>
                                 <p class="text-sm text-gray-600">For advanced conversation capabilities</p>
                             </a>
                             <a href="embedding.html" class="bg-white p-4 border-2 border-black rounded-lg hover:border-blue-500 hover:shadow-[5px_5px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all">
                                 <h3 class="font-bold text-blue-600 mb-1 flex items-center">
-                                    <span class="text-2xl mr-2">>à</span>
+                                    <span class="text-2xl mr-2">>ï¿½</span>
                                     Embedding
                                 </h3>
                                 <p class="text-sm text-gray-600">For text vectorization and similarity</p>
@@ -341,7 +342,7 @@ func main() {
                             </a>
                             <a href="evals.html" class="bg-white p-4 border-2 border-black rounded-lg hover:border-blue-500 hover:shadow-[5px_5px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all">
                                 <h3 class="font-bold text-blue-600 mb-1 flex items-center">
-                                    <span class="text-2xl mr-2">=Ê</span>
+                                    <span class="text-2xl mr-2">=ï¿½</span>
                                     Evaluations
                                 </h3>
                                 <p class="text-sm text-gray-600">For testing model quality</p>
@@ -407,7 +408,7 @@ func main() {
         
         // Add animated elements randomly
         function addRandomEmojis() {
-            const emojis = ['(', '=€', '>', '=¡', '=.', '¡', '>à'];
+            const emojis = ['(', '=ï¿½', '>', '=ï¿½', '=.', 'ï¿½', '>ï¿½'];
             const container = document.createElement('div');
             container.className = 'fixed inset-0 pointer-events-none z-0 overflow-hidden';
             document.body.appendChild(container);
@@ -445,26 +446,7 @@ func main() {
         // Run every 20 seconds
         setInterval(addRandomEmojis, 20000);
         
-        // Apply tilt effect to cards
-        document.querySelectorAll('[class*="shadow-["]').forEach(card => {
-            card.addEventListener('mousemove', function(e) {
-                const rect = this.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-                
-                const centerX = rect.width / 2;
-                const centerY = rect.height / 2;
-                
-                const rotateX = (y - centerY) / 20;
-                const rotateY = (centerX - x) / 20;
-                
-                this.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
-            });
-            
-            card.addEventListener('mouseleave', function() {
-                this.style.transform = '';
-            });
-        });
+        // Card tilt effect is now handled by tilt.js
     </script>
 </body>
 </html>

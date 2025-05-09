@@ -318,20 +318,21 @@
         </div>
     </footer>
 
+    <script src="js/tilt.js"></script>
     <script>
         // Mobile menu toggle
         document.getElementById('mobile-menu-button').addEventListener('click', function() {
             const menu = document.getElementById('mobile-menu');
             menu.classList.toggle('hidden');
         });
-        
+
         // Add animated elements randomly
         function addRandomEmojis() {
             const emojis = ['✨', '🚀', '🤖', '💡', '🔮', '⚡️', '🧠'];
             const container = document.createElement('div');
             container.className = 'fixed inset-0 pointer-events-none z-0 overflow-hidden';
             document.body.appendChild(container);
-            
+
             for (let i = 0; i < 20; i++) {
                 setTimeout(() => {
                     const emoji = document.createElement('div');
@@ -343,14 +344,14 @@
                     emoji.style.transform = `rotate(${Math.random() * 360}deg)`;
                     emoji.style.transition = 'all 15s linear';
                     container.appendChild(emoji);
-                    
+
                     // Slow floating animation
                     setTimeout(() => {
                         emoji.style.top = `${Math.random() * 100}%`;
                         emoji.style.left = `${Math.random() * 100}%`;
                         emoji.style.transform = `rotate(${Math.random() * 360}deg)`;
                     }, 100);
-                    
+
                     // Remove after animation
                     setTimeout(() => {
                         container.removeChild(emoji);
@@ -358,33 +359,12 @@
                 }, i * 1000);
             }
         }
-        
+
         // Run on page load
         window.addEventListener('load', addRandomEmojis);
-        
+
         // Run every 20 seconds
         setInterval(addRandomEmojis, 20000);
-        
-        // Apply tilt effect to cards
-        document.querySelectorAll('[class*="shadow-["]').forEach(card => {
-            card.addEventListener('mousemove', function(e) {
-                const rect = this.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-                
-                const centerX = rect.width / 2;
-                const centerY = rect.height / 2;
-                
-                const rotateX = (y - centerY) / 20;
-                const rotateY = (centerX - x) / 20;
-                
-                this.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
-            });
-            
-            card.addEventListener('mouseleave', function() {
-                this.style.transform = '';
-            });
-        });
     </script>
 </body>
 </html>
