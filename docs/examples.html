@@ -1,179 +1,350 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Examples - GAI Documentation</title>
     <!-- TailwindCSS v4 CDN -->
     <script src="https://cdn.tailwindcss.com?v=4"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css"
+    />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
-    <script>hljs.highlightAll();</script>
-    <script src="js/tilt.js"></script>
     <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        'space': ['"Space Mono"', 'monospace'],
-                        'fredoka': ['"Fredoka One"', 'cursive'],
-                    },
-                    animation: {
-                        'wiggle': 'wiggle 2.5s ease-in-out infinite',
-                        'bounce-slow': 'bounce 2s ease infinite',
-                        'sparkle': 'sparkle 1.5s ease-in-out infinite',
-                        'float': 'float 6s ease-in-out infinite',
-                    },
-                    keyframes: {
-                        wiggle: {
-                            '0%, 100%': { transform: 'rotate(-3deg)' },
-                            '50%': { transform: 'rotate(3deg)' },
-                        },
-                        bounce: {
-                            '0%, 100%': { transform: 'translateY(0)' },
-                            '50%': { transform: 'translateY(-10px)' },
-                        },
-                        sparkle: {
-                            '0%': { transform: 'scale(0)', opacity: '0' },
-                            '50%': { transform: 'scale(1)', opacity: '1' },
-                            '100%': { transform: 'scale(0)', opacity: '0' },
-                        },
-                        float: {
-                            '0%, 100%': { transform: 'translateY(0px)' },
-                            '50%': { transform: 'translateY(-20px)' },
-                        }
-                    }
-                }
-            }
-        }
+      hljs.highlightAll();
+    </script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              space: ['"Space Mono"', "monospace"],
+              fredoka: ['"Fredoka One"', "cursive"],
+            },
+            animation: {
+              wiggle: "wiggle 2.5s ease-in-out infinite",
+              "bounce-slow": "bounce 2s ease infinite",
+              sparkle: "sparkle 1.5s ease-in-out infinite",
+              float: "float 6s ease-in-out infinite",
+            },
+            keyframes: {
+              wiggle: {
+                "0%, 100%": { transform: "rotate(-3deg)" },
+                "50%": { transform: "rotate(3deg)" },
+              },
+              bounce: {
+                "0%, 100%": { transform: "translateY(0)" },
+                "50%": { transform: "translateY(-10px)" },
+              },
+              sparkle: {
+                "0%": { transform: "scale(0)", opacity: "0" },
+                "50%": { transform: "scale(1)", opacity: "1" },
+                "100%": { transform: "scale(0)", opacity: "0" },
+              },
+              float: {
+                "0%, 100%": { transform: "translateY(0px)" },
+                "50%": { transform: "translateY(-20px)" },
+              },
+            },
+          },
+        },
+      };
     </script>
     <style>
-        /* Custom quirky styles */
-        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
-        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap');
-        
-        .quirky-gradient-text {
-            background: linear-gradient(45deg, #ff5f6d, #ffc371);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        
-        .footer-wave {
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 320'%3E%3Cpath fill='%23ff5f6d' fill-opacity='0.5' d='M0,64L48,80C96,96,192,128,288,138.7C384,149,480,139,576,122.7C672,107,768,85,864,69.3C960,53,1056,43,1152,58.7C1248,75,1344,117,1392,138.7L1440,160L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z'%3E%3C/path%3E%3C/svg%3E");
-            background-size: cover;
-            background-position: center;
-        }
-        
-        /* Code blocks with tilted backgrounds */
-        pre {
-            position: relative;
-        }
-        
-        pre::before {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #2a2a2a;
-            transform: rotate(-1deg);
-            z-index: -1;
-        }
-        
-        /* Sparkle positioning */
-        .sparkle:nth-child(1) { top: 10%; left: 10%; animation-delay: 0s; }
-        .sparkle:nth-child(2) { top: 20%; left: 90%; animation-delay: 0.3s; }
-        .sparkle:nth-child(3) { top: 80%; left: 15%; animation-delay: 0.6s; }
-        .sparkle:nth-child(4) { top: 65%; left: 85%; animation-delay: 0.9s; }
-        .sparkle:nth-child(5) { top: 50%; left: 50%; animation-delay: 1.2s; }
+      /* Custom quirky styles */
+      @import url("https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap");
+      @import url("https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap");
+
+      .quirky-gradient-text {
+        background: linear-gradient(45deg, #ff5f6d, #ffc371);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .footer-wave {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 320'%3E%3Cpath fill='%23ff5f6d' fill-opacity='0.5' d='M0,64L48,80C96,96,192,128,288,138.7C384,149,480,139,576,122.7C672,107,768,85,864,69.3C960,53,1056,43,1152,58.7C1248,75,1344,117,1392,138.7L1440,160L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z'%3E%3C/path%3E%3C/svg%3E");
+        background-size: cover;
+        background-position: center;
+      }
+
+      /* Code blocks with tilted backgrounds */
+      pre {
+        position: relative;
+      }
+
+      pre::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #2a2a2a;
+        transform: rotate(-1deg);
+        z-index: -1;
+      }
+
+      /* Sparkle positioning */
+      .sparkle:nth-child(1) {
+        top: 10%;
+        left: 10%;
+        animation-delay: 0s;
+      }
+      .sparkle:nth-child(2) {
+        top: 20%;
+        left: 90%;
+        animation-delay: 0.3s;
+      }
+      .sparkle:nth-child(3) {
+        top: 80%;
+        left: 15%;
+        animation-delay: 0.6s;
+      }
+      .sparkle:nth-child(4) {
+        top: 65%;
+        left: 85%;
+        animation-delay: 0.9s;
+      }
+      .sparkle:nth-child(5) {
+        top: 50%;
+        left: 50%;
+        animation-delay: 1.2s;
+      }
     </style>
-</head>
-<body class="bg-yellow-50 text-gray-800 flex flex-col min-h-screen font-space">
+  </head>
+  <body
+    class="bg-yellow-50 text-gray-800 flex flex-col min-h-screen font-space"
+  >
     <!-- Sparkles -->
     <div class="fixed inset-0 pointer-events-none z-10">
-        <div class="absolute w-1.5 h-1.5 rounded-full bg-white opacity-0 animate-sparkle sparkle"></div>
-        <div class="absolute w-1.5 h-1.5 rounded-full bg-white opacity-0 animate-sparkle sparkle"></div>
-        <div class="absolute w-1.5 h-1.5 rounded-full bg-white opacity-0 animate-sparkle sparkle"></div>
-        <div class="absolute w-1.5 h-1.5 rounded-full bg-white opacity-0 animate-sparkle sparkle"></div>
-        <div class="absolute w-1.5 h-1.5 rounded-full bg-white opacity-0 animate-sparkle sparkle"></div>
+      <div
+        class="absolute w-1.5 h-1.5 rounded-full bg-white opacity-0 animate-sparkle sparkle"
+      ></div>
+      <div
+        class="absolute w-1.5 h-1.5 rounded-full bg-white opacity-0 animate-sparkle sparkle"
+      ></div>
+      <div
+        class="absolute w-1.5 h-1.5 rounded-full bg-white opacity-0 animate-sparkle sparkle"
+      ></div>
+      <div
+        class="absolute w-1.5 h-1.5 rounded-full bg-white opacity-0 animate-sparkle sparkle"
+      ></div>
+      <div
+        class="absolute w-1.5 h-1.5 rounded-full bg-white opacity-0 animate-sparkle sparkle"
+      ></div>
     </div>
 
     <!-- Header -->
-    <header class="bg-gradient-to-r from-[#ff5f6d] to-[#ffc371] text-white shadow-lg sticky top-0 z-20">
-        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
-            <a href="index.html" class="text-2xl font-fredoka flex items-center">
-                <span class="mr-2 animate-wiggle inline-block">GAI</span>
-                <span class="text-sm bg-white text-gray-800 px-2 py-1 rounded-md -rotate-2 border-2 border-black">Go Artificial Intelligence</span>
-            </a>
-            <nav class="hidden md:flex space-x-4">
-                <a href="index.html" class="px-3 py-2 hover:bg-yellow-400 rounded-lg border-2 border-black shadow-[3px_3px_0px_#000] hover:shadow-[5px_5px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all">Home</a>
-                <a href="getting-started.html" class="px-3 py-2 hover:bg-yellow-400 rounded-lg border-2 border-black shadow-[3px_3px_0px_#000] hover:shadow-[5px_5px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all">Getting Started</a>
-                <a href="concepts.html" class="px-3 py-2 hover:bg-yellow-400 rounded-lg border-2 border-black shadow-[3px_3px_0px_#000] hover:shadow-[5px_5px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all">Concepts</a>
-                <a href="examples.html" class="px-3 py-2 bg-yellow-400 rounded-lg border-2 border-black shadow-[3px_3px_0px_#000] hover:shadow-[5px_5px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all text-black">Examples</a>
-                <a href="https://github.com/maragudk/gai" class="px-3 py-2 hover:bg-yellow-400 rounded-lg border-2 border-black shadow-[3px_3px_0px_#000] hover:shadow-[5px_5px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all" target="_blank">GitHub</a>
-            </nav>
-            <button class="md:hidden block text-white bg-yellow-400 text-black border-2 border-black shadow-[3px_3px_0px_#000] rounded-lg p-1" id="mobile-menu-button">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-            </button>
+    <header
+      class="bg-gradient-to-r from-[#ff5f6d] to-[#ffc371] text-white shadow-lg sticky top-0 z-20"
+    >
+      <div
+        class="container mx-auto px-4 py-4 flex justify-between items-center"
+      >
+        <a href="index.html" class="text-2xl font-fredoka flex items-center">
+          <span class="mr-2 animate-wiggle inline-block">GAI</span>
+          <span
+            class="text-sm bg-white text-gray-800 px-2 py-1 rounded-md -rotate-2 border-2 border-black"
+            >Go Artificial Intelligence</span
+          >
+        </a>
+        <nav class="hidden md:flex space-x-4">
+          <a
+            href="index.html"
+            class="px-3 py-2 hover:bg-yellow-400 rounded-lg border-2 border-black shadow-[3px_3px_0px_#000] hover:shadow-[5px_5px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all"
+            >Home</a
+          >
+          <a
+            href="getting-started.html"
+            class="px-3 py-2 hover:bg-yellow-400 rounded-lg border-2 border-black shadow-[3px_3px_0px_#000] hover:shadow-[5px_5px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all"
+            >Getting Started</a
+          >
+          <a
+            href="concepts.html"
+            class="px-3 py-2 hover:bg-yellow-400 rounded-lg border-2 border-black shadow-[3px_3px_0px_#000] hover:shadow-[5px_5px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all"
+            >Concepts</a
+          >
+          <a
+            href="examples.html"
+            class="px-3 py-2 bg-yellow-400 rounded-lg border-2 border-black shadow-[3px_3px_0px_#000] hover:shadow-[5px_5px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all text-black"
+            >Examples</a
+          >
+          <a
+            href="https://github.com/maragudk/gai"
+            class="px-3 py-2 hover:bg-yellow-400 rounded-lg border-2 border-black shadow-[3px_3px_0px_#000] hover:shadow-[5px_5px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all"
+            target="_blank"
+            >GitHub</a
+          >
+        </nav>
+        <button
+          class="md:hidden block text-white bg-yellow-400 text-black border-2 border-black shadow-[3px_3px_0px_#000] rounded-lg p-1"
+          id="mobile-menu-button"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-6 w-6"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 6h16M4 12h16M4 18h16"
+            />
+          </svg>
+        </button>
+      </div>
+      <!-- Mobile menu (hidden by default) -->
+      <div class="md:hidden hidden" id="mobile-menu">
+        <div class="px-2 pt-2 pb-3 space-y-1 bg-yellow-400">
+          <a
+            href="index.html"
+            class="block px-3 py-2 hover:bg-yellow-300 rounded-lg text-black"
+            >Home</a
+          >
+          <a
+            href="getting-started.html"
+            class="block px-3 py-2 hover:bg-yellow-300 rounded-lg text-black"
+            >Getting Started</a
+          >
+          <a
+            href="concepts.html"
+            class="block px-3 py-2 hover:bg-yellow-300 rounded-lg text-black"
+            >Concepts</a
+          >
+          <a
+            href="examples.html"
+            class="block px-3 py-2 bg-yellow-300 rounded-lg text-black"
+            >Examples</a
+          >
+          <a
+            href="https://github.com/maragudk/gai"
+            class="block px-3 py-2 hover:bg-yellow-300 rounded-lg text-black"
+            target="_blank"
+            >GitHub</a
+          >
         </div>
-        <!-- Mobile menu (hidden by default) -->
-        <div class="md:hidden hidden" id="mobile-menu">
-            <div class="px-2 pt-2 pb-3 space-y-1 bg-yellow-400">
-                <a href="index.html" class="block px-3 py-2 hover:bg-yellow-300 rounded-lg text-black">Home</a>
-                <a href="getting-started.html" class="block px-3 py-2 hover:bg-yellow-300 rounded-lg text-black">Getting Started</a>
-                <a href="concepts.html" class="block px-3 py-2 hover:bg-yellow-300 rounded-lg text-black">Concepts</a>
-                <a href="examples.html" class="block px-3 py-2 bg-yellow-300 rounded-lg text-black">Examples</a>
-                <a href="https://github.com/maragudk/gai" class="block px-3 py-2 hover:bg-yellow-300 rounded-lg text-black" target="_blank">GitHub</a>
-            </div>
-        </div>
+      </div>
     </header>
 
     <!-- Main content -->
     <div class="flex flex-grow">
-        <!-- Sidebar -->
-        <aside class="hidden md:block w-64 bg-white shadow-md p-4 mt-6 ml-6 rounded-xl border-2 border-black shadow-[5px_5px_0px_#000] hover:shadow-[7px_7px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all">
-            <nav class="space-y-1">
-                <div class="font-bold mb-2 text-gray-700 font-fredoka quirky-gradient-text">Documentation</div>
-                <a href="getting-started.html" class="block py-2 px-4 rounded-lg hover:bg-yellow-200 hover:-rotate-1 transition-all">Getting Started</a>
-                <a href="concepts.html" class="block py-2 px-4 rounded-lg hover:bg-yellow-200 hover:-rotate-1 transition-all">Core Concepts</a>
-                <a href="chat-completion.html" class="block py-2 px-4 rounded-lg hover:bg-yellow-200 hover:-rotate-1 transition-all">Chat Completion</a>
-                <a href="embedding.html" class="block py-2 px-4 rounded-lg hover:bg-yellow-200 hover:-rotate-1 transition-all">Embedding</a>
-                <a href="tools.html" class="block py-2 px-4 rounded-lg hover:bg-yellow-200 hover:-rotate-1 transition-all">Tools</a>
-                <a href="evals.html" class="block py-2 px-4 rounded-lg hover:bg-yellow-200 hover:-rotate-1 transition-all">Evaluations</a>
-                <a href="examples.html" class="block py-2 px-4 rounded-lg bg-yellow-200 font-medium rotate-1">Examples</a>
-            </nav>
-            
-            <!-- Table of Contents -->
-            <div class="mt-8">
-                <div class="font-bold mb-2 text-gray-700 font-fredoka quirky-gradient-text">On This Page</div>
-                <nav class="space-y-1 text-sm">
-                    <a href="#simple-chatbot" class="block py-1 px-4 rounded-lg hover:bg-yellow-200 hover:-translate-x-1 transition-all">Simple Chatbot</a>
-                    <a href="#semantic-search" class="block py-1 px-4 rounded-lg hover:bg-yellow-200 hover:-translate-x-1 transition-all">Semantic Search</a>
-                    <a href="#tool-using-agent" class="block py-1 px-4 rounded-lg hover:bg-yellow-200 hover:-translate-x-1 transition-all">Tool-Using Agent</a>
-                    <a href="#evaluating-multiple-models" class="block py-1 px-4 rounded-lg hover:bg-yellow-200 hover:-translate-x-1 transition-all">Evaluating Multiple Models</a>
-                    <a href="#memory-tool" class="block py-1 px-4 rounded-lg hover:bg-yellow-200 hover:-translate-x-1 transition-all">Memory Tool</a>
-                </nav>
-            </div>
-        </aside>
+      <!-- Sidebar -->
+      <aside
+        class="hidden md:block w-64 bg-white shadow-md p-4 mt-6 ml-6 rounded-xl border-2 border-black shadow-[5px_5px_0px_#000] hover:shadow-[7px_7px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all"
+      >
+        <nav class="space-y-1">
+          <div
+            class="font-bold mb-2 text-gray-700 font-fredoka quirky-gradient-text"
+          >
+            Documentation
+          </div>
+          <a
+            href="getting-started.html"
+            class="block py-2 px-4 rounded-lg hover:bg-yellow-200 hover:-rotate-1 transition-all"
+            >Getting Started</a
+          >
+          <a
+            href="concepts.html"
+            class="block py-2 px-4 rounded-lg hover:bg-yellow-200 hover:-rotate-1 transition-all"
+            >Core Concepts</a
+          >
+          <a
+            href="chat-completion.html"
+            class="block py-2 px-4 rounded-lg hover:bg-yellow-200 hover:-rotate-1 transition-all"
+            >Chat Completion</a
+          >
+          <a
+            href="embedding.html"
+            class="block py-2 px-4 rounded-lg hover:bg-yellow-200 hover:-rotate-1 transition-all"
+            >Embedding</a
+          >
+          <a
+            href="tools.html"
+            class="block py-2 px-4 rounded-lg hover:bg-yellow-200 hover:-rotate-1 transition-all"
+            >Tools</a
+          >
+          <a
+            href="evals.html"
+            class="block py-2 px-4 rounded-lg hover:bg-yellow-200 hover:-rotate-1 transition-all"
+            >Evaluations</a
+          >
+          <a
+            href="examples.html"
+            class="block py-2 px-4 rounded-lg bg-yellow-200 font-medium rotate-1"
+            >Examples</a
+          >
+        </nav>
 
-        <!-- Content -->
-        <main class="flex-grow p-6">
-            <div class="container mx-auto max-w-3xl">
-                <div class="mb-6">
-                    <h1 class="text-3xl font-fredoka text-gray-900 mb-2 quirky-gradient-text">Examples</h1>
-                    <p class="text-lg text-gray-700">Real-world applications of GAI. These examples show how to use GAI effectively.</p>
-                </div>
+        <!-- Table of Contents -->
+        <div class="mt-8">
+          <div
+            class="font-bold mb-2 text-gray-700 font-fredoka quirky-gradient-text"
+          >
+            On This Page
+          </div>
+          <nav class="space-y-1 text-sm">
+            <a
+              href="#simple-chatbot"
+              class="block py-1 px-4 rounded-lg hover:bg-yellow-200 hover:-translate-x-1 transition-all"
+              >Simple Chatbot</a
+            >
+            <a
+              href="#semantic-search"
+              class="block py-1 px-4 rounded-lg hover:bg-yellow-200 hover:-translate-x-1 transition-all"
+              >Semantic Search</a
+            >
+            <a
+              href="#tool-using-agent"
+              class="block py-1 px-4 rounded-lg hover:bg-yellow-200 hover:-translate-x-1 transition-all"
+              >Tool-Using Agent</a
+            >
+            <a
+              href="#evaluating-multiple-models"
+              class="block py-1 px-4 rounded-lg hover:bg-yellow-200 hover:-translate-x-1 transition-all"
+              >Evaluating Multiple Models</a
+            >
+            <a
+              href="#memory-tool"
+              class="block py-1 px-4 rounded-lg hover:bg-yellow-200 hover:-translate-x-1 transition-all"
+              >Memory Tool</a
+            >
+          </nav>
+        </div>
+      </aside>
 
-                <div class="prose prose-blue max-w-none">
-                    <section id="simple-chatbot" class="mb-10 bg-white p-6 rounded-lg border-2 border-black shadow-[5px_5px_0px_#000] hover:shadow-[7px_7px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all rotate-1">
-                        <h2 class="text-2xl font-fredoka text-blue-600 mb-4 quirky-gradient-text">Simple Chatbot</h2>
-                        <p class="mb-4">Create a command-line chatbot:</p>
-                        <div class="rounded-md overflow-hidden mb-6 relative">
-                            <pre><code class="language-go">package main
+      <!-- Content -->
+      <main class="flex-grow p-6">
+        <div class="container mx-auto max-w-3xl">
+          <div class="mb-6">
+            <h1
+              class="text-3xl font-fredoka text-gray-900 mb-2 quirky-gradient-text"
+            >
+              Examples
+            </h1>
+            <p class="text-lg text-gray-700">
+              Real-world applications of GAI. These examples show how to use GAI
+              effectively.
+            </p>
+          </div>
+
+          <div class="prose prose-blue max-w-none">
+            <section
+              id="simple-chatbot"
+              class="mb-10 bg-white p-6 rounded-lg border-2 border-black shadow-[5px_5px_0px_#000] hover:shadow-[7px_7px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all rotate-1"
+            >
+              <h2
+                class="text-2xl font-fredoka text-blue-600 mb-4 quirky-gradient-text"
+              >
+                Simple Chatbot
+              </h2>
+              <p class="mb-4">Create a command-line chatbot:</p>
+              <div class="rounded-md overflow-hidden mb-6 relative">
+                <pre><code class="language-go">package main
 
 import (
     "bufio"
@@ -195,11 +366,11 @@ func main() {
 
     // Add system prompt
     system := "You are a helpful assistant. Be concise."
-    
+
     // Start conversation loop
     scanner := bufio.NewScanner(os.Stdin)
     fmt.Println("Chat with the AI (type 'exit' to quit):")
-    
+
     for {
         // Get user input
         fmt.Print("> ")
@@ -210,17 +381,17 @@ func main() {
         if userInput == "exit" {
             break
         }
-        
+
         // Add user message
         messages = append(messages, gai.NewUserTextMessage(userInput))
-        
+
         // Create request
         request := gai.ChatCompleteRequest{
             Messages:    messages,
             System:      gai.Ptr(system),
             Temperature: gai.Ptr(gai.Temperature(0.7)),
         }
-        
+
         // Get response
         fmt.Print("AI: ")
         response, err := client.ChatComplete(context.Background(), request)
@@ -228,7 +399,7 @@ func main() {
             fmt.Printf("Error: %v\n", err)
             continue
         }
-        
+
         // Process response
         var fullResponse string
         for part, err := range response.Parts() {
@@ -241,19 +412,26 @@ func main() {
             fmt.Print(text) // Stream response
         }
         fmt.Println()
-        
+
         // Add AI response to conversation history
         messages = append(messages, gai.NewModelTextMessage(fullResponse))
     }
 }</code></pre>
-                        </div>
-                    </section>
+              </div>
+            </section>
 
-                    <section id="semantic-search" class="mb-10 bg-white p-6 rounded-lg border-2 border-black shadow-[5px_5px_0px_#000] hover:shadow-[7px_7px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all -rotate-0.5">
-                        <h2 class="text-2xl font-fredoka text-blue-600 mb-4 quirky-gradient-text">Semantic Search</h2>
-                        <p class="mb-4">Build a simple semantic search engine:</p>
-                        <div class="rounded-md overflow-hidden mb-6 relative">
-                            <pre><code class="language-go">package main
+            <section
+              id="semantic-search"
+              class="mb-10 bg-white p-6 rounded-lg border-2 border-black shadow-[5px_5px_0px_#000] hover:shadow-[7px_7px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all -rotate-0.5"
+            >
+              <h2
+                class="text-2xl font-fredoka text-blue-600 mb-4 quirky-gradient-text"
+              >
+                Semantic Search
+              </h2>
+              <p class="mb-4">Build a simple semantic search engine:</p>
+              <div class="rounded-md overflow-hidden mb-6 relative">
+                <pre><code class="language-go">package main
 
 import (
     "context"
@@ -276,14 +454,14 @@ type Document struct {
 func main() {
     // Initialize client
     client := openai.NewClient(os.Getenv("OPENAI_API_KEY"))
-    
+
     // Sample documents
     documents := []Document{
         {Title: "Go Interfaces", Content: "Go interfaces allow you to define behavior..."},
         {Title: "Error Handling", Content: "In Go, errors are values. Error handling..."},
         {Title: "Concurrency", Content: "Go provides goroutines and channels for concurrency..."},
     }
-    
+
     // Create embeddings for documents
     ctx := context.Background()
     for i := range documents {
@@ -294,29 +472,29 @@ func main() {
         }
         documents[i].Embedding = embedding
     }
-    
+
     // Search loop
     scanner := bufio.NewScanner(os.Stdin)
     fmt.Println("Search (type 'exit' to quit):")
-    
+
     for {
         fmt.Print("> ")
         if !scanner.Scan() {
             break
         }
-        
+
         query := scanner.Text()
         if query == "exit" {
             break
         }
-        
+
         // Search documents
         results, err := searchDocuments(ctx, client, query, documents)
         if err != nil {
             fmt.Printf("Error: %v\n", err)
             continue
         }
-        
+
         // Display results
         fmt.Println("Results:")
         for i, doc := range results {
@@ -345,13 +523,13 @@ func searchDocuments(ctx context.Context, client gai.Embedder[float64], query st
     if err != nil {
         return nil, err
     }
-    
+
     // Score documents
     type scoredDoc struct {
         document Document
         score    float64
     }
-    
+
     var scoredDocs []scoredDoc
     for _, doc := range documents {
         similarity := eval.CosineSimilarity(queryEmbedding, doc.Embedding)
@@ -360,28 +538,37 @@ func searchDocuments(ctx context.Context, client gai.Embedder[float64], query st
             score:    float64(similarity),
         })
     }
-    
+
     // Sort by score
     sort.Slice(scoredDocs, func(i, j int) bool {
         return scoredDocs[i].score > scoredDocs[j].score
     })
-    
+
     // Convert back to documents
     result := make([]Document, len(scoredDocs))
     for i, sd := range scoredDocs {
         result[i] = sd.document
     }
-    
+
     return result, nil
 }</code></pre>
-                        </div>
-                    </section>
+              </div>
+            </section>
 
-                    <section id="tool-using-agent" class="mb-10 bg-white p-6 rounded-lg border-2 border-black shadow-[5px_5px_0px_#000] hover:shadow-[7px_7px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all rotate-0.5">
-                        <h2 class="text-2xl font-fredoka text-blue-600 mb-4 quirky-gradient-text">Tool-Using Agent</h2>
-                        <p class="mb-4">Create an agent that uses tools to enhance its capabilities:</p>
-                        <div class="rounded-md overflow-hidden mb-6 relative">
-                            <pre><code class="language-go">package main
+            <section
+              id="tool-using-agent"
+              class="mb-10 bg-white p-6 rounded-lg border-2 border-black shadow-[5px_5px_0px_#000] hover:shadow-[7px_7px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all rotate-0.5"
+            >
+              <h2
+                class="text-2xl font-fredoka text-blue-600 mb-4 quirky-gradient-text"
+              >
+                Tool-Using Agent
+              </h2>
+              <p class="mb-4">
+                Create an agent that uses tools to enhance its capabilities:
+              </p>
+              <div class="rounded-md overflow-hidden mb-6 relative">
+                <pre><code class="language-go">package main
 
 import (
     "context"
@@ -398,16 +585,16 @@ import (
 func main() {
     // Initialize client
     client := openai.NewClient(os.Getenv("OPENAI_API_KEY"))
-    
+
     // Create tools
     timeTool := tools.NewTime()
-    
+
     // File tools with sandbox directory
     root := os.New("./sandbox")
     readFileTool := tools.NewReadFile(root)
     listDirTool := tools.NewListDir(root)
     editFileTool := tools.NewEditFile(root)
-    
+
     // Create custom weather tool
     weatherTool := gai.Tool{
         Name:        "weather",
@@ -422,18 +609,18 @@ func main() {
             if err := json.Unmarshal(rawArgs, &args); err != nil {
                 return "", err
             }
-            return fmt.Sprintf("It's currently 22°C and sunny in %s", args.Location), nil
+            return fmt.Sprintf("It's currently 22C and sunny in %s", args.Location), nil
         },
     }
-    
+
     // Create initial prompt
     userPrompt := "What time is it, and what's the weather in Paris?"
-    
+
     // Start conversation
     messages := []gai.Message{
         gai.NewUserTextMessage(userPrompt),
     }
-    
+
     // Process conversation with tools
     ctx := context.Background()
     processConversation(ctx, client, messages, []gai.Tool{
@@ -450,24 +637,24 @@ func processConversation(ctx context.Context, client gai.ChatCompleter, messages
         Messages: messages,
         Tools:    tools,
     }
-    
+
     response, err := client.ChatComplete(ctx, request)
     if err != nil {
         fmt.Printf("Error: %v\n", err)
         return
     }
-    
+
     var fullText string
     var needToolExecution bool
     var toolCalls []gai.ToolCall
-    
+
     // Process response
     for part, err := range response.Parts() {
         if err != nil {
             fmt.Printf("Error: %v\n", err)
             return
         }
-        
+
         if part.Type == gai.MessagePartTypeText {
             text := part.Text()
             fullText += text
@@ -476,16 +663,16 @@ func processConversation(ctx context.Context, client gai.ChatCompleter, messages
             needToolExecution = true
             toolCall := part.ToolCall()
             toolCalls = append(toolCalls, toolCall)
-            
+
             fmt.Printf("\n[Tool Call: %s]\n", toolCall.Name)
         }
     }
-    
+
     if !needToolExecution {
         fmt.Println("\nDone.")
         return
     }
-    
+
     // Execute tools and continue conversation
     var toolResults []gai.ToolResult
     for _, toolCall := range toolCalls {
@@ -497,16 +684,16 @@ func processConversation(ctx context.Context, client gai.ChatCompleter, messages
                 break
             }
         }
-        
+
         if tool == nil {
             fmt.Printf("Unknown tool: %s\n", toolCall.Name)
             continue
         }
-        
+
         // Execute the tool
         fmt.Printf("Executing tool: %s\n", toolCall.Name)
         result, err := tool.Function(ctx, toolCall.Args)
-        
+
         // Add result
         toolResults = append(toolResults, gai.ToolResult{
             ID:      toolCall.ID,
@@ -514,29 +701,36 @@ func processConversation(ctx context.Context, client gai.ChatCompleter, messages
             Err:     err,
         })
     }
-    
+
     // Add model and tool results to conversation
     newMessages := append(messages, gai.Message{
         Role:  gai.MessageRoleModel,
         Parts: []gai.MessagePart{gai.TextMessagePart(fullText)},
     })
-    
+
     // Add tool results
     for _, result := range toolResults {
         newMessages = append(newMessages, gai.NewUserToolResultMessage(result))
     }
-    
+
     // Continue conversation
     processConversation(ctx, client, newMessages, tools)
 }</code></pre>
-                        </div>
-                    </section>
+              </div>
+            </section>
 
-                    <section id="evaluating-multiple-models" class="mb-10 bg-white p-6 rounded-lg border-2 border-black shadow-[5px_5px_0px_#000] hover:shadow-[7px_7px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all -rotate-1">
-                        <h2 class="text-2xl font-fredoka text-blue-600 mb-4 quirky-gradient-text">Evaluating Multiple Models</h2>
-                        <p class="mb-4">Compare different models on a specific task:</p>
-                        <div class="rounded-md overflow-hidden mb-6 relative">
-                            <pre><code class="language-go">package myapp_test
+            <section
+              id="evaluating-multiple-models"
+              class="mb-10 bg-white p-6 rounded-lg border-2 border-black shadow-[5px_5px_0px_#000] hover:shadow-[7px_7px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all -rotate-1"
+            >
+              <h2
+                class="text-2xl font-fredoka text-blue-600 mb-4 quirky-gradient-text"
+              >
+                Evaluating Multiple Models
+              </h2>
+              <p class="mb-4">Compare different models on a specific task:</p>
+              <div class="rounded-md overflow-hidden mb-6 relative">
+                <pre><code class="language-go">package myapp_test
 
 import (
     "context"
@@ -556,26 +750,26 @@ func TestEvalModelComparison(t *testing.T) {
         "Explain quantum computing in simple terms",
         "Write a haiku about programming",
     }
-    
+
     // Initialize models
     models := map[string]gai.ChatCompleter{
         "OpenAI-GPT4":     openai.NewClient(os.Getenv("OPENAI_API_KEY")),
         "Google-Gemini":   google.NewClient(os.Getenv("GOOGLE_API_KEY")),
         "Anthropic-Claude": anthropic.NewClient(os.Getenv("ANTHROPIC_API_KEY")),
     }
-    
+
     // Create judge model for LLM evaluation
     judgeModel := openai.NewClient(os.Getenv("OPENAI_API_KEY"))
-    
+
     // Run evaluations for each model
     for modelName, model := range models {
         eval.Run(t, modelName, func(t *testing.T, e *eval.E) {
             e.Group = "ModelComparison"
-            
+
             for _, question := range questions {
                 // Reset timer for fair comparison
                 e.ResetTimer()
-                
+
                 // Get model response
                 res, err := model.ChatComplete(t.Context(), gai.ChatCompleteRequest{
                     Messages: []gai.Message{
@@ -585,7 +779,7 @@ func TestEvalModelComparison(t *testing.T) {
                 if err != nil {
                     t.Fatal(err)
                 }
-                
+
                 // Collect response
                 var output string
                 for part, err := range res.Parts() {
@@ -594,32 +788,39 @@ func TestEvalModelComparison(t *testing.T) {
                     }
                     output += part.Text()
                 }
-                
+
                 // Create sample (no golden answer for open-ended questions)
                 sample := eval.Sample{
                     Input:    question,
                     Output:   output,
                     Expected: "", // No golden answer for open-ended evaluation
                 }
-                
+
                 // Score with LLM judge
                 judge := eval.RubricJudge(gai.Temperature(0.1))
                 result := e.Score(sample, eval.LLMScorer(t, judge, judgeModel))
-                
+
                 // Log result
                 e.Log(sample, result)
             }
         })
     }
 }</code></pre>
-                        </div>
-                    </section>
+              </div>
+            </section>
 
-                    <section id="memory-tool" class="mb-10 bg-white p-6 rounded-lg border-2 border-black shadow-[5px_5px_0px_#000] hover:shadow-[7px_7px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all rotate-0.75">
-                        <h2 class="text-2xl font-fredoka text-blue-600 mb-4 quirky-gradient-text">Memory Tool</h2>
-                        <p class="mb-4">Create a system with persistent memory:</p>
-                        <div class="rounded-md overflow-hidden mb-6 relative">
-                            <pre><code class="language-go">package main
+            <section
+              id="memory-tool"
+              class="mb-10 bg-white p-6 rounded-lg border-2 border-black shadow-[5px_5px_0px_#000] hover:shadow-[7px_7px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all rotate-0.75"
+            >
+              <h2
+                class="text-2xl font-fredoka text-blue-600 mb-4 quirky-gradient-text"
+              >
+                Memory Tool
+              </h2>
+              <p class="mb-4">Create a system with persistent memory:</p>
+              <div class="rounded-md overflow-hidden mb-6 relative">
+                <pre><code class="language-go">package main
 
 import (
     "context"
@@ -658,114 +859,134 @@ func (m *memoryStore) SearchMemories(ctx context.Context, query string) ([]strin
 
 func main() {
     client := openai.NewClient(os.Getenv("OPENAI_API_KEY"))
-    
+
     // Create memory store
     store := &memoryStore{}
-    
+
     // Create memory tools
     saveMemoryTool := tools.NewSaveMemory(store)
     getMemoriesTool := tools.NewGetMemories(store)
     searchMemoriesTool := tools.NewSearchMemories(store)
-    
+
     // Handle user interaction and model processing
     system := "You're an assistant with memory. Use save_memory to remember important information. Use get_memories to recall all memories. Use search_memories to find specific memories."
-    
+
     // Start chatbot loop
     // ... (Similar to previous chatbot example, but with memory tools)
 }</code></pre>
-                        </div>
-                    </section>
-                </div>
-                
-                <div class="mt-12 flex space-x-4">
-                    <a href="evals.html" class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-lg border-2 border-black shadow-[3px_3px_0px_#000] hover:shadow-[5px_5px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all inline-flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                        </svg>
-                        Evaluations
-                    </a>
-                    <a href="index.html" class="bg-gradient-to-r from-[#ff5f6d] to-[#ffc371] text-white font-semibold py-2 px-4 rounded-lg border-2 border-black shadow-[3px_3px_0px_#000] hover:shadow-[5px_5px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all inline-flex items-center">
-                        Home
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                        </svg>
-                    </a>
-                </div>
-            </div>
-        </main>
+              </div>
+            </section>
+          </div>
+
+          <div class="mt-12 flex space-x-4">
+            <a
+              href="evals.html"
+              class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-lg border-2 border-black shadow-[3px_3px_0px_#000] hover:shadow-[5px_5px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all inline-flex items-center"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-4 w-4 mr-2"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M15 19l-7-7 7-7"
+                />
+              </svg>
+              Evaluations
+            </a>
+            <a
+              href="index.html"
+              class="bg-gradient-to-r from-[#ff5f6d] to-[#ffc371] text-white font-semibold py-2 px-4 rounded-lg border-2 border-black shadow-[3px_3px_0px_#000] hover:shadow-[5px_5px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all inline-flex items-center"
+            >
+              Home
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-4 w-4 ml-2"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+            </a>
+          </div>
+        </div>
+      </main>
     </div>
 
     <!-- Footer -->
     <footer class="bg-gray-800 text-white py-6 footer-wave">
-        <div class="container mx-auto px-4 pt-24 pb-8">
-            <div class="flex flex-col md:flex-row justify-between">
-                <div class="mb-4 md:mb-0">
-                    <h3 class="text-xl font-bold mb-2 font-fredoka">GAI</h3>
-                    <p class="text-gray-300">Go Artificial Intelligence - Work with AI models in Go</p>
-                </div>
-                <div>
-                    <h4 class="font-bold mb-2 mt-4 md:mt-0 font-fredoka">Links</h4>
-                    <ul class="space-y-1">
-                        <li><a href="https://github.com/maragudk/gai" class="text-blue-300 hover:text-white" target="_blank">GitHub Repository</a></li>
-                        <li><a href="https://pkg.go.dev/maragu.dev/gai" class="text-blue-300 hover:text-white" target="_blank">Go Documentation</a></li>
-                        <li><a href="mailto:markus@maragu.dk" class="text-blue-300 hover:text-white">Contact</a></li>
-                    </ul>
-                </div>
-            </div>
-            <div class="mt-8 pt-4 border-t border-gray-700 text-center text-gray-400">
-                <p class="animate-wiggle">Made with ( by <a href="https://www.maragu.dev/" class="text-blue-300 hover:text-white" target="_blank">maragu</a></p>
-            </div>
+      <div class="container mx-auto px-4 pt-24 pb-8">
+        <div class="flex flex-col md:flex-row justify-between">
+          <div class="mb-4 md:mb-0">
+            <h3 class="text-xl font-bold mb-2 font-fredoka">GAI</h3>
+            <p class="text-gray-300">
+              Go Artificial Intelligence - Work with AI models in Go
+            </p>
+          </div>
+          <div>
+            <h4 class="font-bold mb-2 mt-4 md:mt-0 font-fredoka">Links</h4>
+            <ul class="space-y-1">
+              <li>
+                <a
+                  href="https://github.com/maragudk/gai"
+                  class="text-blue-300 hover:text-white"
+                  target="_blank"
+                  >GitHub Repository</a
+                >
+              </li>
+              <li>
+                <a
+                  href="https://pkg.go.dev/maragu.dev/gai"
+                  class="text-blue-300 hover:text-white"
+                  target="_blank"
+                  >Go Documentation</a
+                >
+              </li>
+              <li>
+                <a
+                  href="mailto:markus@maragu.dk"
+                  class="text-blue-300 hover:text-white"
+                  >Contact</a
+                >
+              </li>
+            </ul>
+          </div>
         </div>
+        <div
+          class="mt-8 pt-4 border-t border-gray-700 text-center text-gray-400"
+        >
+          <p class="animate-wiggle">
+            Made with âœ¨ by
+            <a
+              href="https://www.maragu.dev/"
+              class="text-blue-300 hover:text-white"
+              target="_blank"
+              >maragu</a
+            >
+          </p>
+        </div>
+      </div>
     </footer>
 
     <script>
-        // Mobile menu toggle
-        document.getElementById('mobile-menu-button').addEventListener('click', function() {
-            const menu = document.getElementById('mobile-menu');
-            menu.classList.toggle('hidden');
+      // Mobile menu toggle
+      document
+        .getElementById("mobile-menu-button")
+        .addEventListener("click", function () {
+          const menu = document.getElementById("mobile-menu");
+          menu.classList.toggle("hidden");
         });
-        
-        // Add animated elements randomly
-        function addRandomEmojis() {
-            const emojis = ['(', '=€', '>', '=¡', '=.', '¡', '>à'];
-            const container = document.createElement('div');
-            container.className = 'fixed inset-0 pointer-events-none z-0 overflow-hidden';
-            document.body.appendChild(container);
-            
-            for (let i = 0; i < 20; i++) {
-                setTimeout(() => {
-                    const emoji = document.createElement('div');
-                    const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
-                    emoji.textContent = randomEmoji;
-                    emoji.className = 'absolute text-3xl opacity-20';
-                    emoji.style.top = `${Math.random() * 100}%`;
-                    emoji.style.left = `${Math.random() * 100}%`;
-                    emoji.style.transform = `rotate(${Math.random() * 360}deg)`;
-                    emoji.style.transition = 'all 15s linear';
-                    container.appendChild(emoji);
-                    
-                    // Slow floating animation
-                    setTimeout(() => {
-                        emoji.style.top = `${Math.random() * 100}%`;
-                        emoji.style.left = `${Math.random() * 100}%`;
-                        emoji.style.transform = `rotate(${Math.random() * 360}deg)`;
-                    }, 100);
-                    
-                    // Remove after animation
-                    setTimeout(() => {
-                        container.removeChild(emoji);
-                    }, 15000);
-                }, i * 1000);
-            }
-        }
-        
-        // Run on page load
-        window.addEventListener('load', addRandomEmojis);
-        
-        // Run every 20 seconds
-        setInterval(addRandomEmojis, 20000);
-        
-        // Card tilt effect is now handled by tilt.js
     </script>
-</body>
+  </body>
 </html>
