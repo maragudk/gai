@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Go Artificial Intelligence - GAI Documentation</title>
+    <title>{{TITLE}} - GAI Documentation</title>
     <!-- TailwindCSS v4 CDN -->
     <script src="https://cdn.tailwindcss.com?v=4"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
@@ -21,7 +21,6 @@
                         'wiggle': 'wiggle 2.5s ease-in-out infinite',
                         'bounce-slow': 'bounce 2s ease infinite',
                         'sparkle': 'sparkle 1.5s ease-in-out infinite',
-                        'float': 'float 6s ease-in-out infinite',
                     },
                     keyframes: {
                         wiggle: {
@@ -36,10 +35,6 @@
                             '0%': { transform: 'scale(0)', opacity: '0' },
                             '50%': { transform: 'scale(1)', opacity: '1' },
                             '100%': { transform: 'scale(0)', opacity: '0' },
-                        },
-                        float: {
-                            '0%, 100%': { transform: 'translateY(0px)' },
-                            '50%': { transform: 'translateY(-20px)' },
                         }
                     }
                 }
@@ -100,14 +95,14 @@
     </div>
 
     <!-- Header -->
-    <header class="bg-gradient-to-r from-[#ff5f6d] to-[#ffc371] text-white shadow-lg sticky top-0 z-20">
+    <header class="bg-gradient-to-r from-[#ff5f6d] to-[#ffc371] text-white shadow-lg">
         <div class="container mx-auto px-4 py-4 flex justify-between items-center">
             <a href="index.html" class="text-2xl font-fredoka flex items-center">
                 <span class="mr-2 animate-wiggle inline-block">GAI</span>
                 <span class="text-sm bg-white text-gray-800 px-2 py-1 rounded-md -rotate-2 border-2 border-black">Go Artificial Intelligence</span>
             </a>
             <nav class="hidden md:flex space-x-4">
-                <a href="index.html" class="px-3 py-2 bg-yellow-400 rounded-lg border-2 border-black shadow-[3px_3px_0px_#000] hover:shadow-[5px_5px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all text-black">Home</a>
+                <a href="index.html" class="px-3 py-2 hover:bg-yellow-400 rounded-lg border-2 border-black shadow-[3px_3px_0px_#000] hover:shadow-[5px_5px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all">Home</a>
                 <a href="getting-started.html" class="px-3 py-2 hover:bg-yellow-400 rounded-lg border-2 border-black shadow-[3px_3px_0px_#000] hover:shadow-[5px_5px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all">Getting Started</a>
                 <a href="concepts.html" class="px-3 py-2 hover:bg-yellow-400 rounded-lg border-2 border-black shadow-[3px_3px_0px_#000] hover:shadow-[5px_5px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all">Concepts</a>
                 <a href="examples.html" class="px-3 py-2 hover:bg-yellow-400 rounded-lg border-2 border-black shadow-[3px_3px_0px_#000] hover:shadow-[5px_5px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all">Examples</a>
@@ -122,7 +117,7 @@
         <!-- Mobile menu (hidden by default) -->
         <div class="md:hidden hidden" id="mobile-menu">
             <div class="px-2 pt-2 pb-3 space-y-1 bg-yellow-400">
-                <a href="index.html" class="block px-3 py-2 bg-yellow-300 rounded-lg text-black">Home</a>
+                <a href="index.html" class="block px-3 py-2 hover:bg-yellow-300 rounded-lg text-black">Home</a>
                 <a href="getting-started.html" class="block px-3 py-2 hover:bg-yellow-300 rounded-lg text-black">Getting Started</a>
                 <a href="concepts.html" class="block px-3 py-2 hover:bg-yellow-300 rounded-lg text-black">Concepts</a>
                 <a href="examples.html" class="block px-3 py-2 hover:bg-yellow-300 rounded-lg text-black">Examples</a>
@@ -130,24 +125,6 @@
             </div>
         </div>
     </header>
-
-    <!-- Hero Section -->
-    <div class="bg-gradient-to-r from-[#ff5f6d] to-[#ffc371] text-white py-12 relative overflow-hidden">
-        <div class="container mx-auto px-4 max-w-3xl relative z-10">
-            <h1 class="text-5xl font-fredoka mb-4 animate-wiggle inline-block">Go Artificial Intelligence</h1>
-            <p class="text-xl mb-6 font-space -rotate-1">Work with AI models in Go. No fuss. No complexity. Just a clean interface with a splash of fun!</p>
-            <div class="flex flex-wrap gap-4">
-                <a href="getting-started.html" class="bg-white text-black px-5 py-2 rounded-md font-bold border-2 border-black shadow-[3px_3px_0px_#000] hover:shadow-[5px_5px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all">Get Started</a>
-                <a href="https://github.com/maragudk/gai" class="bg-yellow-400 text-black border-2 border-black px-5 py-2 rounded-md font-bold shadow-[3px_3px_0px_#000] hover:shadow-[5px_5px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all" target="_blank">View on GitHub</a>
-            </div>
-        </div>
-        
-        <!-- Decorative elements -->
-        <div class="absolute top-0 right-0 w-64 h-64 opacity-20">
-            <div class="absolute top-10 right-10 text-6xl animate-wiggle">🚀</div>
-            <div class="absolute bottom-10 right-20 text-5xl animate-bounce-slow">✨</div>
-        </div>
-    </div>
 
     <!-- Main content -->
     <div class="flex flex-grow">
@@ -163,134 +140,25 @@
                 <a href="evals.html" class="block py-2 px-4 rounded-lg hover:bg-yellow-200 hover:-rotate-1 transition-all">Evaluations</a>
                 <a href="examples.html" class="block py-2 px-4 rounded-lg hover:bg-yellow-200 hover:-rotate-1 transition-all">Examples</a>
             </nav>
+            
+            <!-- Table of Contents -->
+            <div class="mt-8">
+                <div class="font-bold mb-2 text-gray-700 font-fredoka quirky-gradient-text">On This Page</div>
+                <nav class="space-y-1 text-sm">
+                    {{TABLE_OF_CONTENTS}}
+                </nav>
+            </div>
         </aside>
 
         <!-- Content -->
         <main class="flex-grow p-6">
             <div class="container mx-auto max-w-3xl">
-                <section class="mb-12">
-                    <h2 class="text-3xl font-fredoka mb-4 animate-wiggle inline-block quirky-gradient-text">What it does</h2>
-                    <p class="mb-4">GAI provides interfaces to work with:</p>
-                    <div class="grid md:grid-cols-2 gap-4">
-                        <div class="bg-white p-6 rounded-lg shadow-md border-2 border-black shadow-[5px_5px_0px_#000] hover:shadow-[7px_7px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all rotate-1">
-                            <h3 class="font-bold text-lg mb-2 flex items-center">
-                                <span class="text-2xl mr-2">💬</span>
-                                Chat models
-                            </h3>
-                            <p>Have conversations with AI models using a simple, consistent interface.</p>
-                        </div>
-                        <div class="bg-white p-6 rounded-lg shadow-md border-2 border-black shadow-[5px_5px_0px_#000] hover:shadow-[7px_7px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all -rotate-1">
-                            <h3 class="font-bold text-lg mb-2 flex items-center">
-                                <span class="text-2xl mr-2">🧠</span>
-                                Embedding models
-                            </h3>
-                            <p>Turn text into vectors for semantic search and similarity operations.</p>
-                        </div>
-                        <div class="bg-white p-6 rounded-lg shadow-md border-2 border-black shadow-[5px_5px_0px_#000] hover:shadow-[7px_7px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all -rotate-1">
-                            <h3 class="font-bold text-lg mb-2 flex items-center">
-                                <span class="text-2xl mr-2">🔧</span>
-                                Tools
-                            </h3>
-                            <p>Extend AI capabilities with custom functions and external integrations.</p>
-                        </div>
-                        <div class="bg-white p-6 rounded-lg shadow-md border-2 border-black shadow-[5px_5px_0px_#000] hover:shadow-[7px_7px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all rotate-1">
-                            <h3 class="font-bold text-lg mb-2 flex items-center">
-                                <span class="text-2xl mr-2">📊</span>
-                                Evaluations
-                            </h3>
-                            <p>Test model quality with qualitative and quantitative metrics.</p>
-                        </div>
-                    </div>
-                </section>
-
-                <section class="mb-12">
-                    <h2 class="text-3xl font-fredoka mb-4 animate-wiggle inline-block quirky-gradient-text">Why use it</h2>
-                    <p class="mb-4">You want a unified way to work with AI models. You need a library that:</p>
-                    <ul class="list-disc pl-6 space-y-2">
-                        <li class="hover:translate-x-2 transition-transform duration-200">Gives you consistency across providers</li>
-                        <li class="hover:translate-x-2 transition-transform duration-200">Keeps implementations simple</li>
-                        <li class="hover:translate-x-2 transition-transform duration-200">Makes testing straightforward</li>
-                        <li class="hover:translate-x-2 transition-transform duration-200">Uses Go idioms</li>
-                    </ul>
-                </section>
-
-                <section class="mb-12">
-                    <h2 class="text-3xl font-fredoka mb-4 animate-wiggle inline-block quirky-gradient-text">Getting started</h2>
-                    <p class="mb-4">Install the package:</p>
-                    <pre class="relative z-10 overflow-hidden"><code class="language-go">go get maragu.dev/gai</code></pre>
-                    <p class="my-4">Use it with your favorite models. These client implementations are available:</p>
-                    <ul class="list-disc pl-6 space-y-2">
-                        <li class="hover:translate-x-2 transition-transform duration-200">
-                            <a href="https://github.com/maragudk/gai-openai" class="text-blue-600 hover:text-blue-800 hover:underline" target="_blank">gai-openai</a>
-                        </li>
-                        <li class="hover:translate-x-2 transition-transform duration-200">
-                            <a href="https://github.com/maragudk/gai-google" class="text-blue-600 hover:text-blue-800 hover:underline" target="_blank">gai-google</a>
-                        </li>
-                        <li class="hover:translate-x-2 transition-transform duration-200">
-                            <a href="https://github.com/maragudk/gai-anthropic" class="text-blue-600 hover:text-blue-800 hover:underline" target="_blank">gai-anthropic</a>
-                        </li>
-                    </ul>
-                </section>
-
-                <section class="mb-12">
-                    <h2 class="text-3xl font-fredoka mb-4 animate-wiggle inline-block quirky-gradient-text">Learn more</h2>
-                    <div class="grid md:grid-cols-2 gap-6">
-                        <a href="getting-started.html" class="relative bg-white p-6 rounded-lg border-2 border-black shadow-[5px_5px_0px_#000] hover:shadow-[7px_7px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all group hover:rotate-1">
-                            <div class="absolute -top-3 -right-3 bg-yellow-300 text-black font-bold rounded-full w-10 h-10 flex items-center justify-center border-2 border-black animate-float">🚀</div>
-                            <h3 class="font-bold text-lg mb-2 group-hover:text-pink-600 flex items-center">
-                                Getting Started
-                            </h3>
-                            <p>Quick start guide to begin using GAI.</p>
-                        </a>
-                        <a href="chat-completion.html" class="relative bg-white p-6 rounded-lg border-2 border-black shadow-[5px_5px_0px_#000] hover:shadow-[7px_7px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all group hover:-rotate-1">
-                            <div class="absolute -top-3 -right-3 bg-green-300 text-black font-bold rounded-full w-10 h-10 flex items-center justify-center border-2 border-black animate-float">💬</div>
-                            <h3 class="font-bold text-lg mb-2 group-hover:text-pink-600 flex items-center">
-                                Chat Completion
-                            </h3>
-                            <p>Have conversations with AI models.</p>
-                        </a>
-                        <a href="embedding.html" class="relative bg-white p-6 rounded-lg border-2 border-black shadow-[5px_5px_0px_#000] hover:shadow-[7px_7px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all group hover:-rotate-1">
-                            <div class="absolute -top-3 -right-3 bg-blue-300 text-black font-bold rounded-full w-10 h-10 flex items-center justify-center border-2 border-black animate-float">🧠</div>
-                            <h3 class="font-bold text-lg mb-2 group-hover:text-pink-600 flex items-center">
-                                Embedding
-                            </h3>
-                            <p>Turn text into vectors for semantic operations.</p>
-                        </a>
-                        <a href="tools.html" class="relative bg-white p-6 rounded-lg border-2 border-black shadow-[5px_5px_0px_#000] hover:shadow-[7px_7px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all group hover:rotate-1">
-                            <div class="absolute -top-3 -right-3 bg-red-300 text-black font-bold rounded-full w-10 h-10 flex items-center justify-center border-2 border-black animate-float">🔧</div>
-                            <h3 class="font-bold text-lg mb-2 group-hover:text-pink-600 flex items-center">
-                                Tools
-                            </h3>
-                            <p>Extend model capabilities with custom functions.</p>
-                        </a>
-                        <a href="evals.html" class="relative bg-white p-6 rounded-lg border-2 border-black shadow-[5px_5px_0px_#000] hover:shadow-[7px_7px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all group hover:rotate-1">
-                            <div class="absolute -top-3 -right-3 bg-purple-300 text-black font-bold rounded-full w-10 h-10 flex items-center justify-center border-2 border-black animate-float">📊</div>
-                            <h3 class="font-bold text-lg mb-2 group-hover:text-pink-600 flex items-center">
-                                Evaluations
-                            </h3>
-                            <p>Test and measure model quality.</p>
-                        </a>
-                        <a href="examples.html" class="relative bg-white p-6 rounded-lg border-2 border-black shadow-[5px_5px_0px_#000] hover:shadow-[7px_7px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all group hover:-rotate-1">
-                            <div class="absolute -top-3 -right-3 bg-pink-300 text-black font-bold rounded-full w-10 h-10 flex items-center justify-center border-2 border-black animate-float">🔍</div>
-                            <h3 class="font-bold text-lg mb-2 group-hover:text-pink-600 flex items-center">
-                                Examples
-                            </h3>
-                            <p>See GAI in action with practical examples.</p>
-                        </a>
-                    </div>
-                </section>
-
-                <section class="mb-8">
-                    <h2 class="text-3xl font-fredoka mb-4 animate-wiggle inline-block quirky-gradient-text">About</h2>
-                    <div class="bg-white p-6 rounded-lg border-2 border-black shadow-[5px_5px_0px_#000] hover:shadow-[7px_7px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all">
-                        <p>Made by <a href="https://www.maragu.dev/" class="text-blue-600 hover:text-blue-800 hover:underline" target="_blank">maragu</a>: independent software consulting for cloud-native Go apps & AI engineering.</p>
-                        <p class="mt-2">
-                            <a href="mailto:markus@maragu.dk" class="inline-block mt-2 bg-yellow-300 text-black px-4 py-2 rounded-md border-2 border-black shadow-[3px_3px_0px_#000] hover:shadow-[5px_5px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all">
-                                Contact Markus ✉️
-                            </a>
-                        </p>
-                    </div>
-                </section>
+                {{CONTENT}}
+                
+                <div class="mt-12 flex space-x-4">
+                    {{PREV_LINK}}
+                    {{NEXT_LINK}}
+                </div>
             </div>
         </main>
     </div>
@@ -366,7 +234,7 @@
         setInterval(addRandomEmojis, 20000);
         
         // Apply tilt effect to cards
-        document.querySelectorAll('[class*="shadow-["]').forEach(card => {
+        document.querySelectorAll('[class*="hover:shadow"]').forEach(card => {
             card.addEventListener('mousemove', function(e) {
                 const rect = this.getBoundingClientRect();
                 const x = e.clientX - rect.left;

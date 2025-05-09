@@ -4,27 +4,116 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Getting Started - GAI Documentation</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <!-- TailwindCSS v4 CDN -->
+    <script src="https://cdn.tailwindcss.com?v=4"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
-    <script>document.addEventListener('DOMContentLoaded', (event) => { hljs.highlightAll(); });</script>
+    <script>hljs.highlightAll();</script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'space': ['"Space Mono"', 'monospace'],
+                        'fredoka': ['"Fredoka One"', 'cursive'],
+                    },
+                    animation: {
+                        'wiggle': 'wiggle 2.5s ease-in-out infinite',
+                        'bounce-slow': 'bounce 2s ease infinite',
+                        'sparkle': 'sparkle 1.5s ease-in-out infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        wiggle: {
+                            '0%, 100%': { transform: 'rotate(-3deg)' },
+                            '50%': { transform: 'rotate(3deg)' },
+                        },
+                        bounce: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        },
+                        sparkle: {
+                            '0%': { transform: 'scale(0)', opacity: '0' },
+                            '50%': { transform: 'scale(1)', opacity: '1' },
+                            '100%': { transform: 'scale(0)', opacity: '0' },
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-20px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom quirky styles */
+        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap');
+        
+        .quirky-gradient-text {
+            background: linear-gradient(45deg, #ff5f6d, #ffc371);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .footer-wave {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 320'%3E%3Cpath fill='%23ff5f6d' fill-opacity='0.5' d='M0,64L48,80C96,96,192,128,288,138.7C384,149,480,139,576,122.7C672,107,768,85,864,69.3C960,53,1056,43,1152,58.7C1248,75,1344,117,1392,138.7L1440,160L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z'%3E%3C/path%3E%3C/svg%3E");
+            background-size: cover;
+            background-position: center;
+        }
+        
+        /* Code blocks with tilted backgrounds */
+        pre {
+            position: relative;
+        }
+        
+        pre::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #2a2a2a;
+            transform: rotate(-1deg);
+            z-index: -1;
+        }
+        
+        /* Sparkle positioning */
+        .sparkle:nth-child(1) { top: 10%; left: 10%; animation-delay: 0s; }
+        .sparkle:nth-child(2) { top: 20%; left: 90%; animation-delay: 0.3s; }
+        .sparkle:nth-child(3) { top: 80%; left: 15%; animation-delay: 0.6s; }
+        .sparkle:nth-child(4) { top: 65%; left: 85%; animation-delay: 0.9s; }
+        .sparkle:nth-child(5) { top: 50%; left: 50%; animation-delay: 1.2s; }
+    </style>
 </head>
-<body class="bg-gray-50 text-gray-800 flex flex-col min-h-screen">
+<body class="bg-yellow-50 text-gray-800 flex flex-col min-h-screen font-space">
+    <!-- Sparkles -->
+    <div class="fixed inset-0 pointer-events-none z-10">
+        <div class="absolute w-1.5 h-1.5 rounded-full bg-white opacity-0 animate-sparkle sparkle"></div>
+        <div class="absolute w-1.5 h-1.5 rounded-full bg-white opacity-0 animate-sparkle sparkle"></div>
+        <div class="absolute w-1.5 h-1.5 rounded-full bg-white opacity-0 animate-sparkle sparkle"></div>
+        <div class="absolute w-1.5 h-1.5 rounded-full bg-white opacity-0 animate-sparkle sparkle"></div>
+        <div class="absolute w-1.5 h-1.5 rounded-full bg-white opacity-0 animate-sparkle sparkle"></div>
+    </div>
+
     <!-- Header -->
-    <header class="bg-blue-600 text-white shadow-lg">
+    <header class="bg-gradient-to-r from-[#ff5f6d] to-[#ffc371] text-white shadow-lg sticky top-0 z-20">
         <div class="container mx-auto px-4 py-4 flex justify-between items-center">
-            <a href="index.html" class="text-2xl font-bold flex items-center">
-                <span class="mr-2">GAI</span>
-                <span class="text-sm bg-blue-800 px-2 py-1 rounded-md">Go Artificial Intelligence</span>
+            <a href="index.html" class="text-2xl font-fredoka flex items-center">
+                <span class="mr-2 animate-wiggle inline-block">GAI</span>
+                <span class="text-sm bg-white text-gray-800 px-2 py-1 rounded-md -rotate-2 border-2 border-black">Go Artificial Intelligence</span>
             </a>
             <nav class="hidden md:flex space-x-4">
-                <a href="index.html" class="px-3 py-2 hover:bg-blue-700 rounded">Home</a>
-                <a href="getting-started.html" class="px-3 py-2 bg-blue-700 rounded">Getting Started</a>
-                <a href="concepts.html" class="px-3 py-2 hover:bg-blue-700 rounded">Concepts</a>
-                <a href="examples.html" class="px-3 py-2 hover:bg-blue-700 rounded">Examples</a>
-                <a href="https://github.com/maragudk/gai" class="px-3 py-2 hover:bg-blue-700 rounded" target="_blank">GitHub</a>
+                <a href="index.html" class="px-3 py-2 hover:bg-yellow-400 rounded-lg border-2 border-black shadow-[3px_3px_0px_#000] hover:shadow-[5px_5px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all">Home</a>
+                <a href="getting-started.html" class="px-3 py-2 bg-yellow-400 rounded-lg border-2 border-black shadow-[3px_3px_0px_#000] hover:shadow-[5px_5px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all text-black">Getting Started</a>
+                <a href="concepts.html" class="px-3 py-2 hover:bg-yellow-400 rounded-lg border-2 border-black shadow-[3px_3px_0px_#000] hover:shadow-[5px_5px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all">Concepts</a>
+                <a href="examples.html" class="px-3 py-2 hover:bg-yellow-400 rounded-lg border-2 border-black shadow-[3px_3px_0px_#000] hover:shadow-[5px_5px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all">Examples</a>
+                <a href="https://github.com/maragudk/gai" class="px-3 py-2 hover:bg-yellow-400 rounded-lg border-2 border-black shadow-[3px_3px_0px_#000] hover:shadow-[5px_5px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all" target="_blank">GitHub</a>
             </nav>
-            <button class="md:hidden block text-white" id="mobile-menu-button">
+            <button class="md:hidden block text-white bg-yellow-400 text-black border-2 border-black shadow-[3px_3px_0px_#000] rounded-lg p-1" id="mobile-menu-button">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
@@ -32,12 +121,12 @@
         </div>
         <!-- Mobile menu (hidden by default) -->
         <div class="md:hidden hidden" id="mobile-menu">
-            <div class="px-2 pt-2 pb-3 space-y-1 bg-blue-700">
-                <a href="index.html" class="block px-3 py-2 hover:bg-blue-800 rounded">Home</a>
-                <a href="getting-started.html" class="block px-3 py-2 bg-blue-800 rounded">Getting Started</a>
-                <a href="concepts.html" class="block px-3 py-2 hover:bg-blue-800 rounded">Concepts</a>
-                <a href="examples.html" class="block px-3 py-2 hover:bg-blue-800 rounded">Examples</a>
-                <a href="https://github.com/maragudk/gai" class="block px-3 py-2 hover:bg-blue-800 rounded" target="_blank">GitHub</a>
+            <div class="px-2 pt-2 pb-3 space-y-1 bg-yellow-400">
+                <a href="index.html" class="block px-3 py-2 hover:bg-yellow-300 rounded-lg text-black">Home</a>
+                <a href="getting-started.html" class="block px-3 py-2 bg-yellow-300 rounded-lg text-black">Getting Started</a>
+                <a href="concepts.html" class="block px-3 py-2 hover:bg-yellow-300 rounded-lg text-black">Concepts</a>
+                <a href="examples.html" class="block px-3 py-2 hover:bg-yellow-300 rounded-lg text-black">Examples</a>
+                <a href="https://github.com/maragudk/gai" class="block px-3 py-2 hover:bg-yellow-300 rounded-lg text-black" target="_blank">GitHub</a>
             </div>
         </div>
     </header>
@@ -45,37 +134,50 @@
     <!-- Main content -->
     <div class="flex flex-grow">
         <!-- Sidebar -->
-        <aside class="hidden md:block w-64 bg-white shadow-md p-4">
+        <aside class="hidden md:block w-64 bg-white shadow-md p-4 mt-6 ml-6 rounded-xl border-2 border-black shadow-[5px_5px_0px_#000] hover:shadow-[7px_7px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all">
             <nav class="space-y-1">
-                <div class="font-bold mb-2 text-gray-700">Documentation</div>
-                <a href="getting-started.html" class="block py-2 px-4 rounded bg-blue-50 text-blue-600 font-medium">Getting Started</a>
-                <a href="concepts.html" class="block py-2 px-4 rounded hover:bg-gray-100">Core Concepts</a>
-                <a href="chat-completion.html" class="block py-2 px-4 rounded hover:bg-gray-100">Chat Completion</a>
-                <a href="embedding.html" class="block py-2 px-4 rounded hover:bg-gray-100">Embedding</a>
-                <a href="tools.html" class="block py-2 px-4 rounded hover:bg-gray-100">Tools</a>
-                <a href="evals.html" class="block py-2 px-4 rounded hover:bg-gray-100">Evaluations</a>
-                <a href="examples.html" class="block py-2 px-4 rounded hover:bg-gray-100">Examples</a>
+                <div class="font-bold mb-2 text-gray-700 font-fredoka quirky-gradient-text">Documentation</div>
+                <a href="getting-started.html" class="block py-2 px-4 rounded-lg bg-yellow-200 font-medium rotate-1">Getting Started</a>
+                <a href="concepts.html" class="block py-2 px-4 rounded-lg hover:bg-yellow-200 hover:-rotate-1 transition-all">Core Concepts</a>
+                <a href="chat-completion.html" class="block py-2 px-4 rounded-lg hover:bg-yellow-200 hover:-rotate-1 transition-all">Chat Completion</a>
+                <a href="embedding.html" class="block py-2 px-4 rounded-lg hover:bg-yellow-200 hover:-rotate-1 transition-all">Embedding</a>
+                <a href="tools.html" class="block py-2 px-4 rounded-lg hover:bg-yellow-200 hover:-rotate-1 transition-all">Tools</a>
+                <a href="evals.html" class="block py-2 px-4 rounded-lg hover:bg-yellow-200 hover:-rotate-1 transition-all">Evaluations</a>
+                <a href="examples.html" class="block py-2 px-4 rounded-lg hover:bg-yellow-200 hover:-rotate-1 transition-all">Examples</a>
             </nav>
+            
+            <!-- Table of Contents -->
+            <div class="mt-8">
+                <div class="font-bold mb-2 text-gray-700 font-fredoka quirky-gradient-text">On This Page</div>
+                <nav class="space-y-1 text-sm">
+                    <a href="#installation" class="block py-1 px-4 rounded-lg hover:bg-yellow-200 hover:-translate-x-1 transition-all">Installation</a>
+                    <a href="#basic-usage" class="block py-1 px-4 rounded-lg hover:bg-yellow-200 hover:-translate-x-1 transition-all">Basic Usage</a>
+                    <a href="#client-setup" class="block py-1 px-4 rounded-lg hover:bg-yellow-200 hover:-translate-x-1 transition-all">Client Setup</a>
+                    <a href="#chat-completion" class="block py-1 px-4 rounded-lg hover:bg-yellow-200 hover:-translate-x-1 transition-all">Chat Completion</a>
+                    <a href="#embedding" class="block py-1 px-4 rounded-lg hover:bg-yellow-200 hover:-translate-x-1 transition-all">Embedding</a>
+                    <a href="#next-steps" class="block py-1 px-4 rounded-lg hover:bg-yellow-200 hover:-translate-x-1 transition-all">Next Steps</a>
+                </nav>
+            </div>
         </aside>
 
         <!-- Content -->
         <main class="flex-grow p-6">
             <div class="container mx-auto max-w-3xl">
                 <div class="mb-6">
-                    <h1 class="text-3xl font-bold text-gray-900 mb-2">Getting Started with GAI</h1>
+                    <h1 class="text-3xl font-fredoka text-gray-900 mb-2 quirky-gradient-text">Getting Started with GAI</h1>
                     <p class="text-lg text-gray-700">This guide covers the basics to get you up and running with GAI.</p>
                 </div>
 
                 <div class="prose prose-blue max-w-none">
-                    <section id="installation" class="mb-10">
-                        <h2 class="text-2xl font-bold text-blue-600 mb-4">Installation</h2>
+                    <section id="installation" class="mb-10 bg-white p-6 rounded-lg border-2 border-black shadow-[5px_5px_0px_#000] hover:shadow-[7px_7px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all rotate-1">
+                        <h2 class="text-2xl font-fredoka text-blue-600 mb-4 quirky-gradient-text">Installation</h2>
                         <p class="mb-4">Use Go modules to install GAI:</p>
-                        <div class="bg-gray-800 rounded-md overflow-hidden mb-6">
+                        <div class="rounded-md overflow-hidden mb-6 relative">
                             <pre><code class="language-bash">go get maragu.dev/gai</code></pre>
                         </div>
 
                         <p class="mb-4">You will also need a client implementation for your preferred AI provider:</p>
-                        <div class="bg-gray-800 rounded-md overflow-hidden mb-6">
+                        <div class="rounded-md overflow-hidden mb-6 relative">
                             <pre><code class="language-bash"># For OpenAI (GPT-4, etc)
 go get github.com/maragudk/gai-openai
 
@@ -87,13 +189,16 @@ go get github.com/maragudk/gai-anthropic</code></pre>
                         </div>
                     </section>
 
-                    <section id="basic-usage" class="mb-10">
-                        <h2 class="text-2xl font-bold text-blue-600 mb-4">Basic Usage</h2>
+                    <section id="basic-usage" class="mb-10 bg-white p-6 rounded-lg border-2 border-black shadow-[5px_5px_0px_#000] hover:shadow-[7px_7px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all -rotate-0.5">
+                        <h2 class="text-2xl font-fredoka text-blue-600 mb-4 quirky-gradient-text">Basic Usage</h2>
 
-                        <div class="mb-8">
-                            <h3 class="text-xl font-bold mb-4">Setting up a client</h3>
+                        <div id="client-setup" class="mb-8">
+                            <h3 class="text-xl font-fredoka mb-4 flex items-center">
+                                <span class="bg-yellow-300 text-black rounded-full w-8 h-8 flex items-center justify-center mr-2 border-2 border-black shadow-[2px_2px_0px_#000]">1</span>
+                                Setting up a client
+                            </h3>
                             <p class="mb-4">Here's how to set up a client for OpenAI models:</p>
-                            <div class="bg-gray-800 rounded-md overflow-hidden mb-6">
+                            <div class="rounded-md overflow-hidden mb-6 relative">
                                 <pre><code class="language-go">package main
 
 import (
@@ -116,10 +221,13 @@ func main() {
                             </div>
                         </div>
 
-                        <div class="mb-8">
-                            <h3 class="text-xl font-bold mb-4">Simple chat completion</h3>
+                        <div id="chat-completion" class="mb-8">
+                            <h3 class="text-xl font-fredoka mb-4 flex items-center">
+                                <span class="bg-green-300 text-black rounded-full w-8 h-8 flex items-center justify-center mr-2 border-2 border-black shadow-[2px_2px_0px_#000]">2</span>
+                                Simple chat completion
+                            </h3>
                             <p class="mb-4">Here's a complete example using chat completion:</p>
-                            <div class="bg-gray-800 rounded-md overflow-hidden mb-6">
+                            <div class="rounded-md overflow-hidden mb-6 relative">
                                 <pre><code class="language-go">package main
 
 import (
@@ -163,10 +271,13 @@ func main() {
                             </div>
                         </div>
 
-                        <div class="mb-8">
-                            <h3 class="text-xl font-bold mb-4">Simple embedding</h3>
+                        <div id="embedding" class="mb-8">
+                            <h3 class="text-xl font-fredoka mb-4 flex items-center">
+                                <span class="bg-blue-300 text-black rounded-full w-8 h-8 flex items-center justify-center mr-2 border-2 border-black shadow-[2px_2px_0px_#000]">3</span>
+                                Simple embedding
+                            </h3>
                             <p class="mb-4">Here's how to create text embeddings:</p>
-                            <div class="bg-gray-800 rounded-md overflow-hidden mb-6">
+                            <div class="rounded-md overflow-hidden mb-6 relative">
                                 <pre><code class="language-go">package main
 
 import (
@@ -203,47 +314,77 @@ func main() {
                         </div>
                     </section>
 
-                    <section id="next-steps" class="mb-8">
-                        <h2 class="text-2xl font-bold text-blue-600 mb-4">Next Steps</h2>
+                    <section id="next-steps" class="mb-8 bg-white p-6 rounded-lg border-2 border-black shadow-[5px_5px_0px_#000] hover:shadow-[7px_7px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all rotate-0.5">
+                        <h2 class="text-2xl font-fredoka text-blue-600 mb-4 quirky-gradient-text">Next Steps</h2>
                         <p class="mb-4">Once you understand the basics, dive deeper into:</p>
                         <div class="grid md:grid-cols-2 gap-4">
-                            <a href="chat-completion.html" class="bg-white p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:shadow-md transition">
-                                <h3 class="font-bold text-blue-600 mb-1">Chat Completion</h3>
+                            <a href="chat-completion.html" class="bg-white p-4 border-2 border-black rounded-lg hover:border-blue-500 hover:shadow-[5px_5px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all">
+                                <h3 class="font-bold text-blue-600 mb-1 flex items-center">
+                                    <span class="text-2xl mr-2">=¬</span>
+                                    Chat Completion
+                                </h3>
                                 <p class="text-sm text-gray-600">For advanced conversation capabilities</p>
                             </a>
-                            <a href="embedding.html" class="bg-white p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:shadow-md transition">
-                                <h3 class="font-bold text-blue-600 mb-1">Embedding</h3>
+                            <a href="embedding.html" class="bg-white p-4 border-2 border-black rounded-lg hover:border-blue-500 hover:shadow-[5px_5px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all">
+                                <h3 class="font-bold text-blue-600 mb-1 flex items-center">
+                                    <span class="text-2xl mr-2">>à</span>
+                                    Embedding
+                                </h3>
                                 <p class="text-sm text-gray-600">For text vectorization and similarity</p>
                             </a>
-                            <a href="tools.html" class="bg-white p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:shadow-md transition">
-                                <h3 class="font-bold text-blue-600 mb-1">Tools</h3>
+                            <a href="tools.html" class="bg-white p-4 border-2 border-black rounded-lg hover:border-blue-500 hover:shadow-[5px_5px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all">
+                                <h3 class="font-bold text-blue-600 mb-1 flex items-center">
+                                    <span class="text-2xl mr-2">='</span>
+                                    Tools
+                                </h3>
                                 <p class="text-sm text-gray-600">For extending model capabilities</p>
                             </a>
-                            <a href="evals.html" class="bg-white p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:shadow-md transition">
-                                <h3 class="font-bold text-blue-600 mb-1">Evaluations</h3>
+                            <a href="evals.html" class="bg-white p-4 border-2 border-black rounded-lg hover:border-blue-500 hover:shadow-[5px_5px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all">
+                                <h3 class="font-bold text-blue-600 mb-1 flex items-center">
+                                    <span class="text-2xl mr-2">=Ê</span>
+                                    Evaluations
+                                </h3>
                                 <p class="text-sm text-gray-600">For testing model quality</p>
                             </a>
-                            <a href="examples.html" class="bg-white p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:shadow-md transition md:col-span-2">
-                                <h3 class="font-bold text-blue-600 mb-1">Examples</h3>
+                            <a href="examples.html" class="bg-white p-4 border-2 border-black rounded-lg hover:border-blue-500 hover:shadow-[5px_5px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all md:col-span-2">
+                                <h3 class="font-bold text-blue-600 mb-1 flex items-center">
+                                    <span class="text-2xl mr-2">=</span>
+                                    Examples
+                                </h3>
                                 <p class="text-sm text-gray-600">For real-world use cases</p>
                             </a>
                         </div>
                     </section>
+                </div>
+                
+                <div class="mt-12 flex space-x-4">
+                    <a href="index.html" class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-lg border-2 border-black shadow-[3px_3px_0px_#000] hover:shadow-[5px_5px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all inline-flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                        </svg>
+                        Home
+                    </a>
+                    <a href="concepts.html" class="bg-gradient-to-r from-[#ff5f6d] to-[#ffc371] text-white font-semibold py-2 px-4 rounded-lg border-2 border-black shadow-[3px_3px_0px_#000] hover:shadow-[5px_5px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all inline-flex items-center">
+                        Core Concepts
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                    </a>
                 </div>
             </div>
         </main>
     </div>
 
     <!-- Footer -->
-    <footer class="bg-gray-800 text-white py-6">
-        <div class="container mx-auto px-4">
+    <footer class="bg-gray-800 text-white py-6 footer-wave">
+        <div class="container mx-auto px-4 pt-24 pb-8">
             <div class="flex flex-col md:flex-row justify-between">
                 <div class="mb-4 md:mb-0">
-                    <h3 class="text-xl font-bold mb-2">GAI</h3>
+                    <h3 class="text-xl font-bold mb-2 font-fredoka">GAI</h3>
                     <p class="text-gray-300">Go Artificial Intelligence - Work with AI models in Go</p>
                 </div>
                 <div>
-                    <h4 class="font-bold mb-2 mt-4 md:mt-0">Links</h4>
+                    <h4 class="font-bold mb-2 mt-4 md:mt-0 font-fredoka">Links</h4>
                     <ul class="space-y-1">
                         <li><a href="https://github.com/maragudk/gai" class="text-blue-300 hover:text-white" target="_blank">GitHub Repository</a></li>
                         <li><a href="https://pkg.go.dev/maragu.dev/gai" class="text-blue-300 hover:text-white" target="_blank">Go Documentation</a></li>
@@ -252,7 +393,7 @@ func main() {
                 </div>
             </div>
             <div class="mt-8 pt-4 border-t border-gray-700 text-center text-gray-400">
-                <p>Made by <a href="https://www.maragu.dev/" class="text-blue-300 hover:text-white" target="_blank">maragu</a></p>
+                <p class="animate-wiggle">Made with ( by <a href="https://www.maragu.dev/" class="text-blue-300 hover:text-white" target="_blank">maragu</a></p>
             </div>
         </div>
     </footer>
@@ -262,6 +403,67 @@ func main() {
         document.getElementById('mobile-menu-button').addEventListener('click', function() {
             const menu = document.getElementById('mobile-menu');
             menu.classList.toggle('hidden');
+        });
+        
+        // Add animated elements randomly
+        function addRandomEmojis() {
+            const emojis = ['(', '=€', '>', '=¡', '=.', '¡', '>à'];
+            const container = document.createElement('div');
+            container.className = 'fixed inset-0 pointer-events-none z-0 overflow-hidden';
+            document.body.appendChild(container);
+            
+            for (let i = 0; i < 20; i++) {
+                setTimeout(() => {
+                    const emoji = document.createElement('div');
+                    const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+                    emoji.textContent = randomEmoji;
+                    emoji.className = 'absolute text-3xl opacity-20';
+                    emoji.style.top = `${Math.random() * 100}%`;
+                    emoji.style.left = `${Math.random() * 100}%`;
+                    emoji.style.transform = `rotate(${Math.random() * 360}deg)`;
+                    emoji.style.transition = 'all 15s linear';
+                    container.appendChild(emoji);
+                    
+                    // Slow floating animation
+                    setTimeout(() => {
+                        emoji.style.top = `${Math.random() * 100}%`;
+                        emoji.style.left = `${Math.random() * 100}%`;
+                        emoji.style.transform = `rotate(${Math.random() * 360}deg)`;
+                    }, 100);
+                    
+                    // Remove after animation
+                    setTimeout(() => {
+                        container.removeChild(emoji);
+                    }, 15000);
+                }, i * 1000);
+            }
+        }
+        
+        // Run on page load
+        window.addEventListener('load', addRandomEmojis);
+        
+        // Run every 20 seconds
+        setInterval(addRandomEmojis, 20000);
+        
+        // Apply tilt effect to cards
+        document.querySelectorAll('[class*="shadow-["]').forEach(card => {
+            card.addEventListener('mousemove', function(e) {
+                const rect = this.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+                
+                const rotateX = (y - centerY) / 20;
+                const rotateY = (centerX - x) / 20;
+                
+                this.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = '';
+            });
         });
     </script>
 </body>
