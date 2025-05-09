@@ -141,7 +141,7 @@
                 <a href="getting-started.html" class="block py-2 px-4 rounded-lg hover:bg-yellow-200 hover:-rotate-1 transition-all">Getting Started</a>
                 <a href="concepts.html" class="block py-2 px-4 rounded-lg hover:bg-yellow-200 hover:-rotate-1 transition-all">Core Concepts</a>
                 <a href="chat-completion.html" class="block py-2 px-4 rounded-lg hover:bg-yellow-200 hover:-rotate-1 transition-all">Chat Completion</a>
-                <a href="embedding.html" class="block py-2 px-4 rounded-lg bg-yellow-200 font-medium rotate-1">Embedding</a>
+                <a href="embedding.html" class="block py-2 px-4 rounded-lg bg-yellow-200 -rotate-1 transition-all">Embedding</a>
                 <a href="tools.html" class="block py-2 px-4 rounded-lg hover:bg-yellow-200 hover:-rotate-1 transition-all">Tools</a>
                 <a href="evals.html" class="block py-2 px-4 rounded-lg hover:bg-yellow-200 hover:-rotate-1 transition-all">Evaluations</a>
                 <a href="examples.html" class="block py-2 px-4 rounded-lg hover:bg-yellow-200 hover:-rotate-1 transition-all">Examples</a>
@@ -151,13 +151,12 @@
             <div class="mt-8">
                 <div class="font-bold mb-2 text-gray-700 font-fredoka quirky-gradient-text">On This Page</div>
                 <nav class="space-y-1 text-sm">
-                    <a href="#what-embeddings-do" class="block py-1 px-4 rounded-lg hover:bg-yellow-200 hover:-translate-x-1 transition-all">What Embeddings Do</a>
-                    <a href="#creating-embeddings" class="block py-1 px-4 rounded-lg hover:bg-yellow-200 hover:-translate-x-1 transition-all">Creating Embeddings</a>
-                    <a href="#generic-vector-components" class="block py-1 px-4 rounded-lg hover:bg-yellow-200 hover:-translate-x-1 transition-all">Generic Vector Components</a>
-                    <a href="#vector-operations" class="block py-1 px-4 rounded-lg hover:bg-yellow-200 hover:-translate-x-1 transition-all">Vector Operations</a>
-                    <a href="#working-with-multiple-texts" class="block py-1 px-4 rounded-lg hover:bg-yellow-200 hover:-translate-x-1 transition-all">Working with Multiple Texts</a>
-                    <a href="#practical-application" class="block py-1 px-4 rounded-lg hover:bg-yellow-200 hover:-translate-x-1 transition-all">Practical Application</a>
-                    <a href="#memory-efficiency" class="block py-1 px-4 rounded-lg hover:bg-yellow-200 hover:-translate-x-1 transition-all">Memory Efficiency</a>
+                    <a href="#what-embeddings-do" class="block py-1 px-4 rounded-lg hover:bg-yellow-200 hover:-rotate-1 transition-all">What Embeddings Do</a>
+                    <a href="#creating-embeddings" class="block py-1 px-4 rounded-lg hover:bg-yellow-200 hover:-rotate-1 transition-all">Creating Embeddings</a>
+                    <a href="#generic-vector-components" class="block py-1 px-4 rounded-lg hover:bg-yellow-200 hover:-rotate-1 transition-all">Generic Vector Components</a>
+                    <a href="#vector-operations" class="block py-1 px-4 rounded-lg hover:bg-yellow-200 hover:-rotate-1 transition-all">Vector Operations</a>
+                    <a href="#working-with-multiple-texts" class="block py-1 px-4 rounded-lg hover:bg-yellow-200 hover:-rotate-1 transition-all">Working with Multiple Texts</a>
+                    <a href="#practical-application-semantic-search" class="block py-1 px-4 rounded-lg hover:bg-yellow-200 hover:-rotate-1 transition-all">Practical Application: Semantic Search</a>
                 </nav>
             </div>
         </aside>
@@ -165,29 +164,26 @@
         <!-- Content -->
         <main class="flex-grow p-6">
             <div class="container mx-auto max-w-3xl">
-                <div class="mb-6">
-                    <h1 class="text-3xl font-fredoka text-gray-900 mb-2 quirky-gradient-text">Embedding</h1>
-                    <p class="text-lg text-gray-700">Embeddings turn text into vectors. They capture semantic meaning in a machine-understandable format.</p>
-                </div>
+                <h1 class="text-4xl font-fredoka mb-6 quirky-gradient-text">Embedding</h1>
 
-                <div class="prose prose-blue max-w-none">
-                    <section id="what-embeddings-do" class="mb-10 bg-white p-6 rounded-lg border-2 border-black shadow-[5px_5px_0px_#000] hover:shadow-[7px_7px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all rotate-1">
-                        <h2 class="text-2xl font-fredoka text-blue-600 mb-4 quirky-gradient-text">What Embeddings Do</h2>
-                        <p class="mb-4">Embeddings:</p>
-                        <ul class="list-disc pl-5 mb-4">
-                            <li>Convert text to numerical vectors</li>
-                            <li>Position similar meanings close together</li>
-                            <li>Enable similarity search</li>
-                            <li>Underpin RAG applications</li>
-                            <li>Allow clustering and classification</li>
-                        </ul>
-                    </section>
+                <p class="mb-6">Embeddings turn text into vectors. They capture semantic meaning in a machine-understandable format.</p>
 
-                    <section id="creating-embeddings" class="mb-10 bg-white p-6 rounded-lg border-2 border-black shadow-[5px_5px_0px_#000] hover:shadow-[7px_7px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all -rotate-0.5">
-                        <h2 class="text-2xl font-fredoka text-blue-600 mb-4 quirky-gradient-text">Creating Embeddings</h2>
-                        <p class="mb-4">GAI makes embedding simple:</p>
-                        <div class="rounded-md overflow-hidden mb-6 relative">
-                            <pre><code class="language-go">request := gai.EmbedRequest{
+                <h2 id="what-embeddings-do" class="text-2xl font-fredoka mb-4 mt-8 quirky-gradient-text">What Embeddings Do</h2>
+
+                <p class="mb-4">Embeddings:</p>
+                <ul class="list-disc pl-6 space-y-2 mb-6">
+                    <li class="hover:translate-x-2 transition-transform duration-200">Convert text to numerical vectors</li>
+                    <li class="hover:translate-x-2 transition-transform duration-200">Position similar meanings close together</li>
+                    <li class="hover:translate-x-2 transition-transform duration-200">Enable similarity search</li>
+                    <li class="hover:translate-x-2 transition-transform duration-200">Underpin RAG applications</li>
+                    <li class="hover:translate-x-2 transition-transform duration-200">Allow clustering and classification</li>
+                </ul>
+
+                <h2 id="creating-embeddings" class="text-2xl font-fredoka mb-4 mt-8 quirky-gradient-text">Creating Embeddings</h2>
+
+                <p class="mb-4">GAI makes embedding simple:</p>
+
+                <pre class="mb-6 rounded-md overflow-hidden p-4"><code class="language-go">request := gai.EmbedRequest{
     Input: strings.NewReader("The text you want to embed"),
 }
 
@@ -197,63 +193,50 @@ if err != nil {
 }
 
 embedding := response.Embedding // Vector of float64 values</code></pre>
-                        </div>
-                    </section>
 
-                    <section id="generic-vector-components" class="mb-10 bg-white p-6 rounded-lg border-2 border-black shadow-[5px_5px_0px_#000] hover:shadow-[7px_7px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all rotate-0.5">
-                        <h2 class="text-2xl font-fredoka text-blue-600 mb-4 quirky-gradient-text">Generic Vector Components</h2>
-                        <p class="mb-4">GAI supports different numeric types for vectors through generics:</p>
-                        <div class="rounded-md overflow-hidden mb-6 relative">
-                            <pre><code class="language-go">// Embedding with float32 instead of default float64
+                <h2 id="generic-vector-components" class="text-2xl font-fredoka mb-4 mt-8 quirky-gradient-text">Generic Vector Components</h2>
+
+                <p class="mb-4">GAI supports different numeric types for vectors through generics:</p>
+
+                <pre class="mb-6 rounded-md overflow-hidden p-4"><code class="language-go">// Embedding with float32 instead of default float64
 var client gai.Embedder[float32]
 response, err := client.Embed(context.Background(), request)
 
 // Embedding with int8 for quantized vectors
 var quantizedClient gai.Embedder[int8]
 quantizedResponse, err := quantizedClient.Embed(context.Background(), request)</code></pre>
-                        </div>
-                        <p class="mb-4">This flexibility helps when:</p>
-                        <ul class="list-disc pl-5 mb-4">
-                            <li>Saving memory with lower precision</li>
-                            <li>Working with quantized models</li>
-                            <li>Matching specific model output formats</li>
-                        </ul>
-                    </section>
 
-                    <section id="vector-operations" class="mb-10 bg-white p-6 rounded-lg border-2 border-black shadow-[5px_5px_0px_#000] hover:shadow-[7px_7px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all -rotate-1">
-                        <h2 class="text-2xl font-fredoka text-blue-600 mb-4 quirky-gradient-text">Vector Operations</h2>
-                        <p class="mb-4">Common operations with embeddings:</p>
-                        
-                        <h3 class="text-xl font-fredoka mb-4 flex items-center">
-                            <span class="bg-yellow-300 text-black rounded-full w-8 h-8 flex items-center justify-center mr-2 border-2 border-black shadow-[2px_2px_0px_#000]">1</span>
-                            Cosine Similarity
-                        </h3>
-                        
-                        <div class="rounded-md overflow-hidden mb-6 relative">
-                            <pre><code class="language-go">// Using GAI's built-in function
+                <p class="mb-4">This flexibility helps when:</p>
+                <ul class="list-disc pl-6 space-y-2 mb-6">
+                    <li class="hover:translate-x-2 transition-transform duration-200">Saving memory with lower precision</li>
+                    <li class="hover:translate-x-2 transition-transform duration-200">Working with quantized models</li>
+                    <li class="hover:translate-x-2 transition-transform duration-200">Matching specific model output formats</li>
+                </ul>
+
+                <h2 id="vector-operations" class="text-2xl font-fredoka mb-4 mt-8 quirky-gradient-text">Vector Operations</h2>
+
+                <p class="mb-4">Common operations with embeddings:</p>
+
+                <h3 id="cosine-similarity" class="text-xl font-bold mb-3 mt-6">Cosine Similarity</h3>
+
+                <pre class="mb-6 rounded-md overflow-hidden p-4"><code class="language-go">// Using GAI's built-in function
 similarity := eval.CosineSimilarity(embedding1.Embedding, embedding2.Embedding)
 fmt.Printf("Cosine similarity: %f\n", similarity)</code></pre>
-                        </div>
-                        
-                        <h3 class="text-xl font-fredoka mb-4 flex items-center">
-                            <span class="bg-green-300 text-black rounded-full w-8 h-8 flex items-center justify-center mr-2 border-2 border-black shadow-[2px_2px_0px_#000]">2</span>
-                            Vector Storage
-                        </h3>
-                        
-                        <p class="mb-4">Store vectors in your preferred database:</p>
-                        <div class="rounded-md overflow-hidden mb-6 relative">
-                            <pre><code class="language-go">// Store in Postgres with pgvector
+
+                <h3 id="vector-storage" class="text-xl font-bold mb-3 mt-6">Vector Storage</h3>
+
+                <p class="mb-4">Store vectors in your preferred database:</p>
+
+                <pre class="mb-6 rounded-md overflow-hidden p-4"><code class="language-go">// Store in Postgres with pgvector
 _, err = db.ExecContext(ctx, 
     "INSERT INTO documents (content, embedding) VALUES ($1, $2)",
     text, pgvector.NewVector(response.Embedding))</code></pre>
-                        </div>
-                    </section>
 
-                    <section id="working-with-multiple-texts" class="mb-10 bg-white p-6 rounded-lg border-2 border-black shadow-[5px_5px_0px_#000] hover:shadow-[7px_7px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all rotate-0.75">
-                        <h2 class="text-2xl font-fredoka text-blue-600 mb-4 quirky-gradient-text">Working with Multiple Texts</h2>
-                        <p class="mb-4">Embed multiple texts efficiently by batching requests yourself:</p>
-                        <div class="rounded-md overflow-hidden mb-6 relative">
-                            <pre><code class="language-go">texts := []string{
+                <h2 id="working-with-multiple-texts" class="text-2xl font-fredoka mb-4 mt-8 quirky-gradient-text">Working with Multiple Texts</h2>
+
+                <p class="mb-4">Embed multiple texts efficiently by batching requests yourself:</p>
+
+                <pre class="mb-6 rounded-md overflow-hidden p-4"><code class="language-go">texts := []string{
     "First text to embed",
     "Second text to embed",
     "Third text to embed",
@@ -270,14 +253,12 @@ for _, text := range texts {
     }
     embeddings = append(embeddings, response.Embedding)
 }</code></pre>
-                        </div>
-                    </section>
 
-                    <section id="practical-application" class="mb-10 bg-white p-6 rounded-lg border-2 border-black shadow-[5px_5px_0px_#000] hover:shadow-[7px_7px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all -rotate-0.75">
-                        <h2 class="text-2xl font-fredoka text-blue-600 mb-4 quirky-gradient-text">Practical Application: Semantic Search</h2>
-                        <p class="mb-4">Basic semantic search implementation:</p>
-                        <div class="rounded-md overflow-hidden mb-6 relative">
-                            <pre><code class="language-go">func findSimilar(query string, documents []Document, client gai.Embedder[float64]) ([]Document, error) {
+                <h2 id="practical-application-semantic-search" class="text-2xl font-fredoka mb-4 mt-8 quirky-gradient-text">Practical Application: Semantic Search</h2>
+
+                <p class="mb-4">Basic semantic search implementation:</p>
+
+                <pre class="mb-6 rounded-md overflow-hidden p-4"><code class="language-go">func findSimilar(query string, documents []Document, client gai.Embedder[float64]) ([]Document, error) {
     // Embed the query
     queryEmbed, err := client.Embed(context.Background(), gai.EmbedRequest{
         Input: strings.NewReader(query),
@@ -311,34 +292,20 @@ for _, text := range texts {
     
     return result, nil
 }</code></pre>
-                        </div>
-                    </section>
 
-                    <section id="memory-efficiency" class="mb-10 bg-white p-6 rounded-lg border-2 border-black shadow-[5px_5px_0px_#000] hover:shadow-[7px_7px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all rotate-0.25">
-                        <h2 class="text-2xl font-fredoka text-blue-600 mb-4 quirky-gradient-text">Memory Efficiency</h2>
-                        <p class="mb-4">For large embeddings, consider:</p>
-                        <ul class="list-disc pl-5 mb-4">
-                            <li>Using lower precision (float32 instead of float64)</li>
-                            <li>Quantizing vectors (int8)</li>
-                            <li>Dimensionality reduction techniques</li>
-                            <li>Implementing streaming for large datasets</li>
-                        </ul>
-                    </section>
-                </div>
+                <h2 id="memory-efficiency" class="text-2xl font-fredoka mb-4 mt-8 quirky-gradient-text">Memory Efficiency</h2>
+
+                <p class="mb-4">For large embeddings, consider:</p>
+                <ul class="list-disc pl-6 space-y-2 mb-6">
+                    <li class="hover:translate-x-2 transition-transform duration-200">Using lower precision (float32 instead of float64)</li>
+                    <li class="hover:translate-x-2 transition-transform duration-200">Quantizing vectors (int8)</li>
+                    <li class="hover:translate-x-2 transition-transform duration-200">Dimensionality reduction techniques</li>
+                    <li class="hover:translate-x-2 transition-transform duration-200">Implementing streaming for large datasets</li>
+                </ul>
                 
                 <div class="mt-12 flex space-x-4">
-                    <a href="chat-completion.html" class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-lg border-2 border-black shadow-[3px_3px_0px_#000] hover:shadow-[5px_5px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all inline-flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                        </svg>
-                        Chat Completion
-                    </a>
-                    <a href="tools.html" class="bg-gradient-to-r from-[#ff5f6d] to-[#ffc371] text-white font-semibold py-2 px-4 rounded-lg border-2 border-black shadow-[3px_3px_0px_#000] hover:shadow-[5px_5px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all inline-flex items-center">
-                        Tools
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                        </svg>
-                    </a>
+                    <a href="chat-completion.html" class="bg-white px-5 py-2 rounded-md font-bold border-2 border-black shadow-[3px_3px_0px_#000] hover:shadow-[5px_5px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all">ê Chat Completion</a>
+                    <a href="tools.html" class="bg-white px-5 py-2 rounded-md font-bold border-2 border-black shadow-[3px_3px_0px_#000] hover:shadow-[5px_5px_0px_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 transition-all">Tools í</a>
                 </div>
             </div>
         </main>
@@ -374,45 +341,7 @@ for _, text := range texts {
             menu.classList.toggle('hidden');
         });
         
-        // Add animated elements randomly
-        function addRandomEmojis() {
-            const emojis = ['(', '=Ä', '>', '=°', '=.', '°', '>‡'];
-            const container = document.createElement('div');
-            container.className = 'fixed inset-0 pointer-events-none z-0 overflow-hidden';
-            document.body.appendChild(container);
-            
-            for (let i = 0; i < 20; i++) {
-                setTimeout(() => {
-                    const emoji = document.createElement('div');
-                    const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
-                    emoji.textContent = randomEmoji;
-                    emoji.className = 'absolute text-3xl opacity-20';
-                    emoji.style.top = `${Math.random() * 100}%`;
-                    emoji.style.left = `${Math.random() * 100}%`;
-                    emoji.style.transform = `rotate(${Math.random() * 360}deg)`;
-                    emoji.style.transition = 'all 15s linear';
-                    container.appendChild(emoji);
-                    
-                    // Slow floating animation
-                    setTimeout(() => {
-                        emoji.style.top = `${Math.random() * 100}%`;
-                        emoji.style.left = `${Math.random() * 100}%`;
-                        emoji.style.transform = `rotate(${Math.random() * 360}deg)`;
-                    }, 100);
-                    
-                    // Remove after animation
-                    setTimeout(() => {
-                        container.removeChild(emoji);
-                    }, 15000);
-                }, i * 1000);
-            }
-        }
-        
-        // Run on page load
-        window.addEventListener('load', addRandomEmojis);
-        
-        // Run every 20 seconds
-        setInterval(addRandomEmojis, 20000);
+        // No flying emoji animations
         
         // Card tilt effect is now handled by tilt.js
     </script>

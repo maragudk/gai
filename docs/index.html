@@ -326,45 +326,7 @@
             menu.classList.toggle('hidden');
         });
 
-        // Add animated elements randomly
-        function addRandomEmojis() {
-            const emojis = ['✨', '🚀', '🤖', '💡', '🔮', '⚡️', '🧠'];
-            const container = document.createElement('div');
-            container.className = 'fixed inset-0 pointer-events-none z-0 overflow-hidden';
-            document.body.appendChild(container);
-
-            for (let i = 0; i < 20; i++) {
-                setTimeout(() => {
-                    const emoji = document.createElement('div');
-                    const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
-                    emoji.textContent = randomEmoji;
-                    emoji.className = 'absolute text-3xl opacity-20';
-                    emoji.style.top = `${Math.random() * 100}%`;
-                    emoji.style.left = `${Math.random() * 100}%`;
-                    emoji.style.transform = `rotate(${Math.random() * 360}deg)`;
-                    emoji.style.transition = 'all 15s linear';
-                    container.appendChild(emoji);
-
-                    // Slow floating animation
-                    setTimeout(() => {
-                        emoji.style.top = `${Math.random() * 100}%`;
-                        emoji.style.left = `${Math.random() * 100}%`;
-                        emoji.style.transform = `rotate(${Math.random() * 360}deg)`;
-                    }, 100);
-
-                    // Remove after animation
-                    setTimeout(() => {
-                        container.removeChild(emoji);
-                    }, 15000);
-                }, i * 1000);
-            }
-        }
-
-        // Run on page load
-        window.addEventListener('load', addRandomEmojis);
-
-        // Run every 20 seconds
-        setInterval(addRandomEmojis, 20000);
+        // No flying emoji animations
     </script>
 </body>
 </html>
