@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{TITLE}} - GAI Documentation</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+</head>
+<body class="bg-gray-50 text-gray-800 flex flex-col min-h-screen">
+    <!-- Header -->
+    <header class="bg-blue-600 text-white shadow-lg">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <a href="index.html" class="text-2xl font-bold flex items-center">
+                <span class="mr-2">GAI</span>
+                <span class="text-sm bg-blue-800 px-2 py-1 rounded-md">Go Artificial Intelligence</span>
+            </a>
+            <nav class="hidden md:flex space-x-4">
+                <a href="index.html" class="px-3 py-2 hover:bg-blue-700 rounded">Home</a>
+                <a href="getting-started.html" class="px-3 py-2 hover:bg-blue-700 rounded">Getting Started</a>
+                <a href="concepts.html" class="px-3 py-2 hover:bg-blue-700 rounded">Concepts</a>
+                <a href="examples.html" class="px-3 py-2 hover:bg-blue-700 rounded">Examples</a>
+                <a href="https://github.com/maragudk/gai" class="px-3 py-2 hover:bg-blue-700 rounded" target="_blank">GitHub</a>
+            </nav>
+            <button class="md:hidden block text-white" id="mobile-menu-button">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+            </button>
+        </div>
+        <!-- Mobile menu (hidden by default) -->
+        <div class="md:hidden hidden" id="mobile-menu">
+            <div class="px-2 pt-2 pb-3 space-y-1 bg-blue-700">
+                <a href="index.html" class="block px-3 py-2 hover:bg-blue-800 rounded">Home</a>
+                <a href="getting-started.html" class="block px-3 py-2 hover:bg-blue-800 rounded">Getting Started</a>
+                <a href="concepts.html" class="block px-3 py-2 hover:bg-blue-800 rounded">Concepts</a>
+                <a href="examples.html" class="block px-3 py-2 hover:bg-blue-800 rounded">Examples</a>
+                <a href="https://github.com/maragudk/gai" class="block px-3 py-2 hover:bg-blue-800 rounded" target="_blank">GitHub</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main content -->
+    <div class="flex flex-grow">
+        <!-- Sidebar -->
+        <aside class="hidden md:block w-64 bg-white shadow-md p-4">
+            <nav class="space-y-1">
+                <div class="font-bold mb-2 text-gray-700">Documentation</div>
+                <a href="getting-started.html" class="block py-2 px-4 rounded hover:bg-gray-100">Getting Started</a>
+                <a href="concepts.html" class="block py-2 px-4 rounded hover:bg-gray-100">Core Concepts</a>
+                <a href="chat-completion.html" class="block py-2 px-4 rounded hover:bg-gray-100">Chat Completion</a>
+                <a href="embedding.html" class="block py-2 px-4 rounded hover:bg-gray-100">Embedding</a>
+                <a href="tools.html" class="block py-2 px-4 rounded hover:bg-gray-100">Tools</a>
+                <a href="evals.html" class="block py-2 px-4 rounded hover:bg-gray-100">Evaluations</a>
+                <a href="examples.html" class="block py-2 px-4 rounded hover:bg-gray-100">Examples</a>
+            </nav>
+        </aside>
+
+        <!-- Content -->
+        <main class="flex-grow p-6">
+            <div class="container mx-auto max-w-3xl">
+                {{CONTENT}}
+            </div>
+        </main>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-6">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between">
+                <div class="mb-4 md:mb-0">
+                    <h3 class="text-xl font-bold mb-2">GAI</h3>
+                    <p class="text-gray-300">Go Artificial Intelligence - Work with AI models in Go</p>
+                </div>
+                <div>
+                    <h4 class="font-bold mb-2 mt-4 md:mt-0">Links</h4>
+                    <ul class="space-y-1">
+                        <li><a href="https://github.com/maragudk/gai" class="text-blue-300 hover:text-white" target="_blank">GitHub Repository</a></li>
+                        <li><a href="https://pkg.go.dev/maragu.dev/gai" class="text-blue-300 hover:text-white" target="_blank">Go Documentation</a></li>
+                        <li><a href="mailto:markus@maragu.dk" class="text-blue-300 hover:text-white">Contact</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="mt-8 pt-4 border-t border-gray-700 text-center text-gray-400">
+                <p>Made by <a href="https://www.maragu.dev/" class="text-blue-300 hover:text-white" target="_blank">maragu</a></p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Mobile menu toggle
+        document.getElementById('mobile-menu-button').addEventListener('click', function() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        });
+    </script>
+</body>
+</html>

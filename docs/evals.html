@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evaluations - GAI Documentation</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script>document.addEventListener('DOMContentLoaded', (event) => { hljs.highlightAll(); });</script>
+</head>
+<body class="bg-gray-50 text-gray-800 flex flex-col min-h-screen">
+    <!-- Header -->
+    <header class="bg-blue-600 text-white shadow-lg">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <a href="index.html" class="text-2xl font-bold flex items-center">
+                <span class="mr-2">GAI</span>
+                <span class="text-sm bg-blue-800 px-2 py-1 rounded-md">Go Artificial Intelligence</span>
+            </a>
+            <nav class="hidden md:flex space-x-4">
+                <a href="index.html" class="px-3 py-2 hover:bg-blue-700 rounded">Home</a>
+                <a href="getting-started.html" class="px-3 py-2 hover:bg-blue-700 rounded">Getting Started</a>
+                <a href="concepts.html" class="px-3 py-2 hover:bg-blue-700 rounded">Concepts</a>
+                <a href="examples.html" class="px-3 py-2 hover:bg-blue-700 rounded">Examples</a>
+                <a href="https://github.com/maragudk/gai" class="px-3 py-2 hover:bg-blue-700 rounded" target="_blank">GitHub</a>
+            </nav>
+            <button class="md:hidden block text-white" id="mobile-menu-button">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+            </button>
+        </div>
+        <!-- Mobile menu (hidden by default) -->
+        <div class="md:hidden hidden" id="mobile-menu">
+            <div class="px-2 pt-2 pb-3 space-y-1 bg-blue-700">
+                <a href="index.html" class="block px-3 py-2 hover:bg-blue-800 rounded">Home</a>
+                <a href="getting-started.html" class="block px-3 py-2 hover:bg-blue-800 rounded">Getting Started</a>
+                <a href="concepts.html" class="block px-3 py-2 hover:bg-blue-800 rounded">Concepts</a>
+                <a href="examples.html" class="block px-3 py-2 hover:bg-blue-800 rounded">Examples</a>
+                <a href="https://github.com/maragudk/gai" class="block px-3 py-2 hover:bg-blue-800 rounded" target="_blank">GitHub</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main content -->
+    <div class="flex flex-grow">
+        <!-- Sidebar -->
+        <aside class="hidden md:block w-64 bg-white shadow-md p-4">
+            <nav class="space-y-1">
+                <div class="font-bold mb-2 text-gray-700">Documentation</div>
+                <a href="getting-started.html" class="block py-2 px-4 rounded hover:bg-gray-100">Getting Started</a>
+                <a href="concepts.html" class="block py-2 px-4 rounded hover:bg-gray-100">Core Concepts</a>
+                <a href="chat-completion.html" class="block py-2 px-4 rounded hover:bg-gray-100">Chat Completion</a>
+                <a href="embedding.html" class="block py-2 px-4 rounded hover:bg-gray-100">Embedding</a>
+                <a href="tools.html" class="block py-2 px-4 rounded hover:bg-gray-100">Tools</a>
+                <a href="evals.html" class="block py-2 px-4 rounded bg-blue-50 text-blue-600 font-medium">Evaluations</a>
+                <a href="examples.html" class="block py-2 px-4 rounded hover:bg-gray-100">Examples</a>
+            </nav>
+            
+            <!-- Table of Contents -->
+            <div class="mt-8">
+                <div class="font-bold mb-2 text-gray-700">On This Page</div>
+                <nav class="space-y-1 text-sm">
+                    <a href="#why-evaluate" class="block py-1 px-4 rounded hover:bg-gray-100">Why Evaluate Models</a>
+                    <a href="#core-concepts" class="block py-1 px-4 rounded hover:bg-gray-100">Core Evaluation Concepts</a>
+                    <a href="#running-evaluations" class="block py-1 px-4 rounded hover:bg-gray-100">Running Evaluations</a>
+                    <a href="#scoring-methods" class="block py-1 px-4 rounded hover:bg-gray-100">Scoring Methods</a>
+                    <a href="#groups" class="block py-1 px-4 rounded hover:bg-gray-100">Evaluation Groups</a>
+                    <a href="#timing" class="block py-1 px-4 rounded hover:bg-gray-100">Timing Information</a>
+                    <a href="#real-world" class="block py-1 px-4 rounded hover:bg-gray-100">Real-World Example</a>
+                    <a href="#visualization" class="block py-1 px-4 rounded hover:bg-gray-100">Visualization</a>
+                </nav>
+            </div>
+        </aside>
+
+        <!-- Content -->
+        <main class="flex-grow p-6">
+            <div class="container mx-auto max-w-3xl">
+                <div class="mb-6">
+                    <h1 class="text-3xl font-bold text-gray-900 mb-2">Evaluations</h1>
+                    <p class="text-lg text-gray-700">GAI provides tools to evaluate model outputs. Test how well models perform on your specific tasks.</p>
+                </div>
+
+                <div class="space-y-12">
+                    <section id="why-evaluate" class="bg-white rounded-lg shadow-md p-6">
+                        <h2 class="text-2xl font-bold text-blue-600 mb-4">Why Evaluate Models</h2>
+                        
+                        <p class="mb-4">Evaluations help you:</p>
+                        <ul class="list-disc pl-6 space-y-1 mb-6">
+                            <li>Compare model performance</li>
+                            <li>Track quality over time</li>
+                            <li>Identify areas for improvement</li>
+                            <li>Verify behavior on edge cases</li>
+                            <li>Make informed provider choices</li>
+                        </ul>
+                        
+                        <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+                            <p class="text-blue-700">Model evaluation is often overlooked but critical for AI applications. A systematic evaluation approach helps you quantify model quality, track regressions, and make data-driven decisions about which models to use.</p>
+                        </div>
+                    </section>
+
+                    <section id="core-concepts" class="bg-white rounded-lg shadow-md p-6">
+                        <h2 class="text-2xl font-bold text-blue-600 mb-4">Core Evaluation Concepts</h2>
+                        
+                        <p class="mb-4">GAI's evaluation system uses:</p>
+                        
+                        <div class="grid md:grid-cols-2 gap-4 mb-6">
+                            <div class="bg-gray-50 p-4 rounded border border-gray-200">
+                                <h3 class="font-bold mb-2">Samples</h3>
+                                <p class="text-sm">Input, output, and expected output triplets</p>
+                            </div>
+                            <div class="bg-gray-50 p-4 rounded border border-gray-200">
+                                <h3 class="font-bold mb-2">Scorers</h3>
+                                <p class="text-sm">Functions that evaluate outputs against expectations</p>
+                            </div>
+                            <div class="bg-gray-50 p-4 rounded border border-gray-200">
+                                <h3 class="font-bold mb-2">Results</h3>
+                                <p class="text-sm">Score and metadata from evaluation</p>
+                            </div>
+                            <div class="bg-gray-50 p-4 rounded border border-gray-200">
+                                <h3 class="font-bold mb-2">Logs</h3>
+                                <p class="text-sm">Structured records of evaluations</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center p-4 bg-indigo-50 rounded-lg border border-indigo-200">
+                            <div class="bg-indigo-100 p-3 rounded-full mr-4">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="text-indigo-700">Each sample represents a test case with an input query, the model's actual output, and the expected (reference) output. Scorers calculate how well the actual output matches the expectation, producing a normalized score between 0 and 1.</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section id="running-evaluations" class="bg-white rounded-lg shadow-md p-6">
+                        <h2 class="text-2xl font-bold text-blue-600 mb-4">Running Evaluations</h2>
+                        
+                        <p class="mb-4">GAI runs evaluations as part of normal Go tests:</p>
+                        
+                        <div class="bg-gray-800 rounded-md overflow-hidden mb-6">
+                            <pre><code class="language-go">package myapp_test
+
+import (
+    "context"
+    "testing"
+
+    "maragu.dev/gai"
+    "maragu.dev/gai/eval"
+)
+
+// TestEvalAccuracy evaluates model output accuracy.
+// Must be prefixed with "TestEval" to be detected.
+func TestEvalAccuracy(t *testing.T) {
+    eval.Run(t, "capital cities accuracy", func(t *testing.T, e *eval.E) {
+        // Initialize model client
+        model := initializeModel()
+
+        // Send request to model
+        input := "What is the capital of France?"
+        res, err := model.ChatComplete(t.Context(), gai.ChatCompleteRequest{
+            Messages: []gai.Message{
+                gai.NewUserTextMessage(input),
+            },
+        })
+        if err != nil {
+            t.Fatal(err)
+        }
+
+        // Collect response
+        var output string
+        for part, err := range res.Parts() {
+            if err != nil {
+                t.Fatal(err)
+            }
+            output += part.Text()
+        }
+
+        // Create evaluation sample
+        sample := eval.Sample{
+            Input:    input,
+            Output:   output,
+            Expected: "Paris is the capital of France.",
+        }
+
+        // Score using lexical similarity
+        lexicalResult := e.Score(sample, eval.LexicalSimilarityScorer(eval.LevenshteinDistance))
+
+        // Score using semantic similarity
+        semanticResult := e.Score(sample, eval.SemanticSimilarityScorer(t, model, eval.CosineSimilarity))
+
+        // Log results
+        e.Log(sample, lexicalResult, semanticResult)
+    })
+}</code></pre>
+                        </div>
+                        
+                        <div class="bg-gray-100 p-4 rounded-lg border border-gray-300">
+                            <h4 class="font-bold mb-2">Key Steps</h4>
+                            <ol class="list-decimal pl-6 space-y-2 mb-4 text-sm">
+                                <li>Create a test function with a <code>TestEval</code> prefix</li>
+                                <li>Use <code>eval.Run</code> to execute the evaluation</li>
+                                <li>Send a request to your model and collect its response</li>
+                                <li>Create a <code>Sample</code> with input, output, and expected results</li>
+                                <li>Apply one or more scoring methods</li>
+                                <li>Log the results for analysis</li>
+                            </ol>
+                        </div>
+                        
+                        <h3 class="text-xl font-bold mt-8 mb-3">Running Eval Tests</h3>
+                        <p class="mb-4">Evaluations only run when you explicitly include them:</p>
+                        
+                        <div class="bg-gray-800 rounded-md overflow-hidden mb-6">
+                            <pre><code class="language-bash"># Run all evaluations
+go test -run TestEval ./...
+
+# Run specific evaluations
+go test -run TestEvalAccuracy ./...</code></pre>
+                        </div>
+                        
+                        <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
+                            <h4 class="font-bold text-yellow-800 mb-1">Note</h4>
+                            <p class="text-yellow-700">
+                                Evaluations are skipped during normal test runs to avoid unexpected API calls. You must explicitly run them with the <code>TestEval</code> pattern in the test name filter.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section id="scoring-methods" class="bg-white rounded-lg shadow-md p-6">
+                        <h2 class="text-2xl font-bold text-blue-600 mb-4">Scoring Methods</h2>
+                        
+                        <p class="mb-4">GAI includes multiple scoring methods:</p>
+                        
+                        <h3 class="text-xl font-bold mb-3">Lexical Similarity</h3>
+                        <p class="mb-4">Compare text strings directly:</p>
+                        
+                        <div class="bg-gray-800 rounded-md overflow-hidden mb-6">
+                            <pre><code class="language-go">// Using Levenshtein distance
+lexicalResult := e.Score(sample, eval.LexicalSimilarityScorer(eval.LevenshteinDistance))
+
+// Exact match (1.0 if identical, 0.0 otherwise)
+exactResult := e.Score(sample, eval.LexicalSimilarityScorer(eval.ExactMatch))
+
+// Contains match (1.0 if output contains expected, 0.0 otherwise)
+containsResult := e.Score(sample, eval.LexicalSimilarityScorer(eval.Contains))</code></pre>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                            <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                                <h4 class="font-bold text-blue-700 mb-2">Levenshtein Distance</h4>
+                                <p class="text-xs text-blue-600">Measures character-level edits needed to transform one string into another</p>
+                            </div>
+                            <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                                <h4 class="font-bold text-blue-700 mb-2">Exact Match</h4>
+                                <p class="text-xs text-blue-600">Binary scoring - 1 if strings match exactly, 0 otherwise</p>
+                            </div>
+                            <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                                <h4 class="font-bold text-blue-700 mb-2">Contains</h4>
+                                <p class="text-xs text-blue-600">Binary scoring - 1 if output contains the expected string, 0 otherwise</p>
+                            </div>
+                        </div>
+                        
+                        <h3 class="text-xl font-bold mb-3">Semantic Similarity</h3>
+                        <p class="mb-4">Compare meaning using embeddings:</p>
+                        
+                        <div class="bg-gray-800 rounded-md overflow-hidden mb-6">
+                            <pre><code class="language-go">// Using cosine similarity on embeddings
+semanticResult := e.Score(sample, eval.SemanticSimilarityScorer(t, model, eval.CosineSimilarity))</code></pre>
+                        </div>
+                        
+                        <div class="flex items-center mb-8 bg-purple-50 p-4 rounded-lg border border-purple-200">
+                            <div class="bg-purple-100 p-3 rounded-full mr-4">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-purple-800 mb-1">Semantic Similarity</h4>
+                                <p class="text-sm text-purple-700">This technique converts both output and expected text to embeddings, then measures their similarity in vector space. It's more robust than lexical scoring for recognizing paraphrased content with the same meaning.</p>
+                            </div>
+                        </div>
+                        
+                        <h3 class="text-xl font-bold mb-3">LLM Judge</h3>
+                        <p class="mb-4">Use another LLM to judge outputs:</p>
+                        
+                        <div class="bg-gray-800 rounded-md overflow-hidden mb-6">
+                            <pre><code class="language-go">// Basic judge using default prompt and temperature
+judge := eval.DefaultJudge(gai.Temperature(0.1))
+llmResult := e.Score(sample, eval.LLMScorer(t, judge, judgeModel))
+
+// Rubric-based judge for multi-dimensional evaluation
+rubricJudge := eval.RubricJudge(gai.Temperature(0.1))
+rubricResult := e.Score(sample, eval.LLMScorer(t, rubricJudge, judgeModel))</code></pre>
+                        </div>
+                        
+                        <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded">
+                            <h4 class="font-bold text-green-800 mb-1">LLM Judges</h4>
+                            <p class="text-green-700">LLM judges can evaluate outputs in a more nuanced, human-like way. The RubricJudge even provides multi-dimensional scoring across content accuracy, relevance, completeness, and clarity.</p>
+                        </div>
+                    </section>
+
+                    <section id="groups" class="bg-white rounded-lg shadow-md p-6">
+                        <h2 class="text-2xl font-bold text-blue-600 mb-4">Evaluation Groups</h2>
+                        
+                        <p class="mb-4">Group evaluations for comparison:</p>
+                        
+                        <div class="bg-gray-800 rounded-md overflow-hidden mb-6">
+                            <pre><code class="language-go">e.Group = "FactualAccuracy"</code></pre>
+                        </div>
+                        
+                        <div class="bg-gray-100 p-4 rounded-lg border border-gray-300">
+                            <h4 class="font-bold mb-2">Using Groups</h4>
+                            <p class="text-sm text-gray-700 mb-4">Groups help you organize evaluations by category, making it easier to analyze results. Common groupings include:</p>
+                            <ul class="list-disc pl-6 space-y-1 text-sm text-gray-700">
+                                <li>Task type (summarization, QA, etc.)</li>
+                                <li>Evaluation criteria (accuracy, creativity, etc.)</li>
+                                <li>Model being tested</li>
+                                <li>Data source or domain</li>
+                            </ul>
+                        </div>
+                    </section>
+
+                    <section id="timing" class="bg-white rounded-lg shadow-md p-6">
+                        <h2 class="text-2xl font-bold text-blue-600 mb-4">Timing Information</h2>
+                        
+                        <p class="mb-4">Reset timer to focus on specific operations:</p>
+                        
+                        <div class="bg-gray-800 rounded-md overflow-hidden mb-6">
+                            <pre><code class="language-go">// Reset timer before evaluated operation
+e.ResetTimer()
+
+// Perform operation to time
+output := model.GenerateResponse(input)
+
+// Log with timing information
+e.Log(sample, result)</code></pre>
+                        </div>
+                        
+                        <div class="bg-yellow-50 p-4 rounded-lg">
+                            <h4 class="font-bold text-yellow-800 mb-1">Timing Tip</h4>
+                            <p class="text-yellow-700 text-sm">
+                                Use <code>ResetTimer</code> to exclude setup time from your measurements. This gives you more accurate timing of just the operation you're interested in, similar to benchmarking in Go.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section id="real-world" class="bg-white rounded-lg shadow-md p-6">
+                        <h2 class="text-2xl font-bold text-blue-600 mb-4">Real-World Example</h2>
+                        
+                        <p class="mb-4">Comprehensive evaluation suite:</p>
+                        
+                        <div class="bg-gray-800 rounded-md overflow-hidden mb-6">
+                            <pre><code class="language-go">func TestEvalSummarization(t *testing.T) {
+    eval.Run(t, "article summarization", func(t *testing.T, e *eval.E) {
+        // Load test articles
+        articles := loadTestArticles()
+        
+        // Test each article
+        for _, article := range articles {
+            // Reset timer for fair performance comparison
+            e.ResetTimer()
+            
+            // Get model summary
+            res, err := model.ChatComplete(t.Context(), gai.ChatCompleteRequest{
+                Messages: []gai.Message{
+                    gai.NewUserTextMessage("Summarize this article: " + article.Content),
+                },
+            })
+            if err != nil {
+                t.Fatal(err)
+            }
+            
+            // Collect response
+            var summary string
+            for part, err := range res.Parts() {
+                if err != nil {
+                    t.Fatal(err)
+                }
+                summary += part.Text()
+            }
+            
+            // Create sample with article's human-written summary as expected
+            sample := eval.Sample{
+                Input:    article.Content,
+                Output:   summary,
+                Expected: article.HumanSummary,
+            }
+            
+            // Score with multiple methods
+            semantic := e.Score(sample, eval.SemanticSimilarityScorer(t, model, eval.CosineSimilarity))
+            llm := e.Score(sample, eval.LLMScorer(t, eval.RubricJudge(0.1), judgeModel))
+            
+            // Log results
+            e.Log(sample, semantic, llm)
+        }
+    })
+}</code></pre>
+                        </div>
+                        
+                        <div class="bg-blue-50 p-4 rounded-lg mt-6">
+                            <h4 class="font-bold text-blue-800 mb-1">Best Practices</h4>
+                            <ul class="list-disc pl-6 space-y-1 text-blue-700 text-sm">
+                                <li>Use multiple scoring methods to get a more complete picture</li>
+                                <li>Test against a diverse set of examples</li>
+                                <li>Reset the timer for fair comparisons between operations</li>
+                                <li>Log detailed information for later analysis</li>
+                                <li>Consider both automated metrics and human-like (LLM) judgments</li>
+                            </ul>
+                        </div>
+                    </section>
+
+                    <section id="visualization" class="bg-white rounded-lg shadow-md p-6">
+                        <h2 class="text-2xl font-bold text-blue-600 mb-4">Visualization</h2>
+                        
+                        <p class="mb-4">GAI writes evaluation results to <code>evals.jsonl</code> in your project root.</p>
+                        
+                        <p class="mb-4">You can visualize results with:</p>
+                        <ul class="list-disc pl-6 space-y-1 mb-6">
+                            <li>Custom dashboards</li>
+                            <li>JSONL processors</li>
+                            <li>Visualization libraries</li>
+                        </ul>
+                        
+                        <h3 class="text-xl font-bold mb-3">Web Dashboard Integration</h3>
+                        
+                        <div class="bg-gray-800 rounded-md overflow-hidden mb-6">
+                            <pre><code class="language-go">// Configure data export to dashboard service
+os.Setenv("EVALS_API_KEY", "your-api-key")
+os.Setenv("EVALS_PROJECT", "your-project")
+
+// Run evals as normal - will automatically upload results
+go test -run TestEval ./...</code></pre>
+                        </div>
+                        
+                        <p class="mb-4">Results appear at <code>https://api.evals.fun/evals.svg?key=your-api-key</code></p>
+                        
+                        <div class="flex flex-col md:flex-row items-center justify-between bg-gray-100 rounded-lg p-4 mt-4">
+                            <div class="flex items-center mb-4 md:mb-0">
+                                <div class="bg-green-100 p-3 rounded-full mr-4">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold">Tracking Progress Over Time</h4>
+                                    <p class="text-sm text-gray-600">Visualize model improvements with each iteration</p>
+                                </div>
+                            </div>
+                            <a href="https://api.evals.fun" target="_blank" rel="noopener" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded inline-flex items-center">
+                                <span>Try Evals Dashboard</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                </svg>
+                            </a>
+                        </div>
+                    </section>
+                </div>
+                
+                <div class="mt-12 flex space-x-4">
+                    <a href="tools.html" class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded inline-flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                        </svg>
+                        Tools
+                    </a>
+                    <a href="examples.html" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded inline-flex items-center">
+                        Examples
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-6">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between">
+                <div class="mb-4 md:mb-0">
+                    <h3 class="text-xl font-bold mb-2">GAI</h3>
+                    <p class="text-gray-300">Go Artificial Intelligence - Work with AI models in Go</p>
+                </div>
+                <div>
+                    <h4 class="font-bold mb-2 mt-4 md:mt-0">Links</h4>
+                    <ul class="space-y-1">
+                        <li><a href="https://github.com/maragudk/gai" class="text-blue-300 hover:text-white" target="_blank">GitHub Repository</a></li>
+                        <li><a href="https://pkg.go.dev/maragu.dev/gai" class="text-blue-300 hover:text-white" target="_blank">Go Documentation</a></li>
+                        <li><a href="mailto:markus@maragu.dk" class="text-blue-300 hover:text-white">Contact</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="mt-8 pt-4 border-t border-gray-700 text-center text-gray-400">
+                <p>Made by <a href="https://www.maragu.dev/" class="text-blue-300 hover:text-white" target="_blank">maragu</a></p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Mobile menu toggle
+        document.getElementById('mobile-menu-button').addEventListener('click', function() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        });
+    </script>
+</body>
+</html>

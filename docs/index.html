@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Go Artificial Intelligence - GAI Documentation</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+</head>
+<body class="bg-gray-50 text-gray-800 flex flex-col min-h-screen">
+    <!-- Header -->
+    <header class="bg-blue-600 text-white shadow-lg">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <a href="index.html" class="text-2xl font-bold flex items-center">
+                <span class="mr-2">GAI</span>
+                <span class="text-sm bg-blue-800 px-2 py-1 rounded-md">Go Artificial Intelligence</span>
+            </a>
+            <nav class="hidden md:flex space-x-4">
+                <a href="index.html" class="px-3 py-2 bg-blue-700 rounded">Home</a>
+                <a href="getting-started.html" class="px-3 py-2 hover:bg-blue-700 rounded">Getting Started</a>
+                <a href="concepts.html" class="px-3 py-2 hover:bg-blue-700 rounded">Concepts</a>
+                <a href="examples.html" class="px-3 py-2 hover:bg-blue-700 rounded">Examples</a>
+                <a href="https://github.com/maragudk/gai" class="px-3 py-2 hover:bg-blue-700 rounded" target="_blank">GitHub</a>
+            </nav>
+            <button class="md:hidden block text-white" id="mobile-menu-button">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+            </button>
+        </div>
+        <!-- Mobile menu (hidden by default) -->
+        <div class="md:hidden hidden" id="mobile-menu">
+            <div class="px-2 pt-2 pb-3 space-y-1 bg-blue-700">
+                <a href="index.html" class="block px-3 py-2 bg-blue-800 rounded">Home</a>
+                <a href="getting-started.html" class="block px-3 py-2 hover:bg-blue-800 rounded">Getting Started</a>
+                <a href="concepts.html" class="block px-3 py-2 hover:bg-blue-800 rounded">Concepts</a>
+                <a href="examples.html" class="block px-3 py-2 hover:bg-blue-800 rounded">Examples</a>
+                <a href="https://github.com/maragudk/gai" class="block px-3 py-2 hover:bg-blue-800 rounded" target="_blank">GitHub</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <div class="bg-blue-500 text-white py-12">
+        <div class="container mx-auto px-4 max-w-3xl">
+            <h1 class="text-4xl font-bold mb-4">Go Artificial Intelligence (GAI)</h1>
+            <p class="text-xl mb-6">Work with AI models in Go. No fuss. No complexity. Just a clean interface.</p>
+            <div class="flex flex-wrap gap-4">
+                <a href="getting-started.html" class="bg-white text-blue-600 px-5 py-2 rounded-md font-bold hover:bg-blue-50 transition">Get Started</a>
+                <a href="https://github.com/maragudk/gai" class="bg-blue-600 text-white border border-white px-5 py-2 rounded-md font-bold hover:bg-blue-700 transition" target="_blank">View on GitHub</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main content -->
+    <div class="flex flex-grow">
+        <!-- Sidebar -->
+        <aside class="hidden md:block w-64 bg-white shadow-md p-4">
+            <nav class="space-y-1">
+                <div class="font-bold mb-2 text-gray-700">Documentation</div>
+                <a href="getting-started.html" class="block py-2 px-4 rounded hover:bg-gray-100">Getting Started</a>
+                <a href="concepts.html" class="block py-2 px-4 rounded hover:bg-gray-100">Core Concepts</a>
+                <a href="chat-completion.html" class="block py-2 px-4 rounded hover:bg-gray-100">Chat Completion</a>
+                <a href="embedding.html" class="block py-2 px-4 rounded hover:bg-gray-100">Embedding</a>
+                <a href="tools.html" class="block py-2 px-4 rounded hover:bg-gray-100">Tools</a>
+                <a href="evals.html" class="block py-2 px-4 rounded hover:bg-gray-100">Evaluations</a>
+                <a href="examples.html" class="block py-2 px-4 rounded hover:bg-gray-100">Examples</a>
+            </nav>
+        </aside>
+
+        <!-- Content -->
+        <main class="flex-grow p-6">
+            <div class="container mx-auto max-w-3xl">
+                <section class="mb-12">
+                    <h2 class="text-2xl font-bold mb-4 text-blue-600">What it does</h2>
+                    <p class="mb-4">GAI provides interfaces to work with:</p>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div class="bg-white p-6 rounded-lg shadow-md">
+                            <h3 class="font-bold text-lg mb-2">Chat models</h3>
+                            <p>Have conversations with AI models using a simple, consistent interface.</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow-md">
+                            <h3 class="font-bold text-lg mb-2">Embedding models</h3>
+                            <p>Turn text into vectors for semantic search and similarity operations.</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow-md">
+                            <h3 class="font-bold text-lg mb-2">Tools</h3>
+                            <p>Extend AI capabilities with custom functions and external integrations.</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow-md">
+                            <h3 class="font-bold text-lg mb-2">Evaluations</h3>
+                            <p>Test model quality with qualitative and quantitative metrics.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="mb-12">
+                    <h2 class="text-2xl font-bold mb-4 text-blue-600">Why use it</h2>
+                    <p class="mb-4">You want a unified way to work with AI models. You need a library that:</p>
+                    <ul class="list-disc pl-6 space-y-2">
+                        <li>Gives you consistency across providers</li>
+                        <li>Keeps implementations simple</li>
+                        <li>Makes testing straightforward</li>
+                        <li>Uses Go idioms</li>
+                    </ul>
+                </section>
+
+                <section class="mb-12">
+                    <h2 class="text-2xl font-bold mb-4 text-blue-600">Getting started</h2>
+                    <p class="mb-4">Install the package:</p>
+                    <pre><code class="language-go">go get maragu.dev/gai</code></pre>
+                    <p class="my-4">Use it with your favorite models. These client implementations are available:</p>
+                    <ul class="list-disc pl-6 space-y-2">
+                        <li><a href="https://github.com/maragudk/gai-openai" class="text-blue-600 hover:text-blue-800" target="_blank">gai-openai</a></li>
+                        <li><a href="https://github.com/maragudk/gai-google" class="text-blue-600 hover:text-blue-800" target="_blank">gai-google</a></li>
+                        <li><a href="https://github.com/maragudk/gai-anthropic" class="text-blue-600 hover:text-blue-800" target="_blank">gai-anthropic</a></li>
+                    </ul>
+                </section>
+
+                <section class="mb-12">
+                    <h2 class="text-2xl font-bold mb-4 text-blue-600">Learn more</h2>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <a href="getting-started.html" class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition group">
+                            <h3 class="font-bold text-lg mb-2 group-hover:text-blue-600">Getting Started</h3>
+                            <p>Quick start guide to begin using GAI.</p>
+                        </a>
+                        <a href="chat-completion.html" class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition group">
+                            <h3 class="font-bold text-lg mb-2 group-hover:text-blue-600">Chat Completion</h3>
+                            <p>Have conversations with AI models.</p>
+                        </a>
+                        <a href="embedding.html" class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition group">
+                            <h3 class="font-bold text-lg mb-2 group-hover:text-blue-600">Embedding</h3>
+                            <p>Turn text into vectors for semantic operations.</p>
+                        </a>
+                        <a href="tools.html" class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition group">
+                            <h3 class="font-bold text-lg mb-2 group-hover:text-blue-600">Tools</h3>
+                            <p>Extend model capabilities with custom functions.</p>
+                        </a>
+                        <a href="evals.html" class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition group">
+                            <h3 class="font-bold text-lg mb-2 group-hover:text-blue-600">Evaluations</h3>
+                            <p>Test and measure model quality.</p>
+                        </a>
+                        <a href="examples.html" class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition group">
+                            <h3 class="font-bold text-lg mb-2 group-hover:text-blue-600">Examples</h3>
+                            <p>See GAI in action with practical examples.</p>
+                        </a>
+                    </div>
+                </section>
+
+                <section class="mb-8">
+                    <h2 class="text-2xl font-bold mb-4 text-blue-600">About</h2>
+                    <p>Made by <a href="https://www.maragu.dev/" class="text-blue-600 hover:text-blue-800" target="_blank">maragu</a>: independent software consulting for cloud-native Go apps & AI engineering.</p>
+                    <p class="mt-2"><a href="mailto:markus@maragu.dk" class="text-blue-600 hover:text-blue-800">Contact Markus</a> for consulting, or to support this project.</p>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-6">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between">
+                <div class="mb-4 md:mb-0">
+                    <h3 class="text-xl font-bold mb-2">GAI</h3>
+                    <p class="text-gray-300">Go Artificial Intelligence - Work with AI models in Go</p>
+                </div>
+                <div>
+                    <h4 class="font-bold mb-2 mt-4 md:mt-0">Links</h4>
+                    <ul class="space-y-1">
+                        <li><a href="https://github.com/maragudk/gai" class="text-blue-300 hover:text-white" target="_blank">GitHub Repository</a></li>
+                        <li><a href="https://pkg.go.dev/maragu.dev/gai" class="text-blue-300 hover:text-white" target="_blank">Go Documentation</a></li>
+                        <li><a href="mailto:markus@maragu.dk" class="text-blue-300 hover:text-white">Contact</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="mt-8 pt-4 border-t border-gray-700 text-center text-gray-400">
+                <p>Made by <a href="https://www.maragu.dev/" class="text-blue-300 hover:text-white" target="_blank">maragu</a></p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Mobile menu toggle
+        document.getElementById('mobile-menu-button').addEventListener('click', function() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        });
+    </script>
+</body>
+</html>

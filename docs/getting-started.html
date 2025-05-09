@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Getting Started - GAI Documentation</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script>document.addEventListener('DOMContentLoaded', (event) => { hljs.highlightAll(); });</script>
+</head>
+<body class="bg-gray-50 text-gray-800 flex flex-col min-h-screen">
+    <!-- Header -->
+    <header class="bg-blue-600 text-white shadow-lg">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <a href="index.html" class="text-2xl font-bold flex items-center">
+                <span class="mr-2">GAI</span>
+                <span class="text-sm bg-blue-800 px-2 py-1 rounded-md">Go Artificial Intelligence</span>
+            </a>
+            <nav class="hidden md:flex space-x-4">
+                <a href="index.html" class="px-3 py-2 hover:bg-blue-700 rounded">Home</a>
+                <a href="getting-started.html" class="px-3 py-2 bg-blue-700 rounded">Getting Started</a>
+                <a href="concepts.html" class="px-3 py-2 hover:bg-blue-700 rounded">Concepts</a>
+                <a href="examples.html" class="px-3 py-2 hover:bg-blue-700 rounded">Examples</a>
+                <a href="https://github.com/maragudk/gai" class="px-3 py-2 hover:bg-blue-700 rounded" target="_blank">GitHub</a>
+            </nav>
+            <button class="md:hidden block text-white" id="mobile-menu-button">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+            </button>
+        </div>
+        <!-- Mobile menu (hidden by default) -->
+        <div class="md:hidden hidden" id="mobile-menu">
+            <div class="px-2 pt-2 pb-3 space-y-1 bg-blue-700">
+                <a href="index.html" class="block px-3 py-2 hover:bg-blue-800 rounded">Home</a>
+                <a href="getting-started.html" class="block px-3 py-2 bg-blue-800 rounded">Getting Started</a>
+                <a href="concepts.html" class="block px-3 py-2 hover:bg-blue-800 rounded">Concepts</a>
+                <a href="examples.html" class="block px-3 py-2 hover:bg-blue-800 rounded">Examples</a>
+                <a href="https://github.com/maragudk/gai" class="block px-3 py-2 hover:bg-blue-800 rounded" target="_blank">GitHub</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main content -->
+    <div class="flex flex-grow">
+        <!-- Sidebar -->
+        <aside class="hidden md:block w-64 bg-white shadow-md p-4">
+            <nav class="space-y-1">
+                <div class="font-bold mb-2 text-gray-700">Documentation</div>
+                <a href="getting-started.html" class="block py-2 px-4 rounded bg-blue-50 text-blue-600 font-medium">Getting Started</a>
+                <a href="concepts.html" class="block py-2 px-4 rounded hover:bg-gray-100">Core Concepts</a>
+                <a href="chat-completion.html" class="block py-2 px-4 rounded hover:bg-gray-100">Chat Completion</a>
+                <a href="embedding.html" class="block py-2 px-4 rounded hover:bg-gray-100">Embedding</a>
+                <a href="tools.html" class="block py-2 px-4 rounded hover:bg-gray-100">Tools</a>
+                <a href="evals.html" class="block py-2 px-4 rounded hover:bg-gray-100">Evaluations</a>
+                <a href="examples.html" class="block py-2 px-4 rounded hover:bg-gray-100">Examples</a>
+            </nav>
+        </aside>
+
+        <!-- Content -->
+        <main class="flex-grow p-6">
+            <div class="container mx-auto max-w-3xl">
+                <div class="mb-6">
+                    <h1 class="text-3xl font-bold text-gray-900 mb-2">Getting Started with GAI</h1>
+                    <p class="text-lg text-gray-700">This guide covers the basics to get you up and running with GAI.</p>
+                </div>
+
+                <div class="prose prose-blue max-w-none">
+                    <section id="installation" class="mb-10">
+                        <h2 class="text-2xl font-bold text-blue-600 mb-4">Installation</h2>
+                        <p class="mb-4">Use Go modules to install GAI:</p>
+                        <div class="bg-gray-800 rounded-md overflow-hidden mb-6">
+                            <pre><code class="language-bash">go get maragu.dev/gai</code></pre>
+                        </div>
+
+                        <p class="mb-4">You will also need a client implementation for your preferred AI provider:</p>
+                        <div class="bg-gray-800 rounded-md overflow-hidden mb-6">
+                            <pre><code class="language-bash"># For OpenAI (GPT-4, etc)
+go get github.com/maragudk/gai-openai
+
+# For Google (Gemini, etc)
+go get github.com/maragudk/gai-google
+
+# For Anthropic (Claude, etc)
+go get github.com/maragudk/gai-anthropic</code></pre>
+                        </div>
+                    </section>
+
+                    <section id="basic-usage" class="mb-10">
+                        <h2 class="text-2xl font-bold text-blue-600 mb-4">Basic Usage</h2>
+
+                        <div class="mb-8">
+                            <h3 class="text-xl font-bold mb-4">Setting up a client</h3>
+                            <p class="mb-4">Here's how to set up a client for OpenAI models:</p>
+                            <div class="bg-gray-800 rounded-md overflow-hidden mb-6">
+                                <pre><code class="language-go">package main
+
+import (
+    "context"
+    "fmt"
+    "log"
+    "os"
+
+    "maragu.dev/gai"
+    openai "github.com/maragudk/gai-openai"
+)
+
+func main() {
+    // Create a client using your API key
+    client := openai.NewClient(os.Getenv("OPENAI_API_KEY"))
+
+    // Use the client to work with models
+    // ...
+}</code></pre>
+                            </div>
+                        </div>
+
+                        <div class="mb-8">
+                            <h3 class="text-xl font-bold mb-4">Simple chat completion</h3>
+                            <p class="mb-4">Here's a complete example using chat completion:</p>
+                            <div class="bg-gray-800 rounded-md overflow-hidden mb-6">
+                                <pre><code class="language-go">package main
+
+import (
+    "context"
+    "fmt"
+    "log"
+    "os"
+
+    "maragu.dev/gai"
+    openai "github.com/maragudk/gai-openai"
+)
+
+func main() {
+    // Create a client
+    client := openai.NewClient(os.Getenv("OPENAI_API_KEY"))
+
+    // Create a chat completion request
+    request := gai.ChatCompleteRequest{
+        Messages: []gai.Message{
+            gai.NewUserTextMessage("What's the capital of France?"),
+        },
+    }
+
+    // Send the request
+    response, err := client.ChatComplete(context.Background(), request)
+    if err != nil {
+        log.Fatalf("Error: %v", err)
+    }
+
+    // Process the streaming response
+    var output string
+    for part, err := range response.Parts() {
+        if err != nil {
+            log.Fatalf("Error in response stream: %v", err)
+        }
+        output += part.Text()
+    }
+
+    fmt.Println("Model says:", output)
+}</code></pre>
+                            </div>
+                        </div>
+
+                        <div class="mb-8">
+                            <h3 class="text-xl font-bold mb-4">Simple embedding</h3>
+                            <p class="mb-4">Here's how to create text embeddings:</p>
+                            <div class="bg-gray-800 rounded-md overflow-hidden mb-6">
+                                <pre><code class="language-go">package main
+
+import (
+    "context"
+    "fmt"
+    "log"
+    "os"
+    "strings"
+
+    "maragu.dev/gai"
+    openai "github.com/maragudk/gai-openai"
+)
+
+func main() {
+    // Create a client
+    client := openai.NewClient(os.Getenv("OPENAI_API_KEY"))
+
+    // Create an embedding request
+    request := gai.EmbedRequest{
+        Input: strings.NewReader("Paris is the capital of France"),
+    }
+
+    // Send the request
+    response, err := client.Embed(context.Background(), request)
+    if err != nil {
+        log.Fatalf("Error: %v", err)
+    }
+
+    // Use the embedding vector
+    fmt.Printf("Embedding vector (first 5 values): %v\n", response.Embedding[:5])
+    fmt.Printf("Vector dimension: %d\n", len(response.Embedding))
+}</code></pre>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section id="next-steps" class="mb-8">
+                        <h2 class="text-2xl font-bold text-blue-600 mb-4">Next Steps</h2>
+                        <p class="mb-4">Once you understand the basics, dive deeper into:</p>
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <a href="chat-completion.html" class="bg-white p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:shadow-md transition">
+                                <h3 class="font-bold text-blue-600 mb-1">Chat Completion</h3>
+                                <p class="text-sm text-gray-600">For advanced conversation capabilities</p>
+                            </a>
+                            <a href="embedding.html" class="bg-white p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:shadow-md transition">
+                                <h3 class="font-bold text-blue-600 mb-1">Embedding</h3>
+                                <p class="text-sm text-gray-600">For text vectorization and similarity</p>
+                            </a>
+                            <a href="tools.html" class="bg-white p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:shadow-md transition">
+                                <h3 class="font-bold text-blue-600 mb-1">Tools</h3>
+                                <p class="text-sm text-gray-600">For extending model capabilities</p>
+                            </a>
+                            <a href="evals.html" class="bg-white p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:shadow-md transition">
+                                <h3 class="font-bold text-blue-600 mb-1">Evaluations</h3>
+                                <p class="text-sm text-gray-600">For testing model quality</p>
+                            </a>
+                            <a href="examples.html" class="bg-white p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:shadow-md transition md:col-span-2">
+                                <h3 class="font-bold text-blue-600 mb-1">Examples</h3>
+                                <p class="text-sm text-gray-600">For real-world use cases</p>
+                            </a>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-6">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between">
+                <div class="mb-4 md:mb-0">
+                    <h3 class="text-xl font-bold mb-2">GAI</h3>
+                    <p class="text-gray-300">Go Artificial Intelligence - Work with AI models in Go</p>
+                </div>
+                <div>
+                    <h4 class="font-bold mb-2 mt-4 md:mt-0">Links</h4>
+                    <ul class="space-y-1">
+                        <li><a href="https://github.com/maragudk/gai" class="text-blue-300 hover:text-white" target="_blank">GitHub Repository</a></li>
+                        <li><a href="https://pkg.go.dev/maragu.dev/gai" class="text-blue-300 hover:text-white" target="_blank">Go Documentation</a></li>
+                        <li><a href="mailto:markus@maragu.dk" class="text-blue-300 hover:text-white">Contact</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="mt-8 pt-4 border-t border-gray-700 text-center text-gray-400">
+                <p>Made by <a href="https://www.maragu.dev/" class="text-blue-300 hover:text-white" target="_blank">maragu</a></p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Mobile menu toggle
+        document.getElementById('mobile-menu-button').addEventListener('click', function() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        });
+    </script>
+</body>
+</html>
