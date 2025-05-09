@@ -1,0 +1,802 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Evaluations - GAI Documentation</title>
+    <!-- TailwindCSS v4 CDN -->
+    <script src="https://cdn.tailwindcss.com?v=4"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script>
+      hljs.highlightAll();
+    </script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              space: ['"Space Mono"', "monospace"],
+              fredoka: ['"Fredoka One"', "cursive"],
+            },
+            animation: {
+              wiggle: "wiggle 2.5s ease-in-out infinite",
+              "bounce-slow": "bounce 2s ease infinite",
+              sparkle: "sparkle 1.5s ease-in-out infinite",
+              float: "float 6s ease-in-out infinite",
+            },
+            keyframes: {
+              wiggle: {
+                "0%, 100%": { transform: "rotate(-3deg)" },
+                "50%": { transform: "rotate(3deg)" },
+              },
+              bounce: {
+                "0%, 100%": { transform: "translateY(0)" },
+                "50%": { transform: "translateY(-10px)" },
+              },
+              sparkle: {
+                "0%": { transform: "scale(0)", opacity: "0" },
+                "50%": { transform: "scale(1)", opacity: "1" },
+                "100%": { transform: "scale(0)", opacity: "0" },
+              },
+              float: {
+                "0%, 100%": { transform: "translateY(0px)" },
+                "50%": { transform: "translateY(-20px)" },
+              },
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      /* Custom quirky styles */
+      @import url("https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap");
+      @import url("https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap");
+
+      .quirky-gradient-text {
+        background: linear-gradient(45deg, #ff5f6d, #ffc371);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .footer-wave {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 320'%3E%3Cpath fill='%23ff5f6d' fill-opacity='0.5' d='M0,64L48,80C96,96,192,128,288,138.7C384,149,480,139,576,122.7C672,107,768,85,864,69.3C960,53,1056,43,1152,58.7C1248,75,1344,117,1392,138.7L1440,160L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z'%3E%3C/path%3E%3C/svg%3E");
+        background-size: cover;
+        background-position: center;
+      }
+
+      /* Code blocks with tilted backgrounds */
+      pre {
+        position: relative;
+      }
+
+      pre::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #2a2a2a;
+        transform: rotate(-1deg);
+        z-index: -1;
+      }
+
+      /* Sparkle positioning */
+      .sparkle:nth-child(1) {
+        top: 10%;
+        left: 10%;
+        animation-delay: 0s;
+      }
+      .sparkle:nth-child(2) {
+        top: 20%;
+        left: 90%;
+        animation-delay: 0.3s;
+      }
+      .sparkle:nth-child(3) {
+        top: 80%;
+        left: 15%;
+        animation-delay: 0.6s;
+      }
+      .sparkle:nth-child(4) {
+        top: 65%;
+        left: 85%;
+        animation-delay: 0.9s;
+      }
+      .sparkle:nth-child(5) {
+        top: 50%;
+        left: 50%;
+        animation-delay: 1.2s;
+      }
+    </style>
+  </head>
+  <body
+    class="bg-yellow-50 text-gray-800 flex flex-col min-h-screen font-space"
+  >
+    <!-- Sparkles -->
+    <div class="fixed inset-0 pointer-events-none z-10">
+      <div
+        class="absolute w-1.5 h-1.5 rounded-full bg-white opacity-0 animate-sparkle sparkle"
+      ></div>
+      <div
+        class="absolute w-1.5 h-1.5 rounded-full bg-white opacity-0 animate-sparkle sparkle"
+      ></div>
+      <div
+        class="absolute w-1.5 h-1.5 rounded-full bg-white opacity-0 animate-sparkle sparkle"
+      ></div>
+      <div
+        class="absolute w-1.5 h-1.5 rounded-full bg-white opacity-0 animate-sparkle sparkle"
+      ></div>
+      <div
+        class="absolute w-1.5 h-1.5 rounded-full bg-white opacity-0 animate-sparkle sparkle"
+      ></div>
+    </div>
+
+    <!-- Header -->
+    <header
+      class="bg-gradient-to-r from-[#ff5f6d] to-[#ffc371] text-white shadow-lg sticky top-0 z-20"
+    >
+      <div
+        class="container mx-auto px-4 py-4 flex justify-between items-center"
+      >
+        <a href="index.html" class="text-2xl font-fredoka flex items-center">
+          <span class="mr-2 animate-wiggle inline-block">GAI</span>
+          <span
+            class="text-sm bg-white text-gray-800 px-2 py-1 rounded-md -rotate-2 border-2 border-black"
+            >Go Artificial Intelligence</span
+          >
+        </a>
+        <nav class="hidden md:flex space-x-4">
+          <a
+            href="index.html"
+            class="px-3 py-2 hover:bg-yellow-400 rounded-lg border-2 border-black shadow-[3px_3px_0px_#000] transition-all"
+            >Home</a
+          >
+          <a
+            href="getting-started.html"
+            class="px-3 py-2 hover:bg-yellow-400 rounded-lg border-2 border-black shadow-[3px_3px_0px_#000] transition-all"
+            >Getting Started</a
+          >
+          <a
+            href="concepts.html"
+            class="px-3 py-2 hover:bg-yellow-400 rounded-lg border-2 border-black shadow-[3px_3px_0px_#000] transition-all"
+            >Concepts</a
+          >
+          <a
+            href="examples.html"
+            class="px-3 py-2 hover:bg-yellow-400 rounded-lg border-2 border-black shadow-[3px_3px_0px_#000] transition-all"
+            >Examples</a
+          >
+          <a
+            href="https://github.com/maragudk/gai"
+            class="px-3 py-2 hover:bg-yellow-400 rounded-lg border-2 border-black shadow-[3px_3px_0px_#000] transition-all"
+            target="_blank"
+            >GitHub</a
+          >
+        </nav>
+        <button
+          class="md:hidden block text-white bg-yellow-400 text-black border-2 border-black shadow-[3px_3px_0px_#000] rounded-lg p-1"
+          id="mobile-menu-button"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-6 w-6"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 6h16M4 12h16M4 18h16"
+            />
+          </svg>
+        </button>
+      </div>
+      <!-- Mobile menu (hidden by default) -->
+      <div class="md:hidden hidden" id="mobile-menu">
+        <div class="px-2 pt-2 pb-3 space-y-1 bg-yellow-400">
+          <a
+            href="index.html"
+            class="block px-3 py-2 hover:bg-yellow-300 rounded-lg text-black"
+            >Home</a
+          >
+          <a
+            href="getting-started.html"
+            class="block px-3 py-2 hover:bg-yellow-300 rounded-lg text-black"
+            >Getting Started</a
+          >
+          <a
+            href="concepts.html"
+            class="block px-3 py-2 hover:bg-yellow-300 rounded-lg text-black"
+            >Concepts</a
+          >
+          <a
+            href="examples.html"
+            class="block px-3 py-2 hover:bg-yellow-300 rounded-lg text-black"
+            >Examples</a
+          >
+          <a
+            href="https://github.com/maragudk/gai"
+            class="block px-3 py-2 hover:bg-yellow-300 rounded-lg text-black"
+            target="_blank"
+            >GitHub</a
+          >
+        </div>
+      </div>
+    </header>
+
+    <!-- Main content -->
+    <div class="flex flex-grow">
+      <!-- Sidebar -->
+      <aside
+        class="hidden md:block w-64 bg-white shadow-md p-4 mt-6 ml-6 rounded-xl border-2 border-black shadow-[5px_5px_0px_#000] transition-all"
+      >
+        <nav class="space-y-1">
+          <div
+            class="font-bold mb-2 text-gray-700 font-fredoka quirky-gradient-text"
+          >
+            Documentation
+          </div>
+          <a
+            href="getting-started.html"
+            class="block py-2 px-4 rounded-lg hover:bg-yellow-200 hover:-rotate-1 transition-all"
+            >Getting Started</a
+          >
+          <a
+            href="concepts.html"
+            class="block py-2 px-4 rounded-lg hover:bg-yellow-200 hover:-rotate-1 transition-all"
+            >Core Concepts</a
+          >
+          <a
+            href="chat-completion.html"
+            class="block py-2 px-4 rounded-lg hover:bg-yellow-200 hover:-rotate-1 transition-all"
+            >Chat Completion</a
+          >
+          <a
+            href="embedding.html"
+            class="block py-2 px-4 rounded-lg hover:bg-yellow-200 hover:-rotate-1 transition-all"
+            >Embedding</a
+          >
+          <a
+            href="tools.html"
+            class="block py-2 px-4 rounded-lg hover:bg-yellow-200 hover:-rotate-1 transition-all"
+            >Tools</a
+          >
+          <a
+            href="evals.html"
+            class="block py-2 px-4 rounded-lg bg-yellow-200 font-medium rotate-1"
+            >Evaluations</a
+          >
+          <a
+            href="examples.html"
+            class="block py-2 px-4 rounded-lg hover:bg-yellow-200 hover:-rotate-1 transition-all"
+            >Examples</a
+          >
+        </nav>
+
+        <!-- Table of Contents -->
+        <div class="mt-8">
+          <div
+            class="font-bold mb-2 text-gray-700 font-fredoka quirky-gradient-text"
+          >
+            On This Page
+          </div>
+          <nav class="space-y-1 text-sm">
+            <a
+              href="#why-evaluate-models"
+              class="block py-1 px-4 rounded-lg hover:bg-yellow-200 hover:-translate-x-1 transition-all"
+              >Why Evaluate Models</a
+            >
+            <a
+              href="#core-evaluation-concepts"
+              class="block py-1 px-4 rounded-lg hover:bg-yellow-200 hover:-translate-x-1 transition-all"
+              >Core Evaluation Concepts</a
+            >
+            <a
+              href="#running-evaluations"
+              class="block py-1 px-4 rounded-lg hover:bg-yellow-200 hover:-translate-x-1 transition-all"
+              >Running Evaluations</a
+            >
+            <a
+              href="#running-eval-tests"
+              class="block py-1 px-4 rounded-lg hover:bg-yellow-200 hover:-translate-x-1 transition-all"
+              >Running Eval Tests</a
+            >
+            <a
+              href="#scoring-methods"
+              class="block py-1 px-4 rounded-lg hover:bg-yellow-200 hover:-translate-x-1 transition-all"
+              >Scoring Methods</a
+            >
+            <a
+              href="#evaluation-groups"
+              class="block py-1 px-4 rounded-lg hover:bg-yellow-200 hover:-translate-x-1 transition-all"
+              >Evaluation Groups</a
+            >
+            <a
+              href="#timing-information"
+              class="block py-1 px-4 rounded-lg hover:bg-yellow-200 hover:-translate-x-1 transition-all"
+              >Timing Information</a
+            >
+            <a
+              href="#real-world-example"
+              class="block py-1 px-4 rounded-lg hover:bg-yellow-200 hover:-translate-x-1 transition-all"
+              >Real-World Example</a
+            >
+            <a
+              href="#visualization"
+              class="block py-1 px-4 rounded-lg hover:bg-yellow-200 hover:-translate-x-1 transition-all"
+              >Visualization</a
+            >
+          </nav>
+        </div>
+      </aside>
+
+      <!-- Content -->
+      <main class="flex-grow p-6">
+        <div class="container mx-auto max-w-3xl">
+          <div class="mb-6">
+            <h1
+              class="text-3xl font-fredoka text-gray-900 mb-2 quirky-gradient-text"
+            >
+              Evaluations
+            </h1>
+            <p class="text-lg text-gray-700">
+              GAI provides tools to evaluate model outputs. Test how well models
+              perform on your specific tasks.
+            </p>
+          </div>
+
+          <div class="prose prose-blue max-w-none">
+            <section
+              id="why-evaluate-models"
+              class="mb-10 bg-white p-6 rounded-lg border-2 border-black shadow-[5px_5px_0px_#000] transition-all rotate-1"
+            >
+              <h2
+                class="text-2xl font-fredoka text-blue-600 mb-4 quirky-gradient-text"
+              >
+                Why Evaluate Models
+              </h2>
+              <p class="mb-4">Evaluations help you:</p>
+              <ul class="list-disc pl-5 mb-4">
+                <li>Compare model performance</li>
+                <li>Track quality over time</li>
+                <li>Identify areas for improvement</li>
+                <li>Verify behavior on edge cases</li>
+                <li>Make informed provider choices</li>
+              </ul>
+            </section>
+
+            <section
+              id="core-evaluation-concepts"
+              class="mb-10 bg-white p-6 rounded-lg border-2 border-black shadow-[5px_5px_0px_#000] transition-all -rotate-0.5"
+            >
+              <h2
+                class="text-2xl font-fredoka text-blue-600 mb-4 quirky-gradient-text"
+              >
+                Core Evaluation Concepts
+              </h2>
+              <p class="mb-4">GAI's evaluation system uses:</p>
+              <ul class="list-disc pl-5 mb-4">
+                <li>
+                  <strong>Samples</strong>: Input, output, and expected output
+                  triplets
+                </li>
+                <li>
+                  <strong>Scorers</strong>: Functions that evaluate outputs
+                  against expectations
+                </li>
+                <li>
+                  <strong>Results</strong>: Score and metadata from evaluation
+                </li>
+                <li>
+                  <strong>Logs</strong>: Structured records of evaluations
+                </li>
+              </ul>
+            </section>
+
+            <section
+              id="running-evaluations"
+              class="mb-10 bg-white p-6 rounded-lg border-2 border-black shadow-[5px_5px_0px_#000] transition-all rotate-0.5"
+            >
+              <h2
+                class="text-2xl font-fredoka text-blue-600 mb-4 quirky-gradient-text"
+              >
+                Running Evaluations
+              </h2>
+              <p class="mb-4">
+                GAI runs evaluations as part of normal Go tests:
+              </p>
+              <div class="rounded-md overflow-hidden mb-6 relative">
+                <pre><code class="language-go">package myapp_test
+
+import (
+    "context"
+    "testing"
+
+    "maragu.dev/gai"
+    "maragu.dev/gai/eval"
+)
+
+// TestEvalAccuracy evaluates model output accuracy.
+// Must be prefixed with "TestEval" to be detected.
+func TestEvalAccuracy(t *testing.T) {
+    eval.Run(t, "capital cities accuracy", func(t *testing.T, e *eval.E) {
+        // Initialize model client
+        model := initializeModel()
+
+        // Send request to model
+        input := "What is the capital of France?"
+        res, err := model.ChatComplete(t.Context(), gai.ChatCompleteRequest{
+            Messages: []gai.Message{
+                gai.NewUserTextMessage(input),
+            },
+        })
+        if err != nil {
+            t.Fatal(err)
+        }
+
+        // Collect response
+        var output string
+        for part, err := range res.Parts() {
+            if err != nil {
+                t.Fatal(err)
+            }
+            output += part.Text()
+        }
+
+        // Create evaluation sample
+        sample := eval.Sample{
+            Input:    input,
+            Output:   output,
+            Expected: "Paris is the capital of France.",
+        }
+
+        // Score using lexical similarity
+        lexicalResult := e.Score(sample, eval.LexicalSimilarityScorer(eval.LevenshteinDistance))
+
+        // Score using semantic similarity
+        semanticResult := e.Score(sample, eval.SemanticSimilarityScorer(t, model, eval.CosineSimilarity))
+
+        // Log results
+        e.Log(sample, lexicalResult, semanticResult)
+    })
+}</code></pre>
+              </div>
+            </section>
+
+            <section
+              id="running-eval-tests"
+              class="mb-10 bg-white p-6 rounded-lg border-2 border-black shadow-[5px_5px_0px_#000] transition-all -rotate-1"
+            >
+              <h2
+                class="text-2xl font-fredoka text-blue-600 mb-4 quirky-gradient-text"
+              >
+                Running Eval Tests
+              </h2>
+              <p class="mb-4">
+                Evaluations only run when you explicitly include them:
+              </p>
+              <div class="rounded-md overflow-hidden mb-6 relative">
+                <pre><code class="language-bash"># Run all evaluations
+go test -run TestEval ./...
+
+# Run specific evaluations
+go test -run TestEvalAccuracy ./...</code></pre>
+              </div>
+            </section>
+
+            <section
+              id="scoring-methods"
+              class="mb-10 bg-white p-6 rounded-lg border-2 border-black shadow-[5px_5px_0px_#000] transition-all rotate-0.75"
+            >
+              <h2
+                class="text-2xl font-fredoka text-blue-600 mb-4 quirky-gradient-text"
+              >
+                Scoring Methods
+              </h2>
+              <p class="mb-4">GAI includes multiple scoring methods:</p>
+
+              <h3 class="text-xl font-fredoka mb-4 flex items-center">
+                <span
+                  class="bg-yellow-300 text-black rounded-full w-8 h-8 flex items-center justify-center mr-2 border-2 border-black shadow-[2px_2px_0px_#000]"
+                  >1</span
+                >
+                Lexical Similarity
+              </h3>
+
+              <p class="mb-4">Compare text strings directly:</p>
+              <div class="rounded-md overflow-hidden mb-6 relative">
+                <pre><code class="language-go">// Using Levenshtein distance
+lexicalResult := e.Score(sample, eval.LexicalSimilarityScorer(eval.LevenshteinDistance))
+
+// Exact match (1.0 if identical, 0.0 otherwise)
+exactResult := e.Score(sample, eval.LexicalSimilarityScorer(eval.ExactMatch))
+
+// Contains match (1.0 if output contains expected, 0.0 otherwise)
+containsResult := e.Score(sample, eval.LexicalSimilarityScorer(eval.Contains))</code></pre>
+              </div>
+
+              <h3 class="text-xl font-fredoka mb-4 flex items-center">
+                <span
+                  class="bg-green-300 text-black rounded-full w-8 h-8 flex items-center justify-center mr-2 border-2 border-black shadow-[2px_2px_0px_#000]"
+                  >2</span
+                >
+                Semantic Similarity
+              </h3>
+
+              <p class="mb-4">Compare meaning using embeddings:</p>
+              <div class="rounded-md overflow-hidden mb-6 relative">
+                <pre><code class="language-go">// Using cosine similarity on embeddings
+semanticResult := e.Score(sample, eval.SemanticSimilarityScorer(t, model, eval.CosineSimilarity))</code></pre>
+              </div>
+
+              <h3 class="text-xl font-fredoka mb-4 flex items-center">
+                <span
+                  class="bg-blue-300 text-black rounded-full w-8 h-8 flex items-center justify-center mr-2 border-2 border-black shadow-[2px_2px_0px_#000]"
+                  >3</span
+                >
+                LLM Judge
+              </h3>
+
+              <p class="mb-4">Use another LLM to judge outputs:</p>
+              <div class="rounded-md overflow-hidden mb-6 relative">
+                <pre><code class="language-go">// Basic judge using default prompt and temperature
+judge := eval.DefaultJudge(gai.Temperature(0.1))
+llmResult := e.Score(sample, eval.LLMScorer(t, judge, judgeModel))
+
+// Rubric-based judge for multi-dimensional evaluation
+rubricJudge := eval.RubricJudge(gai.Temperature(0.1))
+rubricResult := e.Score(sample, eval.LLMScorer(t, rubricJudge, judgeModel))</code></pre>
+              </div>
+            </section>
+
+            <section
+              id="evaluation-groups"
+              class="mb-10 bg-white p-6 rounded-lg border-2 border-black shadow-[5px_5px_0px_#000] transition-all -rotate-0.75"
+            >
+              <h2
+                class="text-2xl font-fredoka text-blue-600 mb-4 quirky-gradient-text"
+              >
+                Evaluation Groups
+              </h2>
+              <p class="mb-4">Group evaluations for comparison:</p>
+              <div class="rounded-md overflow-hidden mb-6 relative">
+                <pre><code class="language-go">e.Group = "FactualAccuracy"</code></pre>
+              </div>
+            </section>
+
+            <section
+              id="timing-information"
+              class="mb-10 bg-white p-6 rounded-lg border-2 border-black shadow-[5px_5px_0px_#000] transition-all rotate-0.25"
+            >
+              <h2
+                class="text-2xl font-fredoka text-blue-600 mb-4 quirky-gradient-text"
+              >
+                Timing Information
+              </h2>
+              <p class="mb-4">Reset timer to focus on specific operations:</p>
+              <div class="rounded-md overflow-hidden mb-6 relative">
+                <pre><code class="language-go">// Reset timer before evaluated operation
+e.ResetTimer()
+
+// Perform operation to time
+output := model.GenerateResponse(input)
+
+// Log with timing information
+e.Log(sample, result)</code></pre>
+              </div>
+            </section>
+
+            <section
+              id="real-world-example"
+              class="mb-10 bg-white p-6 rounded-lg border-2 border-black shadow-[5px_5px_0px_#000] transition-all -rotate-0.25"
+            >
+              <h2
+                class="text-2xl font-fredoka text-blue-600 mb-4 quirky-gradient-text"
+              >
+                Real-World Example
+              </h2>
+              <p class="mb-4">Comprehensive evaluation suite:</p>
+              <div class="rounded-md overflow-hidden mb-6 relative">
+                <pre><code class="language-go">func TestEvalSummarization(t *testing.T) {
+    eval.Run(t, "article summarization", func(t *testing.T, e *eval.E) {
+        // Load test articles
+        articles := loadTestArticles()
+
+        // Test each article
+        for _, article := range articles {
+            // Reset timer for fair performance comparison
+            e.ResetTimer()
+
+            // Get model summary
+            res, err := model.ChatComplete(t.Context(), gai.ChatCompleteRequest{
+                Messages: []gai.Message{
+                    gai.NewUserTextMessage("Summarize this article: " + article.Content),
+                },
+            })
+            if err != nil {
+                t.Fatal(err)
+            }
+
+            // Collect response
+            var summary string
+            for part, err := range res.Parts() {
+                if err != nil {
+                    t.Fatal(err)
+                }
+                summary += part.Text()
+            }
+
+            // Create sample with article's human-written summary as expected
+            sample := eval.Sample{
+                Input:    article.Content,
+                Output:   summary,
+                Expected: article.HumanSummary,
+            }
+
+            // Score with multiple methods
+            semantic := e.Score(sample, eval.SemanticSimilarityScorer(t, model, eval.CosineSimilarity))
+            llm := e.Score(sample, eval.LLMScorer(t, eval.RubricJudge(0.1), judgeModel))
+
+            // Log results
+            e.Log(sample, semantic, llm)
+        }
+    })
+}</code></pre>
+              </div>
+            </section>
+
+            <section
+              id="visualization"
+              class="mb-10 bg-white p-6 rounded-lg border-2 border-black shadow-[5px_5px_0px_#000] transition-all rotate-0.5"
+            >
+              <h2
+                class="text-2xl font-fredoka text-blue-600 mb-4 quirky-gradient-text"
+              >
+                Visualization
+              </h2>
+              <p class="mb-4">
+                GAI writes evaluation results to <code>evals.jsonl</code> in
+                your project root.
+              </p>
+              <p class="mb-4">You can visualize results with:</p>
+              <ul class="list-disc pl-5 mb-4">
+                <li>Custom dashboards</li>
+                <li>JSONL processors</li>
+                <li>Visualization libraries</li>
+              </ul>
+
+              <p class="mb-4">Example web dashboard integration:</p>
+              <div class="rounded-md overflow-hidden mb-6 relative">
+                <pre><code class="language-go">// Configure data export to dashboard service
+os.Setenv("EVALS_API_KEY", "your-api-key")
+os.Setenv("EVALS_PROJECT", "your-project")
+
+// Run evals as normal - will automatically upload results
+go test -run TestEval ./...</code></pre>
+              </div>
+              <p class="mb-4">
+                Results appear at
+                https://api.evals.fun/evals.svg?key=your-api-key.
+              </p>
+            </section>
+          </div>
+
+          <div class="mt-12 flex space-x-4">
+            <a
+              href="tools.html"
+              class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-lg border-2 border-black shadow-[3px_3px_0px_#000] transition-all inline-flex items-center"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-4 w-4 mr-2"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M15 19l-7-7 7-7"
+                />
+              </svg>
+              Tools
+            </a>
+            <a
+              href="examples.html"
+              class="bg-gradient-to-r from-[#ff5f6d] to-[#ffc371] text-white font-semibold py-2 px-4 rounded-lg border-2 border-black shadow-[3px_3px_0px_#000] transition-all inline-flex items-center"
+            >
+              Examples
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-4 w-4 ml-2"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+            </a>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-6 footer-wave">
+      <div class="container mx-auto px-4 pt-24 pb-8">
+        <div class="flex flex-col md:flex-row justify-between">
+          <div class="mb-4 md:mb-0">
+            <h3 class="text-xl font-bold mb-2 font-fredoka">GAI</h3>
+            <p class="text-gray-300">
+              Go Artificial Intelligence - Work with AI models in Go
+            </p>
+          </div>
+          <div>
+            <h4 class="font-bold mb-2 mt-4 md:mt-0 font-fredoka">Links</h4>
+            <ul class="space-y-1">
+              <li>
+                <a
+                  href="https://github.com/maragudk/gai"
+                  class="text-blue-300 hover:text-white"
+                  target="_blank"
+                  >GitHub Repository</a
+                >
+              </li>
+              <li>
+                <a
+                  href="https://pkg.go.dev/maragu.dev/gai"
+                  class="text-blue-300 hover:text-white"
+                  target="_blank"
+                  >Go Documentation</a
+                >
+              </li>
+              <li>
+                <a
+                  href="mailto:markus@maragu.dk"
+                  class="text-blue-300 hover:text-white"
+                  >Contact</a
+                >
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div
+          class="mt-8 pt-4 border-t border-gray-700 text-center text-gray-400"
+        >
+          <p class="animate-wiggle">
+            Made with ✨ by
+            <a
+              href="https://www.maragu.dev/"
+              class="text-blue-300 hover:text-white"
+              target="_blank"
+              >maragu</a
+            >
+          </p>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      // Mobile menu toggle
+      document
+        .getElementById("mobile-menu-button")
+        .addEventListener("click", function () {
+          const menu = document.getElementById("mobile-menu");
+          menu.classList.toggle("hidden");
+        });
+    </script>
+  </body>
+</html>
