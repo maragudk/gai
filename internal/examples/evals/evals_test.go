@@ -1,4 +1,4 @@
-package examples_test
+package evals_test
 
 import (
 	"context"
