@@ -74,6 +74,11 @@ func main() {
 		}
 	}
 
+	if result.ID == "" {
+		log.Error("No tool result found")
+		return
+	}
+
 	// Add both the tool call (in the parts) and the tool result to the messages, and make another request
 	req.Messages = append(req.Messages,
 		gai.Message{Role: gai.MessageRoleModel, Parts: parts},
