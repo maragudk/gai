@@ -33,8 +33,10 @@ Also, there's an experimental agent at [gaigent](https://github.com/maragudk/gai
 
 ### Examples
 
+Click to expand each section, or see all examples under [internal/examples](internal/examples).
+
 <details>
-	<summary>Tool use</summary>
+	<summary>Tools</summary>
 
 ```go
 package main
