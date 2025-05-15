@@ -299,13 +299,12 @@ I had some fish and chips leftover from a tourist's lunch. It wasn't the freshes
 
 </details>
 
-### Evals
+<details>
+	<summary>Evals</summary>
 
 Evals will only run with `go test -run TestEval ./...` and otherwise be skipped.
 
-#### Eval a model with lexical and semantic similarity
-
-Eval a mocked model, construct a sample, score it with a lexical similarity scorer and a semantic similarity scorer, and log the results.
+Eval a mocked model, construct a sample, score it with a lexical similarity scorer and a semantic similarity scorer, and log the results:
 
 ```go
 package examples_test
@@ -393,6 +392,8 @@ func (m *powerfulModel) Embed(ctx context.Context, req gai.EmbedRequest) (gai.Em
 
 var _ gai.Embedder[float64] = (*powerfulModel)(nil)
 ```
+
+</details>
 
 ## Evals
 
