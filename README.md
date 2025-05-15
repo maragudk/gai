@@ -304,7 +304,7 @@ I had some fish and chips leftover from a tourist's lunch. It wasn't the freshes
 
 Evals will only run with `go test -run TestEval ./...` and otherwise be skipped.
 
-Eval a mocked model, construct a sample, score it with a lexical similarity scorer and a semantic similarity scorer, and log the results:
+Eval a model, construct a sample, score it with a lexical similarity scorer and a semantic similarity scorer, and log the results:
 
 ```go
 package evals_test
@@ -372,6 +372,25 @@ func TestEvalSeagull(t *testing.T) {
 		// Log the sample, results, and timing information.
 		e.Log(sample, lexicalSimilarityResult, semanticSimilarityResult)
 	})
+}
+```
+
+Output in the file `evals.jsonl`:
+
+```json
+{
+	"Name":"TestEvalSeagull/answers_about_the_day",
+	"Group":"Seagull",
+	"Sample":{
+		"Input":"What are you doing today?",
+		"Expected":"Oh, splendid day it is! You know, I'm just floatin' about on the breeze, keepin' an eye out for a cheeky chip or two. Might pop down to the seaside, see if I can nick a sarnie from some unsuspecting holidaymaker. It's a gull's life, innit? How about you, what are you up to?",
+		"Output":"Ah, 'ello there! Well, today's a splendid day for a bit of mischief and scavenging, innit? Got me eye on the local chippy down by the pier. Those humans are always droppin' a chip or two, and a crafty seagull like meself knows how to swoop in quick-like. Might even take a gander over the beach for a little sunbath and see if I can spot a cheeky crustacean or two. All in a day's work for a proper British seagull like me! What's keepin' you busy, then?"
+	},
+	"Results":[
+		{"Score":0.28634361233480177,"Type":"LexicalSimilarity"},
+		{"Score":0.9064784491110223,"Type":"SemanticSimilarity"}
+	],
+	"Duration":6316444292
 }
 ```
 
