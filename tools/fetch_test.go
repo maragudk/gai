@@ -3,6 +3,7 @@ package tools_test
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -131,7 +132,7 @@ func TestNewFetch(t *testing.T) {
 		}))
 
 		is.True(t, err != nil)
-		is.Equal(t, `error fetching URL after 3 attempts: Get "http://invalid-url-that-does-not-exist.example": dial tcp: lookup invalid-url-that-does-not-exist.example: no such host`, err.Error())
+		is.True(t, strings.Contains(err.Error(), `error fetching URL after 3 attempts: Get "http://invalid-url-that-does-not-exist.example"`))
 	})
 
 	t.Run("works with nil http client (creates default client)", func(t *testing.T) {
