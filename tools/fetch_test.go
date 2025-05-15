@@ -16,7 +16,7 @@ func TestNewFetch(t *testing.T) {
 		// Create a test server that serves a simple response
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("Hello, World!"))
+			_, _ = w.Write([]byte("Hello, World!"))
 		}))
 		defer server.Close()
 
@@ -43,7 +43,7 @@ func TestNewFetch(t *testing.T) {
 		})
 		mux.HandleFunc("/destination", func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("Redirected successfully"))
+			_, _ = w.Write([]byte("Redirected successfully"))
 		})
 
 		// Create a server with the mux
@@ -66,7 +66,7 @@ func TestNewFetch(t *testing.T) {
 		// Create a server that returns a 404 Not Found error
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusNotFound)
-			w.Write([]byte("Not Found"))
+			_, _ = w.Write([]byte("Not Found"))
 		}))
 		defer server.Close()
 
@@ -90,7 +90,7 @@ func TestNewFetch(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			attempts++
 			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte("Internal Server Error"))
+			_, _ = w.Write([]byte("Internal Server Error"))
 		}))
 		defer server.Close()
 
@@ -138,7 +138,7 @@ func TestNewFetch(t *testing.T) {
 	t.Run("works with nil http client (creates default client)", func(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("Default client works!"))
+			_, _ = w.Write([]byte("Default client works!"))
 		}))
 		defer server.Close()
 
