@@ -21,6 +21,20 @@ func NewSaveMemory(ms memorySaver) gai.Tool {
 		Name:        "save_memory",
 		Description: "Save a memory, something you would like to remember for later conversations.",
 		Schema:      gai.GenerateSchema[SaveMemoryArgs](),
+		Summarize: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
+			var args SaveMemoryArgs
+			if err := json.Unmarshal(rawArgs, &args); err != nil {
+				return "", fmt.Errorf("error unmarshaling save_memory args from JSON: %w", err)
+			}
+			
+			// Truncate memory text if it's too long
+			memoryPreview := args.Memory
+			if len(memoryPreview) > 50 {
+				memoryPreview = memoryPreview[:46] + "..."
+			}
+			
+			return fmt.Sprintf("Saving memory: \"%s\"", memoryPreview), nil
+		},
 		Function: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
 			var args SaveMemoryArgs
 			if err := json.Unmarshal(rawArgs, &args); err != nil {
@@ -47,6 +61,9 @@ func NewGetMemories(mg memoryGetter) gai.Tool {
 		Name:        "get_memories",
 		Description: "Get all saved memories.",
 		Schema:      gai.GenerateSchema[GetMemoryArgs](),
+		Summarize: func(ctx context.Context, _ json.RawMessage) (string, error) {
+			return "Getting all saved memories", nil
+		},
 		Function: func(ctx context.Context, _ json.RawMessage) (string, error) {
 			memories, err := mg.GetMemories(ctx)
 			if err != nil {
@@ -71,6 +88,14 @@ func NewSearchMemories(ms memorySearcher) gai.Tool {
 		Name:        "search_memories",
 		Description: "Search saved memories using a query string.",
 		Schema:      gai.GenerateSchema[SearchMemoriesArgs](),
+		Summarize: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
+			var args SearchMemoriesArgs
+			if err := json.Unmarshal(rawArgs, &args); err != nil {
+				return "", fmt.Errorf("error unmarshaling search_memories args from JSON: %w", err)
+			}
+			
+			return fmt.Sprintf("Searching memories for: \"%s\"", args.Query), nil
+		},
 		Function: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
 			var args SearchMemoriesArgs
 			if err := json.Unmarshal(rawArgs, &args); err != nil {

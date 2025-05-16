@@ -53,6 +53,13 @@ func TestNewSaveMemory(t *testing.T) {
 		tool := tools.NewSaveMemory(store)
 
 		is.Equal(t, "save_memory", tool.Name)
+		
+		// Test the Summarize function
+		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.SaveMemoryArgs{
+			Memory: "Remember to buy milk",
+		}))
+		is.NotError(t, err)
+		is.Equal(t, "Saving memory: \"Remember to buy milk\"", summary)
 
 		memory := "Remember to buy milk"
 		result, err := tool.Function(t.Context(), mustMarshalJSON(tools.SaveMemoryArgs{
@@ -86,6 +93,19 @@ func TestNewSaveMemory(t *testing.T) {
 		is.True(t, err != nil)
 		is.True(t, strings.Contains(err.Error(), "error unmarshaling"))
 	})
+	
+	t.Run("truncates long memory text in summary", func(t *testing.T) {
+		store := &mockMemoryStore{}
+		tool := tools.NewSaveMemory(store)
+		
+		longMemory := "This is a very long memory that should be truncated in the summary because it exceeds the character limit for displaying in summaries"
+		
+		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.SaveMemoryArgs{
+			Memory: longMemory,
+		}))
+		is.NotError(t, err)
+		is.Equal(t, "Saving memory: \"This is a very long memory that should be trun...\"", summary)
+	})
 }
 
 func TestNewGetMemories(t *testing.T) {
@@ -96,6 +116,11 @@ func TestNewGetMemories(t *testing.T) {
 		tool := tools.NewGetMemories(store)
 
 		is.Equal(t, "get_memories", tool.Name)
+		
+		// Test the Summarize function
+		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.GetMemoryArgs{}))
+		is.NotError(t, err)
+		is.Equal(t, "Getting all saved memories", summary)
 
 		result, err := tool.Function(t.Context(), mustMarshalJSON(tools.GetMemoryArgs{}))
 		
@@ -136,6 +161,13 @@ func TestNewSearchMemories(t *testing.T) {
 		tool := tools.NewSearchMemories(store)
 
 		is.Equal(t, "search_memories", tool.Name)
+		
+		// Test the Summarize function
+		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.SearchMemoriesArgs{
+			Query: "pet",
+		}))
+		is.NotError(t, err)
+		is.Equal(t, "Searching memories for: \"pet\"", summary)
 
 		result, err := tool.Function(t.Context(), mustMarshalJSON(tools.SearchMemoriesArgs{
 			Query: "pet",
@@ -203,4 +235,3 @@ func TestNewSearchMemories(t *testing.T) {
 		is.True(t, strings.Contains(err.Error(), "error unmarshaling"))
 	})
 }
-

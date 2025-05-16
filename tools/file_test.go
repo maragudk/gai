@@ -31,6 +31,14 @@ func TestNewReadFile(t *testing.T) {
 		_, err := tool.Function(t.Context(), mustMarshalJSON(tools.ReadFileArgs{Path: "nonexistent.txt"}))
 		is.Equal(t, "openat nonexistent.txt: no such file or directory", err.Error())
 	})
+	
+	t.Run("summarize returns a human-readable description", func(t *testing.T) {
+		tool := tools.NewReadFile(testdata)
+
+		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.ReadFileArgs{Path: "readme.txt"}))
+		is.NotError(t, err)
+		is.Equal(t, "Reading file: readme.txt", summary)
+	})
 }
 
 func TestNewListDir(t *testing.T) {
@@ -76,6 +84,22 @@ func TestNewListDir(t *testing.T) {
 		_, err := tool.Function(t.Context(), mustMarshalJSON(tools.ListDirArgs{Path: "nonexistent"}))
 
 		is.Equal(t, "statat nonexistent: no such file or directory", err.Error())
+	})
+	
+	t.Run("summarize returns human-readable description with specific path", func(t *testing.T) {
+		tool := tools.NewListDir(testdata)
+
+		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.ListDirArgs{Path: "dir1"}))
+		is.NotError(t, err)
+		is.Equal(t, "Listing files in: dir1", summary)
+	})
+	
+	t.Run("summarize handles empty path correctly", func(t *testing.T) {
+		tool := tools.NewListDir(testdata)
+
+		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.ListDirArgs{}))
+		is.NotError(t, err)
+		is.Equal(t, "Listing files in: current directory", summary)
 	})
 }
 
@@ -190,6 +214,57 @@ func TestNewEditFile(t *testing.T) {
 			ReplaceStr: "ShouldNotReplace",
 		}))
 		is.Equal(t, "search_str not found in file", err.Error())
+	})
+
+	t.Run("summarize returns a human-readable description for creating a new file", func(t *testing.T) {
+		tempDir := t.TempDir()
+		root, err := os.OpenRoot(tempDir)
+		is.NotError(t, err)
+
+		tool := tools.NewEditFile(root)
+
+		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.EditFileArgs{
+			Path:       "new_file.txt",
+			SearchStr:  "",
+			ReplaceStr: "New content",
+		}))
+		is.NotError(t, err)
+		is.Equal(t, "Creating new file at new_file.txt", summary)
+	})
+
+	t.Run("summarize returns a human-readable description for editing a file", func(t *testing.T) {
+		tempDir := t.TempDir()
+		root, err := os.OpenRoot(tempDir)
+		is.NotError(t, err)
+
+		tool := tools.NewEditFile(root)
+
+		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.EditFileArgs{
+			Path:       "edit_test.txt",
+			SearchStr:  "Original",
+			ReplaceStr: "Modified",
+		}))
+		is.NotError(t, err)
+		is.Equal(t, "Editing file edit_test.txt: Replacing \"Original\" with \"Modified\"", summary)
+	})
+
+	t.Run("summarize truncates long search and replace strings", func(t *testing.T) {
+		tempDir := t.TempDir()
+		root, err := os.OpenRoot(tempDir)
+		is.NotError(t, err)
+
+		tool := tools.NewEditFile(root)
+
+		longSearch := "This is a very long search string that should be truncated in the summary"
+		longReplace := "This is also a very long replacement string that should be truncated"
+
+		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.EditFileArgs{
+			Path:       "long_strings.txt",
+			SearchStr:  longSearch,
+			ReplaceStr: longReplace,
+		}))
+		is.NotError(t, err)
+		is.Equal(t, "Editing file long_strings.txt: Replacing \"This is a very long ...\" with \"This is also a very ...\"", summary)
 	})
 }
 

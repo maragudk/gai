@@ -25,5 +25,8 @@ func NewGetTime(now func() time.Time) gai.Tool {
 
 			return now().Format(time.RFC3339), nil
 		},
+		Summarize: func(ctx context.Context, args json.RawMessage) (string, error) {
+			return "Getting current time", nil
+		},
 	}
 }

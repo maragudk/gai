@@ -15,6 +15,14 @@ func TestNewExec(t *testing.T) {
 
 		// Check tool name
 		is.Equal(t, "exec", tool.Name)
+		
+		// Test the Summarize function
+		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.ExecArgs{
+			Command: "echo",
+			Args:    []string{"Hello", "World"},
+		}))
+		is.NotError(t, err)
+		is.Equal(t, "Executing command: echo Hello World", summary)
 
 		// Execute a simple echo command
 		result, err := tool.Function(t.Context(), mustMarshalJSON(tools.ExecArgs{
@@ -134,6 +142,31 @@ func TestNewExec(t *testing.T) {
 		is.True(t, err != nil)
 		is.True(t, strings.Contains(result, "ERROR:"))
 		is.True(t, strings.Contains(result, "executable file not found"))
+	})
+	
+	t.Run("summarizes commands with many arguments", func(t *testing.T) {
+		tool := tools.NewExec()
+		
+		// Test summarizing a command with many arguments
+		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.ExecArgs{
+			Command: "command",
+			Args:    []string{"arg1", "arg2", "arg3", "arg4", "arg5", "arg6"},
+		}))
+		is.NotError(t, err)
+		is.Equal(t, "Executing command: command arg1 arg2 arg3 ...", summary)
+	})
+	
+	t.Run("includes timeout in summary when non-default", func(t *testing.T) {
+		tool := tools.NewExec()
+		
+		// Test summarizing a command with custom timeout
+		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.ExecArgs{
+			Command: "sleep",
+			Args:    []string{"10"},
+			Timeout: 5,
+		}))
+		is.NotError(t, err)
+		is.Equal(t, "Executing command: sleep 10 (timeout: 5s)", summary)
 	})
 	
 	t.Run("respects custom timeout", func(t *testing.T) {

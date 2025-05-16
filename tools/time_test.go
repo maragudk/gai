@@ -24,4 +24,13 @@ func TestNewGetTime(t *testing.T) {
 		is.NotError(t, err)
 		is.Equal(t, "2023-05-01T12:30:45Z", result)
 	})
+
+	t.Run("summarize function returns a human-readable description", func(t *testing.T) {
+		// Create tool with a function that returns our fixed time
+		tool := tools.NewGetTime(time.Now)
+
+		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.GetTimeArgs{}))
+		is.NotError(t, err)
+		is.Equal(t, "Getting current time", summary)
+	})
 }
