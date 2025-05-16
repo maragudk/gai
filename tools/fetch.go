@@ -7,28 +7,97 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"maragu.dev/gai"
 )
 
+// Constants for output format values
+const (
+	outputFormatHTML     = "html"
+	outputFormatMarkdown = "markdown"
+)
+
+// chatCompleterConverter handles HTML to Markdown conversion using ChatCompleter
+type chatCompleterConverter struct {
+	completer gai.ChatCompleter
+}
+
+// newChatCompleterConverter creates a new converter using the provided ChatCompleter
+func newChatCompleterConverter(completer gai.ChatCompleter) *chatCompleterConverter {
+	return &chatCompleterConverter{
+		completer: completer,
+	}
+}
+
+// ConvertHTMLToMarkdown converts HTML to Markdown using the ChatCompleter
+func (c *chatCompleterConverter) ConvertHTMLToMarkdown(ctx context.Context, html string) (string, error) {
+	systemPrompt := "You are a helpful assistant that converts HTML to Markdown. " +
+		"Preserve the semantic structure of the document. " +
+		"Only respond with the Markdown content, with no additional text."
+	
+	// Create chat complete request
+	req := gai.ChatCompleteRequest{
+		System: &systemPrompt,
+		Messages: []gai.Message{
+			gai.NewUserTextMessage(html),
+		},
+	}
+	
+	// Send the request to the ChatCompleter
+	resp, err := c.completer.ChatComplete(ctx, req)
+	if err != nil {
+		return "", fmt.Errorf("error converting HTML to Markdown: %w", err)
+	}
+	
+	// Collect all text parts from the response
+	var markdown strings.Builder
+	var convErr error
+	
+	// Iterate over all parts and collect text parts
+	for part, err := range resp.Parts() {
+		if err != nil {
+			convErr = fmt.Errorf("error reading response parts: %w", err)
+			break
+		}
+		if part.Type == gai.MessagePartTypeText {
+			markdown.WriteString(part.Text())
+		}
+	}
+	
+	if convErr != nil {
+		return "", convErr
+	}
+	
+	return markdown.String(), nil
+}
+
 // FetchArgs holds the arguments for the Fetch tool
 type FetchArgs struct {
-	URL string `json:"url" jsonschema_description:"The URL to fetch."`
+	URL          string `json:"url" jsonschema_description:"The URL to fetch."`
+	OutputFormat string `json:"output_format,omitempty" jsonschema_description:"Format for the output: 'html' or 'markdown' (default is markdown if a converter is available, otherwise html)."`
 }
 
 // NewFetch creates a new tool for fetching content from a URL
-func NewFetch(client *http.Client) gai.Tool {
+// If completer is provided, it will be used to convert HTML to Markdown when requested.
+func NewFetch(client *http.Client, completer gai.ChatCompleter) gai.Tool {
 	// If no client is provided, create one with default settings
 	if client == nil {
 		client = &http.Client{
 			Timeout: 30 * time.Second,
 		}
 	}
+	
+	// Create a converter from the ChatCompleter if one is provided
+	var converter *chatCompleterConverter
+	if completer != nil {
+		converter = newChatCompleterConverter(completer)
+	}
 
 	return gai.Tool{
 		Name:        "fetch",
-		Description: "Fetch an HTML site and output the results as a string. Follows redirects automatically.",
+		Description: "Fetch an HTML site and output the results as a string or markdown. Follows redirects automatically.",
 		Schema:      gai.GenerateSchema[FetchArgs](),
 		Function: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
 			var args FetchArgs
@@ -38,6 +107,21 @@ func NewFetch(client *http.Client) gai.Tool {
 
 			if args.URL == "" {
 				return "", errors.New("url cannot be empty")
+			}
+			
+			// Set default output format to markdown if a converter is available, otherwise html
+			outputFormat := args.OutputFormat
+			if outputFormat == "" {
+				if converter != nil {
+					outputFormat = outputFormatMarkdown
+				} else {
+					outputFormat = outputFormatHTML
+				}
+			}
+			
+			// Error if markdown is requested but no converter is available
+			if outputFormat == outputFormatMarkdown && converter == nil {
+				return "", errors.New("markdown output requested but no converter is available")
 			}
 
 			// Maximum number of retries for transient errors
@@ -112,7 +196,21 @@ func NewFetch(client *http.Client) gai.Tool {
 				return "", fmt.Errorf("error reading response body: %w", err)
 			}
 
-			return string(body), nil
+			// Get the content as string
+			htmlContent := string(body)
+			
+			// Convert HTML to Markdown if requested
+			if outputFormat == outputFormatMarkdown {
+				// We already checked earlier that converter is not nil when markdown is requested
+				markdownContent, err := converter.ConvertHTMLToMarkdown(ctx, htmlContent)
+				if err != nil {
+					return "", fmt.Errorf("error converting HTML to Markdown: %w", err)
+				}
+				return markdownContent, nil
+			}
+			
+			// Otherwise return HTML content
+			return htmlContent, nil
 		},
 	}
 }
