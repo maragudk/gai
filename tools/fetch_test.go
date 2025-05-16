@@ -1,38 +1,106 @@
 package tools_test
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 
+	"maragu.dev/gai"
 	"maragu.dev/gai/tools"
 	"maragu.dev/is"
 )
 
+
+// mockChatCompleter implements gai.ChatCompleter for testing
+type mockChatCompleter struct{}
+
+func (m *mockChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRequest) (gai.ChatCompleteResponse, error) {
+	// Extract the HTML from the user message
+	html := req.Messages[0].Parts[0].Text()
+	
+	// Add "MARKDOWN:" prefix for simple testing
+	markdownText := "MARKDOWN: " + html
+	
+	// Create a sequence function that yields a single markdown part
+	partsFunc := func(yield func(gai.MessagePart, error) bool) {
+		part := gai.TextMessagePart(markdownText)
+		yield(part, nil)
+		// No need to signal end with EOF
+	}
+	
+	return gai.NewChatCompleteResponse(partsFunc), nil
+}
+
 func TestNewFetch(t *testing.T) {
-	t.Run("successfully fetches content from a URL", func(t *testing.T) {
+	t.Run("successfully fetches content from a URL as HTML", func(t *testing.T) {
 		// Create a test server that serves a simple response
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte("Hello, World!"))
+			_, _ = w.Write([]byte("<p>Hello, World!</p>"))
 		}))
 		defer server.Close()
 
 		client := &http.Client{Timeout: 5 * time.Second}
-		tool := tools.NewFetch(client)
+		// Pass nil for the completer
+		tool := tools.NewFetch(client, nil)
 
 		// Check tool name
 		is.Equal(t, "fetch", tool.Name)
 
-		// Execute the tool with the test server URL
+		// Execute the tool with the test server URL and HTML output format
+		result, err := tool.Function(t.Context(), mustMarshalJSON(tools.FetchArgs{
+			URL:          server.URL,
+			OutputFormat: "html",
+		}))
+
+		is.NotError(t, err)
+		is.Equal(t, "<p>Hello, World!</p>", result)
+	})
+	
+	t.Run("successfully fetches content and converts to Markdown", func(t *testing.T) {
+		// Create a test server that serves HTML content
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("<p>Hello, World!</p>"))
+		}))
+		defer server.Close()
+
+		client := &http.Client{Timeout: 5 * time.Second}
+		completer := &mockChatCompleter{}
+		tool := tools.NewFetch(client, completer)
+
+		// Execute the tool with the test server URL and Markdown output format
+		result, err := tool.Function(t.Context(), mustMarshalJSON(tools.FetchArgs{
+			URL:          server.URL,
+			OutputFormat: "markdown",
+		}))
+
+		is.NotError(t, err)
+		is.Equal(t, "MARKDOWN: <p>Hello, World!</p>", result)
+	})
+	
+	t.Run("uses Markdown as default output format when converter is available", func(t *testing.T) {
+		// Create a test server that serves HTML content
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("<p>Hello, World!</p>"))
+		}))
+		defer server.Close()
+
+		client := &http.Client{Timeout: 5 * time.Second}
+		completer := &mockChatCompleter{}
+		tool := tools.NewFetch(client, completer)
+
+		// Execute the tool with the test server URL without specifying format
 		result, err := tool.Function(t.Context(), mustMarshalJSON(tools.FetchArgs{
 			URL: server.URL,
 		}))
 
 		is.NotError(t, err)
-		is.Equal(t, "Hello, World!", result)
+		is.Equal(t, "MARKDOWN: <p>Hello, World!</p>", result)
 	})
 
 	t.Run("follows redirects correctly", func(t *testing.T) {
@@ -51,11 +119,12 @@ func TestNewFetch(t *testing.T) {
 		defer server.Close()
 
 		client := &http.Client{Timeout: 5 * time.Second}
-		tool := tools.NewFetch(client)
+		tool := tools.NewFetch(client, nil)
 
 		// Execute the tool with the root URL, which should redirect
 		result, err := tool.Function(t.Context(), mustMarshalJSON(tools.FetchArgs{
-			URL: server.URL,
+			URL:          server.URL,
+			OutputFormat: "html", // Set HTML format to skip conversion
 		}))
 
 		is.NotError(t, err)
@@ -71,7 +140,7 @@ func TestNewFetch(t *testing.T) {
 		defer server.Close()
 
 		client := &http.Client{Timeout: 5 * time.Second}
-		tool := tools.NewFetch(client)
+		tool := tools.NewFetch(client, nil)
 
 		// Execute the tool with the test server URL
 		_, err := tool.Function(t.Context(), mustMarshalJSON(tools.FetchArgs{
@@ -96,7 +165,7 @@ func TestNewFetch(t *testing.T) {
 
 		// Use a custom client with a very short timeout to speed up the test
 		client := &http.Client{Timeout: 1 * time.Second}
-		tool := tools.NewFetch(client)
+		tool := tools.NewFetch(client, nil)
 
 		// Execute the tool with the test server URL
 		_, err := tool.Function(t.Context(), mustMarshalJSON(tools.FetchArgs{
@@ -111,7 +180,7 @@ func TestNewFetch(t *testing.T) {
 
 	t.Run("returns error for empty URL", func(t *testing.T) {
 		client := &http.Client{Timeout: 5 * time.Second}
-		tool := tools.NewFetch(client)
+		tool := tools.NewFetch(client, nil)
 
 		// Execute the tool with an empty URL
 		_, err := tool.Function(t.Context(), mustMarshalJSON(tools.FetchArgs{
@@ -124,7 +193,7 @@ func TestNewFetch(t *testing.T) {
 
 	t.Run("returns error for invalid URL", func(t *testing.T) {
 		client := &http.Client{Timeout: 5 * time.Second}
-		tool := tools.NewFetch(client)
+		tool := tools.NewFetch(client, nil)
 
 		// Execute the tool with an invalid URL
 		_, err := tool.Function(t.Context(), mustMarshalJSON(tools.FetchArgs{
@@ -142,14 +211,36 @@ func TestNewFetch(t *testing.T) {
 		}))
 		defer server.Close()
 
-		// Pass nil as the client
-		tool := tools.NewFetch(nil)
+		// Pass nil as the client and completer
+		tool := tools.NewFetch(nil, nil)
 
 		result, err := tool.Function(t.Context(), mustMarshalJSON(tools.FetchArgs{
-			URL: server.URL,
+			URL:          server.URL,
+			OutputFormat: "html", // Set HTML format to skip conversion
 		}))
 
 		is.NotError(t, err)
 		is.Equal(t, "Default client works!", result)
+	})
+	
+	t.Run("returns error when markdown is requested but no converter is available", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("<p>Hello, no converter!</p>"))
+		}))
+		defer server.Close()
+
+		client := &http.Client{Timeout: 5 * time.Second}
+		// Pass nil for the completer
+		tool := tools.NewFetch(client, nil)
+
+		// Request Markdown but with no converter available
+		_, err := tool.Function(t.Context(), mustMarshalJSON(tools.FetchArgs{
+			URL:          server.URL,
+			OutputFormat: "markdown",
+		}))
+
+		is.True(t, err != nil)
+		is.Equal(t, "markdown output requested but no converter is available", err.Error())
 	})
 }
