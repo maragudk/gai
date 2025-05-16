@@ -25,6 +25,14 @@ func NewReadFile(root *os.Root) gai.Tool {
 		Name:        "read_file",
 		Description: "Read the contents of a given relative file path. Use this when you want to see what's inside a file. Do not use this with directory names.",
 		Schema:      gai.GenerateSchema[ReadFileArgs](),
+		Summarize: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
+			var args ReadFileArgs
+			if err := json.Unmarshal(rawArgs, &args); err != nil {
+				return "", fmt.Errorf("error unmarshaling read_file args from JSON: %w", err)
+			}
+			
+			return fmt.Sprintf("Reading file: %s", args.Path), nil
+		},
 		Function: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
 			var args ReadFileArgs
 			if err := json.Unmarshal(rawArgs, &args); err != nil {
@@ -50,6 +58,19 @@ func NewListDir(root *os.Root) gai.Tool {
 		Name:        "list_dir",
 		Description: "List files and directories at a given path recursively. If no path is provided, lists files and directories in the current directory.",
 		Schema:      gai.GenerateSchema[ListDirArgs](),
+		Summarize: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
+			var args ListDirArgs
+			if err := json.Unmarshal(rawArgs, &args); err != nil {
+				return "", fmt.Errorf("error unmarshaling list_dir args from JSON: %w", err)
+			}
+			
+			path := args.Path
+			if path == "" {
+				path = "current directory"
+			}
+			
+			return fmt.Sprintf("Listing files in: %s", path), nil
+		},
 		Function: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
 			var args ListDirArgs
 			if err := json.Unmarshal(rawArgs, &args); err != nil {
@@ -208,6 +229,30 @@ If the file specified with 'path' doesn't exist, it will be created.
 			}
 
 			return "Edited file at " + args.Path, nil
+		},
+		Summarize: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
+			var args EditFileArgs
+			if err := json.Unmarshal(rawArgs, &args); err != nil {
+				return "", fmt.Errorf("error unmarshaling edit_file args from JSON: %w", err)
+			}
+			
+			// Handle case for creating a new file
+			if args.SearchStr == "" {
+				return fmt.Sprintf("Creating new file at %s", args.Path), nil
+			}
+			
+			// Handle case for editing an existing file
+			replaceSummary := fmt.Sprintf("Replacing \"%s\" with \"%s\"", args.SearchStr, args.ReplaceStr)
+			if len(args.SearchStr) > 20 {
+				searchPreview := args.SearchStr[:20]
+				replacePreview := args.ReplaceStr
+				if len(args.ReplaceStr) > 20 {
+					replacePreview = args.ReplaceStr[:20]
+				}
+				replaceSummary = fmt.Sprintf("Replacing \"%s...\" with \"%s...\"", searchPreview, replacePreview)
+			}
+			
+			return fmt.Sprintf("Editing file %s: %s", args.Path, replaceSummary), nil
 		},
 	}
 }

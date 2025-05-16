@@ -172,6 +172,7 @@ type Tool struct {
 	Description string
 	Schema      ToolSchema
 	Function    ToolFunction
+	Summarize   ToolSummarize
 }
 
 // ToolSchema in JSON Schema format of the arguments the tool accepts.
@@ -194,6 +195,11 @@ func GenerateSchema[T any]() ToolSchema {
 }
 
 type ToolFunction func(ctx context.Context, rawArgs json.RawMessage) (string, error)
+
+// ToolSummarize is a function that, given the same args as Function, 
+// returns a human-readable summary of the tool call. This can be used to
+// display a prettier version of the tool call to the user.
+type ToolSummarize func(ctx context.Context, rawArgs json.RawMessage) (string, error)
 
 type ToolCall struct {
 	ID   string

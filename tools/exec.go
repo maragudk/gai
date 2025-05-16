@@ -33,6 +33,30 @@ Executes the provided command with the specified arguments and returns the outpu
 - Both stdout and stderr are captured and included in the output
 - Command arguments are properly escaped`,
 		Schema: gai.GenerateSchema[ExecArgs](),
+		Summarize: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
+			var args ExecArgs
+			if err := json.Unmarshal(rawArgs, &args); err != nil {
+				return "", fmt.Errorf("error unmarshaling exec args from JSON: %w", err)
+			}
+			
+			// Build command string with arguments
+			cmdString := args.Command
+			if len(args.Args) > 0 {
+				// Display at most 3 arguments in the summary
+				displayArgs := args.Args
+				if len(displayArgs) > 3 {
+					displayArgs = append(args.Args[:3], "...")
+				}
+				cmdString += " " + strings.Join(displayArgs, " ")
+			}
+			
+			// Add timeout info if non-default
+			if args.Timeout > 0 && args.Timeout != 30 {
+				return fmt.Sprintf("Executing command: %s (timeout: %ds)", cmdString, args.Timeout), nil
+			}
+			
+			return fmt.Sprintf("Executing command: %s", cmdString), nil
+		},
 		Function: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
 			var args ExecArgs
 			if err := json.Unmarshal(rawArgs, &args); err != nil {
