@@ -111,6 +111,9 @@ func NewFetch(client *http.Client, completer gai.ChatCompleter) gai.Tool {
 			
 			// Set default output format to markdown if a converter is available, otherwise html
 			outputFormat := args.OutputFormat
+			if outputFormat != "" && outputFormat != outputFormatHTML && outputFormat != outputFormatMarkdown {
+				return "", fmt.Errorf("unsupported output format: %s. Supported formats are '%s' and '%s'", outputFormat, outputFormatHTML, outputFormatMarkdown)
+			}
 			if outputFormat == "" {
 				if converter != nil {
 					outputFormat = outputFormatMarkdown
