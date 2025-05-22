@@ -49,6 +49,14 @@ func TestNewFetch(t *testing.T) {
 
 		// Check tool name
 		is.Equal(t, "fetch", tool.Name)
+		
+		// Test the Summarize function
+		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.FetchArgs{
+			URL:          server.URL,
+			OutputFormat: "html",
+		}))
+		is.NotError(t, err)
+		is.Equal(t, "Fetching URL: "+server.URL+" (format: html)", summary)
 
 		// Execute the tool with the test server URL and HTML output format
 		result, err := tool.Function(t.Context(), mustMarshalJSON(tools.FetchArgs{
@@ -71,6 +79,14 @@ func TestNewFetch(t *testing.T) {
 		client := &http.Client{Timeout: 5 * time.Second}
 		completer := &mockChatCompleter{}
 		tool := tools.NewFetch(client, completer)
+		
+		// Test the Summarize function with markdown
+		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.FetchArgs{
+			URL:          server.URL,
+			OutputFormat: "markdown",
+		}))
+		is.NotError(t, err)
+		is.Equal(t, "Fetching URL: "+server.URL+" (format: markdown)", summary)
 
 		// Execute the tool with the test server URL and Markdown output format
 		result, err := tool.Function(t.Context(), mustMarshalJSON(tools.FetchArgs{

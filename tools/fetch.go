@@ -99,6 +99,23 @@ func NewFetch(client *http.Client, completer gai.ChatCompleter) gai.Tool {
 		Name:        "fetch",
 		Description: "Fetch an HTML site and output the results as a string or Markdown. Follows redirects automatically.",
 		Schema:      gai.GenerateSchema[FetchArgs](),
+		Summarize: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
+			var args FetchArgs
+			if err := json.Unmarshal(rawArgs, &args); err != nil {
+				return "", fmt.Errorf("error unmarshaling fetch args from JSON: %w", err)
+			}
+			
+			format := args.OutputFormat
+			if format == "" {
+				if converter != nil {
+					format = outputFormatMarkdown
+				} else {
+					format = outputFormatHTML
+				}
+			}
+			
+			return fmt.Sprintf("Fetching URL: %s (format: %s)", args.URL, format), nil
+		},
 		Function: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
 			var args FetchArgs
 			if err := json.Unmarshal(rawArgs, &args); err != nil {
