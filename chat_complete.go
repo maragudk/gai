@@ -204,6 +204,7 @@ type ToolCall struct {
 // TODO tool result can be string but also other types, such as image!
 type ToolResult struct {
 	ID      string
+	Name    string
 	Content string
 	Err     error
 }
