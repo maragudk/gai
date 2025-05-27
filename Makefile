@@ -8,7 +8,7 @@ cover:
 
 .PHONY: evaluate
 evaluate:
-	go test -run TestEval ./....PHONY: fmt
+	go test -run TestEval ./...
 
 .PHONY: fmt
 fmt:
