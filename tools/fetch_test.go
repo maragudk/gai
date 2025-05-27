@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
+	"maragu.dev/is"
+
 	"maragu.dev/gai"
 	"maragu.dev/gai/tools"
-	"maragu.dev/is"
 )
-
 
 // mockChatCompleter implements gai.ChatCompleter for testing
 type mockChatCompleter struct{}
@@ -20,17 +20,17 @@ type mockChatCompleter struct{}
 func (m *mockChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRequest) (gai.ChatCompleteResponse, error) {
 	// Extract the HTML from the user message
 	html := req.Messages[0].Parts[0].Text()
-	
+
 	// Add "MARKDOWN:" prefix for simple testing
 	markdownText := "MARKDOWN: " + html
-	
+
 	// Create a sequence function that yields a single markdown part
 	partsFunc := func(yield func(gai.MessagePart, error) bool) {
 		part := gai.TextMessagePart(markdownText)
 		yield(part, nil)
 		// No need to signal end with EOF
 	}
-	
+
 	return gai.NewChatCompleteResponse(partsFunc), nil
 }
 
@@ -59,7 +59,7 @@ func TestNewFetch(t *testing.T) {
 		is.NotError(t, err)
 		is.Equal(t, "<p>Hello, World!</p>", result)
 	})
-	
+
 	t.Run("successfully fetches content and converts to Markdown", func(t *testing.T) {
 		// Create a test server that serves HTML content
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -81,7 +81,7 @@ func TestNewFetch(t *testing.T) {
 		is.NotError(t, err)
 		is.Equal(t, "MARKDOWN: <p>Hello, World!</p>", result)
 	})
-	
+
 	t.Run("uses Markdown as default output format when converter is available", func(t *testing.T) {
 		// Create a test server that serves HTML content
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -222,7 +222,7 @@ func TestNewFetch(t *testing.T) {
 		is.NotError(t, err)
 		is.Equal(t, "Default client works!", result)
 	})
-	
+
 	t.Run("returns error when markdown is requested but no converter is available", func(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
@@ -242,5 +242,49 @@ func TestNewFetch(t *testing.T) {
 
 		is.True(t, err != nil)
 		is.Equal(t, "markdown output requested but no converter is available", err.Error())
+	})
+
+	t.Run("summarize with URL only", func(t *testing.T) {
+		tool := tools.NewFetch(nil, nil)
+
+		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.FetchArgs{
+			URL: "https://example.com",
+		}))
+
+		is.NotError(t, err)
+		is.Equal(t, `url="https://example.com"`, summary)
+	})
+
+	t.Run("summarize with URL and HTML format", func(t *testing.T) {
+		tool := tools.NewFetch(nil, nil)
+
+		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.FetchArgs{
+			URL:          "https://example.com/page",
+			OutputFormat: "html",
+		}))
+
+		is.NotError(t, err)
+		is.Equal(t, `url="https://example.com/page" format="html"`, summary)
+	})
+
+	t.Run("summarize with URL and markdown format", func(t *testing.T) {
+		tool := tools.NewFetch(nil, nil)
+
+		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.FetchArgs{
+			URL:          "https://docs.example.com/api",
+			OutputFormat: "markdown",
+		}))
+
+		is.NotError(t, err)
+		is.Equal(t, `url="https://docs.example.com/api" format="markdown"`, summary)
+	})
+
+	t.Run("summarize with invalid JSON", func(t *testing.T) {
+		tool := tools.NewFetch(nil, nil)
+
+		summary, err := tool.Summarize(t.Context(), []byte(`{invalid json`))
+
+		is.NotError(t, err)
+		is.Equal(t, "error parsing arguments", summary)
 	})
 }

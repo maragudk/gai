@@ -33,6 +33,42 @@ Executes the provided command with the specified arguments and returns the outpu
 - Both stdout and stderr are captured and included in the output
 - Command arguments are properly escaped`,
 		Schema: gai.GenerateSchema[ExecArgs](),
+		Summarize: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
+			var args ExecArgs
+			if err := json.Unmarshal(rawArgs, &args); err != nil {
+				return "error parsing arguments", nil
+			}
+
+			// Start with command
+			summary := fmt.Sprintf(`command="%s"`, args.Command)
+
+			// Add args if present
+			if len(args.Args) > 0 {
+				if len(args.Args) <= 3 {
+					summary += fmt.Sprintf(` args=%v`, args.Args)
+				} else {
+					// Show first 3 args and total count
+					summary += fmt.Sprintf(` args=[%s,%s,%s,...] (%d total)`,
+						args.Args[0], args.Args[1], args.Args[2], len(args.Args))
+				}
+			}
+
+			// Add input if present (truncated)
+			if args.Input != "" {
+				truncated := args.Input
+				if len(truncated) > 20 {
+					truncated = truncated[:20] + "..."
+				}
+				summary += fmt.Sprintf(` input="%s"`, truncated)
+			}
+
+			// Add timeout if different from default
+			if args.Timeout > 0 && args.Timeout != 30 {
+				summary += fmt.Sprintf(` timeout=%ds`, args.Timeout)
+			}
+
+			return summary, nil
+		},
 		Function: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
 			var args ExecArgs
 			if err := json.Unmarshal(rawArgs, &args); err != nil {
@@ -71,13 +107,13 @@ Executes the provided command with the specified arguments and returns the outpu
 
 			// Check if the error was due to the context being canceled (timeout)
 			if err != nil && execCtx.Err() == context.DeadlineExceeded {
-				return fmt.Sprintf("Command timed out after %d seconds", timeout), 
+				return fmt.Sprintf("Command timed out after %d seconds", timeout),
 					fmt.Errorf("command timed out after %d seconds", timeout)
 			}
 
 			// Format the output
 			var result strings.Builder
-			
+
 			// Add stdout if present
 			stdoutStr := stdout.String()
 			if len(stdoutStr) > 0 {
@@ -88,7 +124,7 @@ Executes the provided command with the specified arguments and returns the outpu
 					result.WriteString("\n")
 				}
 			}
-			
+
 			// Add stderr if present
 			stderrStr := stderr.String()
 			if len(stderrStr) > 0 {
