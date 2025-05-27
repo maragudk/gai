@@ -17,6 +17,9 @@ func NewGetTime(now func() time.Time) gai.Tool {
 		Name:        "get_time",
 		Description: "Get the current date and time, in the format YYYY-MM-DDTHH:MM:SSZ (RFC3339).",
 		Schema:      gai.GenerateSchema[GetTimeArgs](),
+		Summarize: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
+			return "", nil
+		},
 		Function: func(ctx context.Context, args json.RawMessage) (string, error) {
 			var getTimeArgs GetTimeArgs
 			if err := json.Unmarshal(args, &getTimeArgs); err != nil {

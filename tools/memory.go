@@ -21,6 +21,20 @@ func NewSaveMemory(ms memorySaver) gai.Tool {
 		Name:        "save_memory",
 		Description: "Save a memory, something you would like to remember for later conversations.",
 		Schema:      gai.GenerateSchema[SaveMemoryArgs](),
+		Summarize: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
+			var args SaveMemoryArgs
+			if err := json.Unmarshal(rawArgs, &args); err != nil {
+				return "error parsing arguments", nil
+			}
+
+			// Truncate memory content
+			memory := args.Memory
+			if len(memory) > 30 {
+				memory = memory[:30] + "..."
+			}
+
+			return fmt.Sprintf(`memory="%s"`, memory), nil
+		},
 		Function: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
 			var args SaveMemoryArgs
 			if err := json.Unmarshal(rawArgs, &args); err != nil {
@@ -47,6 +61,9 @@ func NewGetMemories(mg memoryGetter) gai.Tool {
 		Name:        "get_memories",
 		Description: "Get all saved memories.",
 		Schema:      gai.GenerateSchema[GetMemoryArgs](),
+		Summarize: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
+			return "", nil
+		},
 		Function: func(ctx context.Context, _ json.RawMessage) (string, error) {
 			memories, err := mg.GetMemories(ctx)
 			if err != nil {
@@ -71,6 +88,13 @@ func NewSearchMemories(ms memorySearcher) gai.Tool {
 		Name:        "search_memories",
 		Description: "Search saved memories using a query string.",
 		Schema:      gai.GenerateSchema[SearchMemoriesArgs](),
+		Summarize: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
+			var args SearchMemoriesArgs
+			if err := json.Unmarshal(rawArgs, &args); err != nil {
+				return "error parsing arguments", nil
+			}
+			return fmt.Sprintf(`query="%s"`, args.Query), nil
+		},
 		Function: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
 			var args SearchMemoriesArgs
 			if err := json.Unmarshal(rawArgs, &args); err != nil {

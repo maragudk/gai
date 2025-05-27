@@ -7,8 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"maragu.dev/gai/tools"
 	"maragu.dev/is"
+
+	"maragu.dev/gai/tools"
 )
 
 // mockMemoryStore implements all the memory-related interfaces
@@ -36,7 +37,7 @@ func (m *mockMemoryStore) SearchMemories(_ context.Context, query string) ([]str
 	if m.failMode {
 		return nil, errors.New("mock memory store fail")
 	}
-	
+
 	var results []string
 	queryLower := strings.ToLower(query)
 	for _, memory := range m.memories {
@@ -58,7 +59,7 @@ func TestNewSaveMemory(t *testing.T) {
 		result, err := tool.Function(t.Context(), mustMarshalJSON(tools.SaveMemoryArgs{
 			Memory: memory,
 		}))
-		
+
 		is.NotError(t, err)
 		is.Equal(t, "OK", result)
 		is.Equal(t, 1, len(store.memories))
@@ -72,7 +73,7 @@ func TestNewSaveMemory(t *testing.T) {
 		_, err := tool.Function(t.Context(), mustMarshalJSON(tools.SaveMemoryArgs{
 			Memory: "This will fail",
 		}))
-		
+
 		is.True(t, err != nil)
 		is.True(t, strings.Contains(err.Error(), "error saving memory"))
 	})
@@ -82,10 +83,45 @@ func TestNewSaveMemory(t *testing.T) {
 		tool := tools.NewSaveMemory(store)
 
 		_, err := tool.Function(t.Context(), json.RawMessage(`{invalid json`))
-		
+
 		is.True(t, err != nil)
 		is.True(t, strings.Contains(err.Error(), "error unmarshaling"))
 	})
+
+	t.Run("summarize save_memory with short memory", func(t *testing.T) {
+		store := &mockMemoryStore{}
+		tool := tools.NewSaveMemory(store)
+
+		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.SaveMemoryArgs{
+			Memory: "Buy milk",
+		}))
+
+		is.NotError(t, err)
+		is.Equal(t, `memory="Buy milk"`, summary)
+	})
+
+	t.Run("summarize save_memory with long memory", func(t *testing.T) {
+		store := &mockMemoryStore{}
+		tool := tools.NewSaveMemory(store)
+
+		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.SaveMemoryArgs{
+			Memory: "This is a very long memory that should be truncated after 30 characters",
+		}))
+
+		is.NotError(t, err)
+		is.Equal(t, `memory="This is a very long memory tha..."`, summary)
+	})
+
+	t.Run("summarize save_memory with invalid JSON", func(t *testing.T) {
+		store := &mockMemoryStore{}
+		tool := tools.NewSaveMemory(store)
+
+		summary, err := tool.Summarize(t.Context(), []byte(`{invalid json`))
+
+		is.NotError(t, err)
+		is.Equal(t, "error parsing arguments", summary)
+	})
+
 }
 
 func TestNewGetMemories(t *testing.T) {
@@ -98,7 +134,7 @@ func TestNewGetMemories(t *testing.T) {
 		is.Equal(t, "get_memories", tool.Name)
 
 		result, err := tool.Function(t.Context(), mustMarshalJSON(tools.GetMemoryArgs{}))
-		
+
 		is.NotError(t, err)
 		is.Equal(t, "Memories: [Memory 1 Memory 2 Memory 3]", result)
 	})
@@ -108,7 +144,7 @@ func TestNewGetMemories(t *testing.T) {
 		tool := tools.NewGetMemories(store)
 
 		result, err := tool.Function(t.Context(), mustMarshalJSON(tools.GetMemoryArgs{}))
-		
+
 		is.NotError(t, err)
 		is.Equal(t, "Memories: []", result)
 	})
@@ -118,9 +154,19 @@ func TestNewGetMemories(t *testing.T) {
 		tool := tools.NewGetMemories(store)
 
 		_, err := tool.Function(t.Context(), mustMarshalJSON(tools.GetMemoryArgs{}))
-		
+
 		is.True(t, err != nil)
 		is.True(t, strings.Contains(err.Error(), "error getting memories"))
+	})
+
+	t.Run("summarize get_memories", func(t *testing.T) {
+		store := &mockMemoryStore{}
+		tool := tools.NewGetMemories(store)
+
+		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.GetMemoryArgs{}))
+
+		is.NotError(t, err)
+		is.Equal(t, "", summary)
 	})
 }
 
@@ -140,7 +186,7 @@ func TestNewSearchMemories(t *testing.T) {
 		result, err := tool.Function(t.Context(), mustMarshalJSON(tools.SearchMemoriesArgs{
 			Query: "pet",
 		}))
-		
+
 		is.NotError(t, err)
 		is.Equal(t, "Found memories: [My pet rock needs a bath but hates getting wet Aliens probably think humans are weird for keeping plants as pets]", result)
 	})
@@ -158,7 +204,7 @@ func TestNewSearchMemories(t *testing.T) {
 		result, err := tool.Function(t.Context(), mustMarshalJSON(tools.SearchMemoriesArgs{
 			Query: "my",
 		}))
-		
+
 		is.NotError(t, err)
 		is.Equal(t, "Found memories: [I dreamt my code compiled on the first try My rubber duck debugger judged me today]", result)
 	})
@@ -176,7 +222,7 @@ func TestNewSearchMemories(t *testing.T) {
 		result, err := tool.Function(t.Context(), mustMarshalJSON(tools.SearchMemoriesArgs{
 			Query: "coffee",
 		}))
-		
+
 		is.NotError(t, err)
 		is.Equal(t, "No memories found matching the query.", result)
 	})
@@ -188,7 +234,7 @@ func TestNewSearchMemories(t *testing.T) {
 		_, err := tool.Function(t.Context(), mustMarshalJSON(tools.SearchMemoriesArgs{
 			Query: "anything",
 		}))
-		
+
 		is.True(t, err != nil)
 		is.True(t, strings.Contains(err.Error(), "error searching memories"))
 	})
@@ -198,9 +244,30 @@ func TestNewSearchMemories(t *testing.T) {
 		tool := tools.NewSearchMemories(store)
 
 		_, err := tool.Function(t.Context(), json.RawMessage(`{invalid json`))
-		
+
 		is.True(t, err != nil)
 		is.True(t, strings.Contains(err.Error(), "error unmarshaling"))
 	})
-}
 
+	t.Run("summarize search_memories", func(t *testing.T) {
+		store := &mockMemoryStore{}
+		tool := tools.NewSearchMemories(store)
+
+		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.SearchMemoriesArgs{
+			Query: "coffee",
+		}))
+
+		is.NotError(t, err)
+		is.Equal(t, `query="coffee"`, summary)
+	})
+
+	t.Run("summarize search_memories with invalid JSON", func(t *testing.T) {
+		store := &mockMemoryStore{}
+		tool := tools.NewSearchMemories(store)
+
+		summary, err := tool.Summarize(t.Context(), []byte(`{invalid json`))
+
+		is.NotError(t, err)
+		is.Equal(t, "error parsing arguments", summary)
+	})
+}

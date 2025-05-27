@@ -5,8 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"maragu.dev/gai/tools"
 	"maragu.dev/is"
+
+	"maragu.dev/gai/tools"
 )
 
 func TestNewExec(t *testing.T) {
@@ -135,7 +136,7 @@ func TestNewExec(t *testing.T) {
 		is.True(t, strings.Contains(result, "ERROR:"))
 		is.True(t, strings.Contains(result, "executable file not found"))
 	})
-	
+
 	t.Run("respects custom timeout", func(t *testing.T) {
 		tool := tools.NewExec()
 
@@ -152,9 +153,9 @@ func TestNewExec(t *testing.T) {
 		is.True(t, strings.Contains(result, "timed out"))
 		is.True(t, strings.Contains(err.Error(), "timed out"))
 		// Ensure it didn't wait the full 5 seconds
-		is.True(t, elapsed < 3*time.Second) 
+		is.True(t, elapsed < 3*time.Second)
 	})
-	
+
 	t.Run("handles command with no output", func(t *testing.T) {
 		tool := tools.NewExec()
 
@@ -165,6 +166,114 @@ func TestNewExec(t *testing.T) {
 
 		is.NotError(t, err)
 		is.True(t, strings.Contains(result, "Command executed successfully with no output"))
+	})
+
+	t.Run("summarize with basic command", func(t *testing.T) {
+		tool := tools.NewExec()
+
+		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.ExecArgs{
+			Command: "echo",
+		}))
+
+		is.NotError(t, err)
+		is.Equal(t, `command="echo"`, summary)
+	})
+
+	t.Run("summarize with command and args", func(t *testing.T) {
+		tool := tools.NewExec()
+
+		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.ExecArgs{
+			Command: "ls",
+			Args:    []string{"-la", "/tmp"},
+		}))
+
+		is.NotError(t, err)
+		is.Equal(t, `command="ls" args=[-la /tmp]`, summary)
+	})
+
+	t.Run("summarize with many args", func(t *testing.T) {
+		tool := tools.NewExec()
+
+		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.ExecArgs{
+			Command: "echo",
+			Args:    []string{"arg1", "arg2", "arg3", "arg4", "arg5"},
+		}))
+
+		is.NotError(t, err)
+		is.Equal(t, `command="echo" args=[arg1,arg2,arg3,...] (5 total)`, summary)
+	})
+
+	t.Run("summarize with input", func(t *testing.T) {
+		tool := tools.NewExec()
+
+		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.ExecArgs{
+			Command: "cat",
+			Input:   "Short input",
+		}))
+
+		is.NotError(t, err)
+		is.Equal(t, `command="cat" input="Short input"`, summary)
+	})
+
+	t.Run("summarize with long input", func(t *testing.T) {
+		tool := tools.NewExec()
+
+		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.ExecArgs{
+			Command: "cat",
+			Input:   "This is a very long input that should be truncated",
+		}))
+
+		is.NotError(t, err)
+		is.Equal(t, `command="cat" input="This is a very long ..."`, summary)
+	})
+
+	t.Run("summarize with custom timeout", func(t *testing.T) {
+		tool := tools.NewExec()
+
+		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.ExecArgs{
+			Command: "sleep",
+			Args:    []string{"5"},
+			Timeout: 10,
+		}))
+
+		is.NotError(t, err)
+		is.Equal(t, `command="sleep" args=[5] timeout=10s`, summary)
+	})
+
+	t.Run("summarize with default timeout", func(t *testing.T) {
+		tool := tools.NewExec()
+
+		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.ExecArgs{
+			Command: "sleep",
+			Args:    []string{"5"},
+			Timeout: 30, // Default timeout
+		}))
+
+		is.NotError(t, err)
+		is.Equal(t, `command="sleep" args=[5]`, summary)
+	})
+
+	t.Run("summarize with all options", func(t *testing.T) {
+		tool := tools.NewExec()
+
+		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.ExecArgs{
+			Command: "grep",
+			Args:    []string{"-r", "pattern", "/path/to/search"},
+			Input:   "Some input text that will be truncated",
+			Timeout: 60,
+		}))
+
+		is.NotError(t, err)
+		is.Equal(t, `command="grep" args=[-r pattern /path/to/search] input="Some input text that..." timeout=60s`, summary)
+	})
+
+	t.Run("summarize with invalid JSON", func(t *testing.T) {
+		tool := tools.NewExec()
+
+		summary, err := tool.Summarize(t.Context(), []byte(`{invalid json`))
+
+		is.NotError(t, err)
+		is.Equal(t, "error parsing arguments", summary)
 	})
 
 }

@@ -172,6 +172,7 @@ type Tool struct {
 	Description string
 	Schema      ToolSchema
 	Function    ToolFunction
+	Summarize   ToolFunction
 }
 
 // ToolSchema in JSON Schema format of the arguments the tool accepts.

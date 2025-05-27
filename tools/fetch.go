@@ -36,7 +36,7 @@ func (c *chatCompleterConverter) ConvertHTMLToMarkdown(ctx context.Context, html
 	systemPrompt := "You are a helpful assistant that converts HTML to Markdown. " +
 		"Preserve the semantic structure of the document. " +
 		"Only respond with the Markdown content, with no additional text."
-	
+
 	// Create chat complete request
 	req := gai.ChatCompleteRequest{
 		System: &systemPrompt,
@@ -44,17 +44,17 @@ func (c *chatCompleterConverter) ConvertHTMLToMarkdown(ctx context.Context, html
 			gai.NewUserTextMessage(html),
 		},
 	}
-	
+
 	// Send the request to the ChatCompleter
 	resp, err := c.completer.ChatComplete(ctx, req)
 	if err != nil {
 		return "", fmt.Errorf("error converting HTML to Markdown: %w", err)
 	}
-	
+
 	// Collect all text parts from the response
 	var markdown strings.Builder
 	var convErr error
-	
+
 	// Iterate over all parts and collect text parts
 	for part, err := range resp.Parts() {
 		if err != nil {
@@ -65,11 +65,11 @@ func (c *chatCompleterConverter) ConvertHTMLToMarkdown(ctx context.Context, html
 			markdown.WriteString(part.Text())
 		}
 	}
-	
+
 	if convErr != nil {
 		return "", convErr
 	}
-	
+
 	return markdown.String(), nil
 }
 
@@ -88,7 +88,7 @@ func NewFetch(client *http.Client, completer gai.ChatCompleter) gai.Tool {
 			Timeout: 30 * time.Second,
 		}
 	}
-	
+
 	// Create a converter from the ChatCompleter if one is provided
 	var converter *chatCompleterConverter
 	if completer != nil {
@@ -99,6 +99,22 @@ func NewFetch(client *http.Client, completer gai.ChatCompleter) gai.Tool {
 		Name:        "fetch",
 		Description: "Fetch an HTML site and output the results as a string or Markdown. Follows redirects automatically.",
 		Schema:      gai.GenerateSchema[FetchArgs](),
+		Summarize: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
+			var args FetchArgs
+			if err := json.Unmarshal(rawArgs, &args); err != nil {
+				return "error parsing arguments", nil
+			}
+
+			// Start with URL
+			summary := fmt.Sprintf(`url="%s"`, args.URL)
+
+			// Add format if explicitly specified
+			if args.OutputFormat != "" {
+				summary += fmt.Sprintf(` format="%s"`, args.OutputFormat)
+			}
+
+			return summary, nil
+		},
 		Function: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
 			var args FetchArgs
 			if err := json.Unmarshal(rawArgs, &args); err != nil {
@@ -108,7 +124,7 @@ func NewFetch(client *http.Client, completer gai.ChatCompleter) gai.Tool {
 			if args.URL == "" {
 				return "", errors.New("url cannot be empty")
 			}
-			
+
 			// Set default output format to markdown if a converter is available, otherwise html
 			outputFormat := args.OutputFormat
 			if outputFormat != "" && outputFormat != outputFormatHTML && outputFormat != outputFormatMarkdown {
@@ -121,7 +137,7 @@ func NewFetch(client *http.Client, completer gai.ChatCompleter) gai.Tool {
 					outputFormat = outputFormatHTML
 				}
 			}
-			
+
 			// Error if markdown is requested but no converter is available
 			if outputFormat == outputFormatMarkdown && converter == nil {
 				return "", errors.New("markdown output requested but no converter is available")
@@ -201,7 +217,7 @@ func NewFetch(client *http.Client, completer gai.ChatCompleter) gai.Tool {
 
 			// Get the content as string
 			htmlContent := string(body)
-			
+
 			// Convert HTML to Markdown if requested
 			if outputFormat == outputFormatMarkdown {
 				// We already checked earlier that converter is not nil when markdown is requested
@@ -211,7 +227,7 @@ func NewFetch(client *http.Client, completer gai.ChatCompleter) gai.Tool {
 				}
 				return markdownContent, nil
 			}
-			
+
 			// Otherwise return HTML content
 			return htmlContent, nil
 		},

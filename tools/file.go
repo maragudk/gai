@@ -25,6 +25,13 @@ func NewReadFile(root *os.Root) gai.Tool {
 		Name:        "read_file",
 		Description: "Read the contents of a given relative file path. Use this when you want to see what's inside a file. Do not use this with directory names.",
 		Schema:      gai.GenerateSchema[ReadFileArgs](),
+		Summarize: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
+			var args ReadFileArgs
+			if err := json.Unmarshal(rawArgs, &args); err != nil {
+				return "error parsing arguments", nil
+			}
+			return fmt.Sprintf(`path="%s"`, args.Path), nil
+		},
 		Function: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
 			var args ReadFileArgs
 			if err := json.Unmarshal(rawArgs, &args); err != nil {
@@ -50,6 +57,16 @@ func NewListDir(root *os.Root) gai.Tool {
 		Name:        "list_dir",
 		Description: "List files and directories at a given path recursively. If no path is provided, lists files and directories in the current directory.",
 		Schema:      gai.GenerateSchema[ListDirArgs](),
+		Summarize: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
+			var args ListDirArgs
+			if err := json.Unmarshal(rawArgs, &args); err != nil {
+				return "error parsing arguments", nil
+			}
+			if args.Path == "" || args.Path == "." {
+				return "", nil
+			}
+			return fmt.Sprintf(`path="%s"`, args.Path), nil
+		},
 		Function: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
 			var args ListDirArgs
 			if err := json.Unmarshal(rawArgs, &args); err != nil {
@@ -113,6 +130,24 @@ Replaces 'search_str' with 'replace_str' in the given file. 'search_str' and 're
 If the file specified with 'path' doesn't exist, it will be created.
 `,
 		Schema: gai.GenerateSchema[EditFileArgs](),
+		Summarize: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
+			var args EditFileArgs
+			if err := json.Unmarshal(rawArgs, &args); err != nil {
+				return "error parsing arguments", nil
+			}
+
+			// Truncate search and replace strings
+			searchStr := args.SearchStr
+			if len(searchStr) > 20 {
+				searchStr = searchStr[:20] + "..."
+			}
+			replaceStr := args.ReplaceStr
+			if len(replaceStr) > 20 {
+				replaceStr = replaceStr[:20] + "..."
+			}
+
+			return fmt.Sprintf(`path="%s" search="%s" replace="%s"`, args.Path, searchStr, replaceStr), nil
+		},
 		Function: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
 			var args EditFileArgs
 			if err := json.Unmarshal(rawArgs, &args); err != nil {

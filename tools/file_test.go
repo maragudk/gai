@@ -7,8 +7,9 @@ import (
 	"slices"
 	"testing"
 
-	"maragu.dev/gai/tools"
 	"maragu.dev/is"
+
+	"maragu.dev/gai/tools"
 )
 
 func TestNewReadFile(t *testing.T) {
@@ -190,6 +191,119 @@ func TestNewEditFile(t *testing.T) {
 			ReplaceStr: "ShouldNotReplace",
 		}))
 		is.Equal(t, "search_str not found in file", err.Error())
+	})
+
+	t.Run("summarize read_file", func(t *testing.T) {
+		testdata, err := os.OpenRoot("testdata")
+		is.NotError(t, err)
+
+		tool := tools.NewReadFile(testdata)
+
+		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.ReadFileArgs{
+			Path: "readme.txt",
+		}))
+
+		is.NotError(t, err)
+		is.Equal(t, `path="readme.txt"`, summary)
+	})
+
+	t.Run("summarize read_file with invalid JSON", func(t *testing.T) {
+		testdata, err := os.OpenRoot("testdata")
+		is.NotError(t, err)
+
+		tool := tools.NewReadFile(testdata)
+
+		summary, err := tool.Summarize(t.Context(), []byte(`{invalid json`))
+
+		is.NotError(t, err)
+		is.Equal(t, "error parsing arguments", summary)
+	})
+
+	t.Run("summarize list_dir with path", func(t *testing.T) {
+		testdata, err := os.OpenRoot("testdata")
+		is.NotError(t, err)
+
+		tool := tools.NewListDir(testdata)
+
+		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.ListDirArgs{
+			Path: "dir1",
+		}))
+
+		is.NotError(t, err)
+		is.Equal(t, `path="dir1"`, summary)
+	})
+
+	t.Run("summarize list_dir with current directory", func(t *testing.T) {
+		testdata, err := os.OpenRoot("testdata")
+		is.NotError(t, err)
+
+		tool := tools.NewListDir(testdata)
+
+		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.ListDirArgs{
+			Path: ".",
+		}))
+
+		is.NotError(t, err)
+		is.Equal(t, "", summary)
+	})
+
+	t.Run("summarize list_dir with empty path", func(t *testing.T) {
+		testdata, err := os.OpenRoot("testdata")
+		is.NotError(t, err)
+
+		tool := tools.NewListDir(testdata)
+
+		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.ListDirArgs{}))
+
+		is.NotError(t, err)
+		is.Equal(t, "", summary)
+	})
+
+	t.Run("summarize edit_file with short strings", func(t *testing.T) {
+		tempDir := t.TempDir()
+		root, err := os.OpenRoot(tempDir)
+		is.NotError(t, err)
+
+		tool := tools.NewEditFile(root)
+
+		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.EditFileArgs{
+			Path:       "test.txt",
+			SearchStr:  "short",
+			ReplaceStr: "brief",
+		}))
+
+		is.NotError(t, err)
+		is.Equal(t, `path="test.txt" search="short" replace="brief"`, summary)
+	})
+
+	t.Run("summarize edit_file with long strings", func(t *testing.T) {
+		tempDir := t.TempDir()
+		root, err := os.OpenRoot(tempDir)
+		is.NotError(t, err)
+
+		tool := tools.NewEditFile(root)
+
+		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.EditFileArgs{
+			Path:       "test.txt",
+			SearchStr:  "This is a very long search string that should be truncated",
+			ReplaceStr: "This is a very long replacement string that should also be truncated",
+		}))
+
+		is.NotError(t, err)
+		is.Equal(t, `path="test.txt" search="This is a very long ..." replace="This is a very long ..."`, summary)
+	})
+
+	t.Run("summarize edit_file with invalid JSON", func(t *testing.T) {
+		tempDir := t.TempDir()
+		root, err := os.OpenRoot(tempDir)
+		is.NotError(t, err)
+
+		tool := tools.NewEditFile(root)
+
+		summary, err := tool.Summarize(t.Context(), []byte(`{invalid json`))
+
+		is.NotError(t, err)
+		is.Equal(t, "error parsing arguments", summary)
 	})
 }
 
