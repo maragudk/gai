@@ -3,7 +3,7 @@ module toolscustom
 go 1.24
 
 require (
-	maragu.dev/gai v0.0.0-20250508081449-49f82b1140ca
+	maragu.dev/gai v0.0.0-20250527153842-15280745e250
 	maragu.dev/gai-openai v0.0.0-20250512185042-290272511cc1
 )
 
