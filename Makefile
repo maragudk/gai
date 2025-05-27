@@ -21,3 +21,11 @@ lint:
 .PHONY: test
 test:
 	go test -coverprofile cover.out -shuffle on ./...
+
+.PHONY: test-down
+test-down:
+	docker compose down
+
+.PHONY: test-up
+test-up:
+	docker compose up -d
