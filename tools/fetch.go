@@ -98,7 +98,7 @@ func NewFetch(client *http.Client, completer gai.ChatCompleter) gai.Tool {
 	return gai.Tool{
 		Name:        "fetch",
 		Description: "Fetch an HTML site and output the results as a string or Markdown. Follows redirects automatically.",
-		Schema:      gai.GenerateSchema[FetchArgs](),
+		Schema:      gai.GenerateToolSchema[FetchArgs](),
 		Summarize: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
 			var args FetchArgs
 			if err := json.Unmarshal(rawArgs, &args); err != nil {

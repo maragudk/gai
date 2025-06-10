@@ -63,7 +63,7 @@ func main() {
 					continue
 				}
 
-				content, err := tool.Function(ctx, toolCall.Args) // Tools aren't called automatically, so you can decide if, how, and when
+				content, err := tool.Execute(ctx, toolCall.Args) // Tools aren't called automatically, so you can decide if, how, and when
 				result = gai.ToolResult{
 					ID:      toolCall.ID,
 					Name:    toolCall.Name,

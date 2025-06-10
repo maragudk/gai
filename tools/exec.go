@@ -32,7 +32,7 @@ Executes the provided command with the specified arguments and returns the outpu
 - Timeout can be specified in seconds (default is 30 seconds)
 - Both stdout and stderr are captured and included in the output
 - Command arguments are properly escaped`,
-		Schema: gai.GenerateSchema[ExecArgs](),
+		Schema: gai.GenerateToolSchema[ExecArgs](),
 		Summarize: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
 			var args ExecArgs
 			if err := json.Unmarshal(rawArgs, &args); err != nil {

@@ -104,7 +104,7 @@ func main() {
 					continue
 				}
 
-				content, err := tool.Function(ctx, toolCall.Args) // Tools aren't called automatically, so you can decide if, how, and when
+				content, err := tool.Execute(ctx, toolCall.Args) // Tools aren't called automatically, so you can decide if, how, and when
 				result = gai.ToolResult{
 					ID:      toolCall.ID,
 					Name:    toolCall.Name,
@@ -180,8 +180,8 @@ func NewEat() gai.Tool {
 	return gai.Tool{
 		Name:        "eat",
 		Description: "Eat something, supplying what you eat as an argument. The result will be a string describing how it was.",
-		Schema:      gai.GenerateSchema[EatArgs](),
-		Function: func(ctx context.Context, args json.RawMessage) (string, error) {
+		Schema:      gai.GenerateToolSchema[EatArgs](),
+		Execute: func(ctx context.Context, args json.RawMessage) (string, error) {
 			var eatArgs EatArgs
 			if err := json.Unmarshal(args, &eatArgs); err != nil {
 				return "", fmt.Errorf("error unmarshaling eat args from JSON: %w", err)
@@ -250,7 +250,7 @@ func main() {
 					continue
 				}
 
-				content, err := tool.Function(ctx, toolCall.Args) // Tools aren't called automatically, so you can decide if, how, and when
+				content, err := tool.Execute(ctx, toolCall.Args) // Tools aren't called automatically, so you can decide if, how, and when
 				result = gai.ToolResult{
 					ID:      toolCall.ID,
 					Name:    toolCall.Name,
