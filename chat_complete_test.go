@@ -60,7 +60,7 @@ func TestGenerateSchema(t *testing.T) {
 		schema := gai.GenerateSchema[StringConstraints]()
 
 		usernameSchema := schema.Properties["username"]
-		is.NotNil(t, usernameSchema, nil)
+		is.NotNil(t, usernameSchema)
 		is.Equal(t, usernameSchema.Type, gai.SchemaTypeString)
 		is.NotNil(t, usernameSchema.MinLength)
 		is.Equal(t, *usernameSchema.MinLength, int64(3))
@@ -77,7 +77,7 @@ func TestGenerateSchema(t *testing.T) {
 		schema := gai.GenerateSchema[EnumField]()
 
 		statusSchema := schema.Properties["status"]
-		is.NotNil(t, statusSchema, nil)
+		is.NotNil(t, statusSchema)
 		is.Equal(t, statusSchema.Type, gai.SchemaTypeString)
 		is.Equal(t, len(statusSchema.Enum), 3)
 		is.Equal(t, statusSchema.Enum[0], "active")
@@ -104,7 +104,7 @@ func TestGenerateSchema(t *testing.T) {
 		is.Equal(t, tagsSchema.Items.Type, gai.SchemaTypeString)
 
 		scoresSchema := schema.Properties["scores"]
-		is.NotNil(t, scoresSchema, nil)
+		is.NotNil(t, scoresSchema)
 		is.Equal(t, scoresSchema.Type, gai.SchemaTypeArray)
 		is.NotNil(t, scoresSchema.Items)
 		is.Equal(t, scoresSchema.Items.Type, gai.SchemaTypeInteger)
@@ -192,7 +192,7 @@ func TestGenerateSchema(t *testing.T) {
 		schema := gai.GenerateSchema[BooleanField]()
 
 		isActiveSchema := schema.Properties["is_active"]
-		is.NotNil(t, isActiveSchema, nil)
+		is.NotNil(t, isActiveSchema)
 		is.Equal(t, isActiveSchema.Type, gai.SchemaTypeBoolean)
 	})
 
@@ -219,11 +219,11 @@ func TestGenerateSchema(t *testing.T) {
 		schema := gai.GenerateSchema[FormatField]()
 
 		emailSchema := schema.Properties["email"]
-		is.NotNil(t, emailSchema, nil)
+		is.NotNil(t, emailSchema)
 		is.Equal(t, emailSchema.Format, "email")
 
 		dateSchema := schema.Properties["date"]
-		is.NotNil(t, dateSchema, nil)
+		is.NotNil(t, dateSchema)
 		is.Equal(t, dateSchema.Format, "date")
 	})
 
@@ -236,11 +236,11 @@ func TestGenerateSchema(t *testing.T) {
 		schema := gai.GenerateSchema[PointerTypes]()
 
 		optStringSchema := schema.Properties["optional_string"]
-		is.NotNil(t, optStringSchema, nil)
+		is.NotNil(t, optStringSchema)
 		is.Equal(t, optStringSchema.Type, gai.SchemaTypeString)
 
 		optIntSchema := schema.Properties["optional_int"]
-		is.NotNil(t, optIntSchema, nil)
+		is.NotNil(t, optIntSchema)
 		is.Equal(t, optIntSchema.Type, gai.SchemaTypeInteger)
 	})
 
