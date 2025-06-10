@@ -264,7 +264,6 @@ type Schema struct {
 
 // GenerateSchema from any type.
 // See github.com/invopop/jsonschema for struct tags etc.
-// TODO: Does not currently implement [Schema.Nullable].
 func GenerateSchema[T any]() Schema {
 	reflector := jsonschema.Reflector{
 		AllowAdditionalProperties: false,
