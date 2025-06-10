@@ -24,10 +24,11 @@ func (t Temperature) Float64() float64 {
 
 // ChatCompleteRequest for a chat model.
 type ChatCompleteRequest struct {
-	Messages    []Message
-	System      *string
-	Temperature *Temperature
-	Tools       []Tool
+	Messages       []Message
+	ResponseSchema *Schema
+	System         *string
+	Temperature    *Temperature
+	Tools          []Tool
 }
 
 type Message struct {
@@ -180,7 +181,88 @@ type ToolSchema struct {
 	Properties any
 }
 
-func GenerateSchema[T any]() ToolSchema {
+func GenerateToolSchema[T any]() ToolSchema {
+	schema := GenerateSchema[T]()
+
+	return ToolSchema{
+		Properties: schema.Properties,
+	}
+}
+
+type SchemaType string
+
+const (
+	// OpenAPI string type
+	SchemaTypeString SchemaType = "STRING"
+	// OpenAPI number type
+	SchemaTypeNumber SchemaType = "NUMBER"
+	// OpenAPI integer type
+	SchemaTypeInteger SchemaType = "INTEGER"
+	// OpenAPI boolean type
+	SchemaTypeBoolean SchemaType = "BOOLEAN"
+	// OpenAPI array type
+	SchemaTypeArray SchemaType = "ARRAY"
+	// OpenAPI object type
+	SchemaTypeObject SchemaType = "OBJECT"
+)
+
+type Schema struct {
+	// Optional. The value should be validated against any (one or more) of the subschemas
+	// in the list.
+	AnyOf []*Schema `json:"anyOf,omitempty"`
+	// Optional. Default value of the data.
+	Default any `json:"default,omitempty"`
+	// Optional. The description of the data.
+	Description string `json:"description,omitempty"`
+	// Optional. Possible values of the element of primitive type with enum format. Examples:
+	// 1. We can define direction as : {type:STRING, format:enum, enum:["EAST", NORTH",
+	// "SOUTH", "WEST"]} 2. We can define apartment number as : {type:INTEGER, format:enum,
+	// enum:["101", "201", "301"]}
+	Enum []string `json:"enum,omitempty"`
+	// Optional. Example of the object. Will only populated when the object is the root.
+	Example any `json:"example,omitempty"`
+	// Optional. The format of the data. Supported formats: for NUMBER type: "float", "double"
+	// for INTEGER type: "int32", "int64" for STRING type: "email", "byte", etc
+	Format string `json:"format,omitempty"`
+	// Optional. SCHEMA FIELDS FOR TYPE ARRAY Schema of the elements of Type.ARRAY.
+	Items *Schema `json:"items,omitempty"`
+	// Optional. Maximum number of the elements for Type.ARRAY.
+	MaxItems *int64 `json:"maxItems,omitempty,string"`
+	// Optional. Maximum length of the Type.STRING
+	MaxLength *int64 `json:"maxLength,omitempty,string"`
+	// Optional. Maximum number of the properties for Type.OBJECT.
+	MaxProperties *int64 `json:"maxProperties,omitempty,string"`
+	// Optional. Maximum value of the Type.INTEGER and Type.NUMBER
+	Maximum *float64 `json:"maximum,omitempty"`
+	// Optional. Minimum number of the elements for Type.ARRAY.
+	MinItems *int64 `json:"minItems,omitempty,string"`
+	// Optional. SCHEMA FIELDS FOR TYPE STRING Minimum length of the Type.STRING
+	MinLength *int64 `json:"minLength,omitempty,string"`
+	// Optional. Minimum number of the properties for Type.OBJECT.
+	MinProperties *int64 `json:"minProperties,omitempty,string"`
+	// Optional. Minimum value of the Type.INTEGER and Type.NUMBER.
+	Minimum *float64 `json:"minimum,omitempty"`
+	// Optional. Indicates if the value may be null.
+	Nullable *bool `json:"nullable,omitempty"`
+	// Optional. Pattern of the Type.STRING to restrict a string to a regular expression.
+	Pattern string `json:"pattern,omitempty"`
+	// Optional. SCHEMA FIELDS FOR TYPE OBJECT Properties of Type.OBJECT.
+	Properties map[string]*Schema `json:"properties,omitempty"`
+	// Optional. The order of the properties. Not a standard field in open API spec. Only
+	// used to support the order of the properties.
+	PropertyOrdering []string `json:"propertyOrdering,omitempty"`
+	// Optional. Required properties of Type.OBJECT.
+	Required []string `json:"required,omitempty"`
+	// Optional. The title of the Schema.
+	Title string `json:"title,omitempty"`
+	// Optional. The type of the data.
+	Type SchemaType `json:"type,omitempty"`
+}
+
+// GenerateSchema from any type.
+// See github.com/invopop/jsonschema for struct tags etc.
+// TODO: Does not currently implement [Schema.Nullable].
+func GenerateSchema[T any]() Schema {
 	reflector := jsonschema.Reflector{
 		AllowAdditionalProperties: false,
 		DoNotReference:            true,
@@ -189,9 +271,117 @@ func GenerateSchema[T any]() ToolSchema {
 	var v T
 	schema := reflector.Reflect(v)
 
-	return ToolSchema{
-		Properties: schema.Properties,
+	return convertJSONSchemaToSchema(schema)
+}
+
+func convertJSONSchemaToSchema(js *jsonschema.Schema) Schema {
+	s := Schema{
+		Description: js.Description,
+		Title:       js.Title,
+		Default:     js.Default,
+		Format:      js.Format,
+		Pattern:     js.Pattern,
 	}
+
+	// Convert example (Examples is a slice, use first one if available)
+	if len(js.Examples) > 0 {
+		s.Example = js.Examples[0]
+	}
+
+	// Convert type
+	if js.Type != "" {
+		switch js.Type {
+		case "string":
+			s.Type = SchemaTypeString
+		case "number":
+			s.Type = SchemaTypeNumber
+		case "integer":
+			s.Type = SchemaTypeInteger
+		case "boolean":
+			s.Type = SchemaTypeBoolean
+		case "array":
+			s.Type = SchemaTypeArray
+		case "object":
+			s.Type = SchemaTypeObject
+		}
+	}
+
+	// Convert enum
+	if len(js.Enum) > 0 {
+		s.Enum = make([]string, len(js.Enum))
+		for i, v := range js.Enum {
+			s.Enum[i] = fmt.Sprint(v)
+		}
+	}
+
+	// Convert numeric constraints (json.Number is a string)
+	if js.Minimum != "" {
+		if min, err := js.Minimum.Float64(); err == nil {
+			s.Minimum = &min
+		}
+	}
+	if js.Maximum != "" {
+		if max, err := js.Maximum.Float64(); err == nil {
+			s.Maximum = &max
+		}
+	}
+
+	// Convert string constraints
+	if js.MinLength != nil {
+		minLen := int64(*js.MinLength)
+		s.MinLength = &minLen
+	}
+	if js.MaxLength != nil {
+		maxLen := int64(*js.MaxLength)
+		s.MaxLength = &maxLen
+	}
+
+	// Convert array constraints
+	if js.MinItems != nil {
+		minItems := int64(*js.MinItems)
+		s.MinItems = &minItems
+	}
+	if js.MaxItems != nil {
+		maxItems := int64(*js.MaxItems)
+		s.MaxItems = &maxItems
+	}
+	if js.Items != nil {
+		converted := convertJSONSchemaToSchema(js.Items)
+		s.Items = &converted
+	}
+
+	// Convert object constraints
+	if js.MinProperties != nil {
+		minProps := int64(*js.MinProperties)
+		s.MinProperties = &minProps
+	}
+	if js.MaxProperties != nil {
+		maxProps := int64(*js.MaxProperties)
+		s.MaxProperties = &maxProps
+	}
+	if js.Properties != nil && js.Properties.Len() > 0 {
+		s.Properties = make(map[string]*Schema)
+		s.PropertyOrdering = make([]string, 0, js.Properties.Len())
+
+		// Iterate through ordered map
+		for pair := js.Properties.Oldest(); pair != nil; pair = pair.Next() {
+			converted := convertJSONSchemaToSchema(pair.Value)
+			s.Properties[pair.Key] = &converted
+			s.PropertyOrdering = append(s.PropertyOrdering, pair.Key)
+		}
+	}
+	s.Required = js.Required
+
+	// Convert anyOf
+	if len(js.AnyOf) > 0 {
+		s.AnyOf = make([]*Schema, len(js.AnyOf))
+		for i, v := range js.AnyOf {
+			converted := convertJSONSchemaToSchema(v)
+			s.AnyOf[i] = &converted
+		}
+	}
+
+	return s
 }
 
 type ToolFunction func(ctx context.Context, rawArgs json.RawMessage) (string, error)

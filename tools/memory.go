@@ -20,7 +20,7 @@ func NewSaveMemory(ms memorySaver) gai.Tool {
 	return gai.Tool{
 		Name:        "save_memory",
 		Description: "Save a memory, something you would like to remember for later conversations.",
-		Schema:      gai.GenerateSchema[SaveMemoryArgs](),
+		Schema:      gai.GenerateToolSchema[SaveMemoryArgs](),
 		Summarize: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
 			var args SaveMemoryArgs
 			if err := json.Unmarshal(rawArgs, &args); err != nil {
@@ -60,7 +60,7 @@ func NewGetMemories(mg memoryGetter) gai.Tool {
 	return gai.Tool{
 		Name:        "get_memories",
 		Description: "Get all saved memories.",
-		Schema:      gai.GenerateSchema[GetMemoryArgs](),
+		Schema:      gai.GenerateToolSchema[GetMemoryArgs](),
 		Summarize: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
 			return "", nil
 		},
@@ -87,7 +87,7 @@ func NewSearchMemories(ms memorySearcher) gai.Tool {
 	return gai.Tool{
 		Name:        "search_memories",
 		Description: "Search saved memories using a query string.",
-		Schema:      gai.GenerateSchema[SearchMemoriesArgs](),
+		Schema:      gai.GenerateToolSchema[SearchMemoriesArgs](),
 		Summarize: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
 			var args SearchMemoriesArgs
 			if err := json.Unmarshal(rawArgs, &args); err != nil {
