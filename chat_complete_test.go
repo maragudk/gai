@@ -268,4 +268,73 @@ func TestGenerateSchema(t *testing.T) {
 		// "any" is represented as an empty schema (allowing any type)
 		// Just verify the field exists
 	})
+
+	t.Run("empty struct", func(t *testing.T) {
+		type Empty struct{}
+
+		schema := gai.GenerateSchema[Empty]()
+
+		is.Equal(t, schema.Type, gai.SchemaTypeObject)
+		is.Equal(t, len(schema.Properties), 0)
+		is.Equal(t, len(schema.Required), 0)
+	})
+
+	t.Run("unexported fields ignored", func(t *testing.T) {
+		type WithUnexported struct {
+			Public  string `json:"public"`
+			private string `json:"private"`
+		}
+
+		schema := gai.GenerateSchema[WithUnexported]()
+
+		is.Equal(t, len(schema.Properties), 1)
+		is.NotNil(t, schema.Properties["public"])
+		_, exists := schema.Properties["private"]
+		is.True(t, !exists)
+	})
+
+	t.Run("json tag with dash ignored", func(t *testing.T) {
+		type WithIgnored struct {
+			Name    string `json:"name"`
+			Ignored string `json:"-"`
+		}
+
+		schema := gai.GenerateSchema[WithIgnored]()
+
+		is.Equal(t, len(schema.Properties), 1)
+		is.NotNil(t, schema.Properties["name"])
+		_, exists := schema.Properties["-"]
+		is.True(t, !exists)
+	})
+
+	t.Run("anonymous embedded struct", func(t *testing.T) {
+		type Embedded struct {
+			EmbeddedField string `json:"embedded_field"`
+		}
+		type WithEmbedded struct {
+			Embedded
+			OwnField string `json:"own_field"`
+		}
+
+		schema := gai.GenerateSchema[WithEmbedded]()
+
+		// Both fields should be present at the top level
+		is.Equal(t, len(schema.Properties), 2)
+		is.NotNil(t, schema.Properties["embedded_field"])
+		is.NotNil(t, schema.Properties["own_field"])
+	})
+
+	t.Run("struct with no json tags", func(t *testing.T) {
+		type NoTags struct {
+			FirstName string
+			LastName  string
+		}
+
+		schema := gai.GenerateSchema[NoTags]()
+
+		// Fields without json tags use their Go field names
+		is.Equal(t, len(schema.Properties), 2)
+		is.NotNil(t, schema.Properties["FirstName"])
+		is.NotNil(t, schema.Properties["LastName"])
+	})
 }
