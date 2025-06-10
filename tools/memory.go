@@ -35,7 +35,7 @@ func NewSaveMemory(ms memorySaver) gai.Tool {
 
 			return fmt.Sprintf(`memory="%s"`, memory), nil
 		},
-		Function: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
+		Execute: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
 			var args SaveMemoryArgs
 			if err := json.Unmarshal(rawArgs, &args); err != nil {
 				return "", fmt.Errorf("error unmarshaling save_memory args from JSON: %w", err)
@@ -64,7 +64,7 @@ func NewGetMemories(mg memoryGetter) gai.Tool {
 		Summarize: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
 			return "", nil
 		},
-		Function: func(ctx context.Context, _ json.RawMessage) (string, error) {
+		Execute: func(ctx context.Context, _ json.RawMessage) (string, error) {
 			memories, err := mg.GetMemories(ctx)
 			if err != nil {
 				return "", fmt.Errorf("error getting memories: %w", err)
@@ -95,7 +95,7 @@ func NewSearchMemories(ms memorySearcher) gai.Tool {
 			}
 			return fmt.Sprintf(`query="%s"`, args.Query), nil
 		},
-		Function: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
+		Execute: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
 			var args SearchMemoriesArgs
 			if err := json.Unmarshal(rawArgs, &args); err != nil {
 				return "", fmt.Errorf("error unmarshaling search_memories args from JSON: %w", err)

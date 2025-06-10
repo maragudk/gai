@@ -56,7 +56,7 @@ func TestNewSaveMemory(t *testing.T) {
 		is.Equal(t, "save_memory", tool.Name)
 
 		memory := "Remember to buy milk"
-		result, err := tool.Function(t.Context(), mustMarshalJSON(tools.SaveMemoryArgs{
+		result, err := tool.Execute(t.Context(), mustMarshalJSON(tools.SaveMemoryArgs{
 			Memory: memory,
 		}))
 
@@ -70,7 +70,7 @@ func TestNewSaveMemory(t *testing.T) {
 		store := &mockMemoryStore{failMode: true}
 		tool := tools.NewSaveMemory(store)
 
-		_, err := tool.Function(t.Context(), mustMarshalJSON(tools.SaveMemoryArgs{
+		_, err := tool.Execute(t.Context(), mustMarshalJSON(tools.SaveMemoryArgs{
 			Memory: "This will fail",
 		}))
 
@@ -82,7 +82,7 @@ func TestNewSaveMemory(t *testing.T) {
 		store := &mockMemoryStore{}
 		tool := tools.NewSaveMemory(store)
 
-		_, err := tool.Function(t.Context(), json.RawMessage(`{invalid json`))
+		_, err := tool.Execute(t.Context(), json.RawMessage(`{invalid json`))
 
 		is.True(t, err != nil)
 		is.True(t, strings.Contains(err.Error(), "error unmarshaling"))
@@ -133,7 +133,7 @@ func TestNewGetMemories(t *testing.T) {
 
 		is.Equal(t, "get_memories", tool.Name)
 
-		result, err := tool.Function(t.Context(), mustMarshalJSON(tools.GetMemoryArgs{}))
+		result, err := tool.Execute(t.Context(), mustMarshalJSON(tools.GetMemoryArgs{}))
 
 		is.NotError(t, err)
 		is.Equal(t, "Memories: [Memory 1 Memory 2 Memory 3]", result)
@@ -143,7 +143,7 @@ func TestNewGetMemories(t *testing.T) {
 		store := &mockMemoryStore{}
 		tool := tools.NewGetMemories(store)
 
-		result, err := tool.Function(t.Context(), mustMarshalJSON(tools.GetMemoryArgs{}))
+		result, err := tool.Execute(t.Context(), mustMarshalJSON(tools.GetMemoryArgs{}))
 
 		is.NotError(t, err)
 		is.Equal(t, "Memories: []", result)
@@ -153,7 +153,7 @@ func TestNewGetMemories(t *testing.T) {
 		store := &mockMemoryStore{failMode: true}
 		tool := tools.NewGetMemories(store)
 
-		_, err := tool.Function(t.Context(), mustMarshalJSON(tools.GetMemoryArgs{}))
+		_, err := tool.Execute(t.Context(), mustMarshalJSON(tools.GetMemoryArgs{}))
 
 		is.True(t, err != nil)
 		is.True(t, strings.Contains(err.Error(), "error getting memories"))
@@ -183,7 +183,7 @@ func TestNewSearchMemories(t *testing.T) {
 
 		is.Equal(t, "search_memories", tool.Name)
 
-		result, err := tool.Function(t.Context(), mustMarshalJSON(tools.SearchMemoriesArgs{
+		result, err := tool.Execute(t.Context(), mustMarshalJSON(tools.SearchMemoriesArgs{
 			Query: "pet",
 		}))
 
@@ -201,7 +201,7 @@ func TestNewSearchMemories(t *testing.T) {
 		}
 		tool := tools.NewSearchMemories(store)
 
-		result, err := tool.Function(t.Context(), mustMarshalJSON(tools.SearchMemoriesArgs{
+		result, err := tool.Execute(t.Context(), mustMarshalJSON(tools.SearchMemoriesArgs{
 			Query: "my",
 		}))
 
@@ -219,7 +219,7 @@ func TestNewSearchMemories(t *testing.T) {
 		}
 		tool := tools.NewSearchMemories(store)
 
-		result, err := tool.Function(t.Context(), mustMarshalJSON(tools.SearchMemoriesArgs{
+		result, err := tool.Execute(t.Context(), mustMarshalJSON(tools.SearchMemoriesArgs{
 			Query: "coffee",
 		}))
 
@@ -231,7 +231,7 @@ func TestNewSearchMemories(t *testing.T) {
 		store := &mockMemoryStore{failMode: true}
 		tool := tools.NewSearchMemories(store)
 
-		_, err := tool.Function(t.Context(), mustMarshalJSON(tools.SearchMemoriesArgs{
+		_, err := tool.Execute(t.Context(), mustMarshalJSON(tools.SearchMemoriesArgs{
 			Query: "anything",
 		}))
 
@@ -243,7 +243,7 @@ func TestNewSearchMemories(t *testing.T) {
 		store := &mockMemoryStore{}
 		tool := tools.NewSearchMemories(store)
 
-		_, err := tool.Function(t.Context(), json.RawMessage(`{invalid json`))
+		_, err := tool.Execute(t.Context(), json.RawMessage(`{invalid json`))
 
 		is.True(t, err != nil)
 		is.True(t, strings.Contains(err.Error(), "error unmarshaling"))

@@ -21,7 +21,7 @@ func TestNewReadFile(t *testing.T) {
 
 		is.Equal(t, "read_file", tool.Name)
 
-		result, err := tool.Function(t.Context(), mustMarshalJSON(tools.ReadFileArgs{Path: "readme.txt"}))
+		result, err := tool.Execute(t.Context(), mustMarshalJSON(tools.ReadFileArgs{Path: "readme.txt"}))
 		is.NotError(t, err)
 		is.Equal(t, "Hi!\n", result)
 	})
@@ -29,7 +29,7 @@ func TestNewReadFile(t *testing.T) {
 	t.Run("errors if file does not exist", func(t *testing.T) {
 		tool := tools.NewReadFile(testdata)
 
-		_, err := tool.Function(t.Context(), mustMarshalJSON(tools.ReadFileArgs{Path: "nonexistent.txt"}))
+		_, err := tool.Execute(t.Context(), mustMarshalJSON(tools.ReadFileArgs{Path: "nonexistent.txt"}))
 		is.Equal(t, "openat nonexistent.txt: no such file or directory", err.Error())
 	})
 }
@@ -43,7 +43,7 @@ func TestNewListDir(t *testing.T) {
 
 		is.Equal(t, "list_dir", tool.Name)
 
-		result, err := tool.Function(t.Context(), mustMarshalJSON(tools.ListDirArgs{Path: "."}))
+		result, err := tool.Execute(t.Context(), mustMarshalJSON(tools.ListDirArgs{Path: "."}))
 		is.NotError(t, err)
 
 		var files []string
@@ -59,7 +59,7 @@ func TestNewListDir(t *testing.T) {
 	t.Run("uses current directory if no path provided", func(t *testing.T) {
 		tool := tools.NewListDir(testdata)
 
-		result, err := tool.Function(t.Context(), mustMarshalJSON(tools.ListDirArgs{}))
+		result, err := tool.Execute(t.Context(), mustMarshalJSON(tools.ListDirArgs{}))
 		is.NotError(t, err)
 
 		var files []string
@@ -74,7 +74,7 @@ func TestNewListDir(t *testing.T) {
 	t.Run("errors if directory does not exist", func(t *testing.T) {
 		tool := tools.NewListDir(testdata)
 
-		_, err := tool.Function(t.Context(), mustMarshalJSON(tools.ListDirArgs{Path: "nonexistent"}))
+		_, err := tool.Execute(t.Context(), mustMarshalJSON(tools.ListDirArgs{Path: "nonexistent"}))
 
 		is.Equal(t, "statat nonexistent: no such file or directory", err.Error())
 	})
@@ -94,7 +94,7 @@ func TestNewEditFile(t *testing.T) {
 		err = os.WriteFile(filepath.Join(tempDir, "edit_test.txt"), []byte("Original text"), 0644)
 		is.NotError(t, err)
 
-		result, err := tool.Function(t.Context(), mustMarshalJSON(tools.EditFileArgs{
+		result, err := tool.Execute(t.Context(), mustMarshalJSON(tools.EditFileArgs{
 			Path:       "edit_test.txt",
 			SearchStr:  "Original",
 			ReplaceStr: "Modified",
@@ -115,7 +115,7 @@ func TestNewEditFile(t *testing.T) {
 
 		tool := tools.NewEditFile(root)
 
-		result, err := tool.Function(t.Context(), mustMarshalJSON(tools.EditFileArgs{
+		result, err := tool.Execute(t.Context(), mustMarshalJSON(tools.EditFileArgs{
 			Path:       "new_file.txt",
 			SearchStr:  "",
 			ReplaceStr: "New content",
@@ -136,7 +136,7 @@ func TestNewEditFile(t *testing.T) {
 
 		tool := tools.NewEditFile(root)
 
-		result, err := tool.Function(t.Context(), mustMarshalJSON(tools.EditFileArgs{
+		result, err := tool.Execute(t.Context(), mustMarshalJSON(tools.EditFileArgs{
 			Path:       "dir/subdir/nested_file.txt",
 			SearchStr:  "",
 			ReplaceStr: "Content in subdirectory",
@@ -166,7 +166,7 @@ func TestNewEditFile(t *testing.T) {
 
 		tool := tools.NewEditFile(root)
 
-		_, err = tool.Function(t.Context(), mustMarshalJSON(tools.EditFileArgs{
+		_, err = tool.Execute(t.Context(), mustMarshalJSON(tools.EditFileArgs{
 			Path:       "some_file.txt",
 			SearchStr:  "same",
 			ReplaceStr: "same",
@@ -185,7 +185,7 @@ func TestNewEditFile(t *testing.T) {
 		err = os.WriteFile(filepath.Join(tempDir, "edit_test.txt"), []byte("Existing content"), 0644)
 		is.NotError(t, err)
 
-		_, err = tool.Function(t.Context(), mustMarshalJSON(tools.EditFileArgs{
+		_, err = tool.Execute(t.Context(), mustMarshalJSON(tools.EditFileArgs{
 			Path:       "edit_test.txt",
 			SearchStr:  "NotInFile",
 			ReplaceStr: "ShouldNotReplace",

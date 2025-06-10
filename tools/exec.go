@@ -69,7 +69,7 @@ Executes the provided command with the specified arguments and returns the outpu
 
 			return summary, nil
 		},
-		Function: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
+		Execute: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
 			var args ExecArgs
 			if err := json.Unmarshal(rawArgs, &args); err != nil {
 				return "", fmt.Errorf("error unmarshaling exec args from JSON: %w", err)

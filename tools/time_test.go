@@ -21,7 +21,7 @@ func TestNewGetTime(t *testing.T) {
 
 		is.Equal(t, "get_time", tool.Name)
 
-		result, err := tool.Function(t.Context(), mustMarshalJSON(tools.GetTimeArgs{}))
+		result, err := tool.Execute(t.Context(), mustMarshalJSON(tools.GetTimeArgs{}))
 		is.NotError(t, err)
 		is.Equal(t, "2023-05-01T12:30:45Z", result)
 	})
