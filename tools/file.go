@@ -32,7 +32,7 @@ func NewReadFile(root *os.Root) gai.Tool {
 			}
 			return fmt.Sprintf(`path="%s"`, args.Path), nil
 		},
-		Function: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
+		Execute: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
 			var args ReadFileArgs
 			if err := json.Unmarshal(rawArgs, &args); err != nil {
 				return "", fmt.Errorf("error unmarshaling read_file args from JSON: %w", err)
@@ -67,7 +67,7 @@ func NewListDir(root *os.Root) gai.Tool {
 			}
 			return fmt.Sprintf(`path="%s"`, args.Path), nil
 		},
-		Function: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
+		Execute: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
 			var args ListDirArgs
 			if err := json.Unmarshal(rawArgs, &args); err != nil {
 				return "", fmt.Errorf("error unmarshaling list_dir args from JSON: %w", err)
@@ -148,7 +148,7 @@ If the file specified with 'path' doesn't exist, it will be created.
 
 			return fmt.Sprintf(`path="%s" search="%s" replace="%s"`, args.Path, searchStr, replaceStr), nil
 		},
-		Function: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
+		Execute: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
 			var args EditFileArgs
 			if err := json.Unmarshal(rawArgs, &args); err != nil {
 				return "", fmt.Errorf("error unmarshaling edit_file args from JSON: %w", err)

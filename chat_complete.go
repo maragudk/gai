@@ -171,7 +171,7 @@ type Tool struct {
 	Name        string
 	Description string
 	Schema      ToolSchema
-	Function    ToolFunction
+	Execute     ToolFunction
 	Summarize   ToolFunction
 }
 

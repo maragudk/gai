@@ -20,7 +20,7 @@ func NewGetTime(now func() time.Time) gai.Tool {
 		Summarize: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
 			return "", nil
 		},
-		Function: func(ctx context.Context, args json.RawMessage) (string, error) {
+		Execute: func(ctx context.Context, args json.RawMessage) (string, error) {
 			var getTimeArgs GetTimeArgs
 			if err := json.Unmarshal(args, &getTimeArgs); err != nil {
 				return "", fmt.Errorf("error unmarshaling get_time args from JSON: %w", err)

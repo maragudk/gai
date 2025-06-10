@@ -51,7 +51,7 @@ func TestNewFetch(t *testing.T) {
 		is.Equal(t, "fetch", tool.Name)
 
 		// Execute the tool with the test server URL and HTML output format
-		result, err := tool.Function(t.Context(), mustMarshalJSON(tools.FetchArgs{
+		result, err := tool.Execute(t.Context(), mustMarshalJSON(tools.FetchArgs{
 			URL:          server.URL,
 			OutputFormat: "html",
 		}))
@@ -73,7 +73,7 @@ func TestNewFetch(t *testing.T) {
 		tool := tools.NewFetch(client, completer)
 
 		// Execute the tool with the test server URL and Markdown output format
-		result, err := tool.Function(t.Context(), mustMarshalJSON(tools.FetchArgs{
+		result, err := tool.Execute(t.Context(), mustMarshalJSON(tools.FetchArgs{
 			URL:          server.URL,
 			OutputFormat: "markdown",
 		}))
@@ -95,7 +95,7 @@ func TestNewFetch(t *testing.T) {
 		tool := tools.NewFetch(client, completer)
 
 		// Execute the tool with the test server URL without specifying format
-		result, err := tool.Function(t.Context(), mustMarshalJSON(tools.FetchArgs{
+		result, err := tool.Execute(t.Context(), mustMarshalJSON(tools.FetchArgs{
 			URL: server.URL,
 		}))
 
@@ -122,7 +122,7 @@ func TestNewFetch(t *testing.T) {
 		tool := tools.NewFetch(client, nil)
 
 		// Execute the tool with the root URL, which should redirect
-		result, err := tool.Function(t.Context(), mustMarshalJSON(tools.FetchArgs{
+		result, err := tool.Execute(t.Context(), mustMarshalJSON(tools.FetchArgs{
 			URL:          server.URL,
 			OutputFormat: "html", // Set HTML format to skip conversion
 		}))
@@ -143,7 +143,7 @@ func TestNewFetch(t *testing.T) {
 		tool := tools.NewFetch(client, nil)
 
 		// Execute the tool with the test server URL
-		_, err := tool.Function(t.Context(), mustMarshalJSON(tools.FetchArgs{
+		_, err := tool.Execute(t.Context(), mustMarshalJSON(tools.FetchArgs{
 			URL: server.URL,
 		}))
 
@@ -168,7 +168,7 @@ func TestNewFetch(t *testing.T) {
 		tool := tools.NewFetch(client, nil)
 
 		// Execute the tool with the test server URL
-		_, err := tool.Function(t.Context(), mustMarshalJSON(tools.FetchArgs{
+		_, err := tool.Execute(t.Context(), mustMarshalJSON(tools.FetchArgs{
 			URL: server.URL,
 		}))
 
@@ -183,7 +183,7 @@ func TestNewFetch(t *testing.T) {
 		tool := tools.NewFetch(client, nil)
 
 		// Execute the tool with an empty URL
-		_, err := tool.Function(t.Context(), mustMarshalJSON(tools.FetchArgs{
+		_, err := tool.Execute(t.Context(), mustMarshalJSON(tools.FetchArgs{
 			URL: "",
 		}))
 
@@ -196,7 +196,7 @@ func TestNewFetch(t *testing.T) {
 		tool := tools.NewFetch(client, nil)
 
 		// Execute the tool with an invalid URL
-		_, err := tool.Function(t.Context(), mustMarshalJSON(tools.FetchArgs{
+		_, err := tool.Execute(t.Context(), mustMarshalJSON(tools.FetchArgs{
 			URL: "http://invalid-url-that-does-not-exist.example",
 		}))
 
@@ -214,7 +214,7 @@ func TestNewFetch(t *testing.T) {
 		// Pass nil as the client and completer
 		tool := tools.NewFetch(nil, nil)
 
-		result, err := tool.Function(t.Context(), mustMarshalJSON(tools.FetchArgs{
+		result, err := tool.Execute(t.Context(), mustMarshalJSON(tools.FetchArgs{
 			URL:          server.URL,
 			OutputFormat: "html", // Set HTML format to skip conversion
 		}))
@@ -235,7 +235,7 @@ func TestNewFetch(t *testing.T) {
 		tool := tools.NewFetch(client, nil)
 
 		// Request Markdown but with no converter available
-		_, err := tool.Function(t.Context(), mustMarshalJSON(tools.FetchArgs{
+		_, err := tool.Execute(t.Context(), mustMarshalJSON(tools.FetchArgs{
 			URL:          server.URL,
 			OutputFormat: "markdown",
 		}))

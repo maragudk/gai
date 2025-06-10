@@ -18,7 +18,7 @@ func TestNewExec(t *testing.T) {
 		is.Equal(t, "exec", tool.Name)
 
 		// Execute a simple echo command
-		result, err := tool.Function(t.Context(), mustMarshalJSON(tools.ExecArgs{
+		result, err := tool.Execute(t.Context(), mustMarshalJSON(tools.ExecArgs{
 			Command: "echo",
 			Args:    []string{"Hello, World!"},
 		}))
@@ -31,7 +31,7 @@ func TestNewExec(t *testing.T) {
 		tool := tools.NewExec()
 
 		// Execute the cat command, which reads from stdin
-		result, err := tool.Function(t.Context(), mustMarshalJSON(tools.ExecArgs{
+		result, err := tool.Execute(t.Context(), mustMarshalJSON(tools.ExecArgs{
 			Command: "cat",
 			Input:   "Input from stdin",
 		}))
@@ -44,7 +44,7 @@ func TestNewExec(t *testing.T) {
 		tool := tools.NewExec()
 
 		// Execute a command that will fail
-		result, err := tool.Function(t.Context(), mustMarshalJSON(tools.ExecArgs{
+		result, err := tool.Execute(t.Context(), mustMarshalJSON(tools.ExecArgs{
 			Command: "ls",
 			Args:    []string{"/nonexistent/directory"},
 		}))
@@ -58,7 +58,7 @@ func TestNewExec(t *testing.T) {
 		tool := tools.NewExec()
 
 		// Execute echo with arguments that need escaping
-		result, err := tool.Function(t.Context(), mustMarshalJSON(tools.ExecArgs{
+		result, err := tool.Execute(t.Context(), mustMarshalJSON(tools.ExecArgs{
 			Command: "echo",
 			Args:    []string{"Hello", "Special$Characters", "\"Quotes\"", "`Backticks`"},
 		}))
@@ -71,7 +71,7 @@ func TestNewExec(t *testing.T) {
 		tool := tools.NewExec()
 
 		// Execute with an empty command
-		_, err := tool.Function(t.Context(), mustMarshalJSON(tools.ExecArgs{
+		_, err := tool.Execute(t.Context(), mustMarshalJSON(tools.ExecArgs{
 			Command: "",
 		}))
 
@@ -83,7 +83,7 @@ func TestNewExec(t *testing.T) {
 		tool := tools.NewExec()
 
 		// Execute a command with multiple arguments
-		result, err := tool.Function(t.Context(), mustMarshalJSON(tools.ExecArgs{
+		result, err := tool.Execute(t.Context(), mustMarshalJSON(tools.ExecArgs{
 			Command: "echo",
 			Args:    []string{"arg1", "arg2", "arg3"},
 		}))
@@ -99,7 +99,7 @@ func TestNewExec(t *testing.T) {
 		binaryInput := "Binary\x00Data\x00With\x00Nulls"
 
 		// Use hexdump to see the binary data
-		result, err := tool.Function(t.Context(), mustMarshalJSON(tools.ExecArgs{
+		result, err := tool.Execute(t.Context(), mustMarshalJSON(tools.ExecArgs{
 			Command: "hexdump",
 			Args:    []string{"-C"},
 			Input:   binaryInput,
@@ -114,7 +114,7 @@ func TestNewExec(t *testing.T) {
 		tool := tools.NewExec()
 
 		// Run a command that writes to stderr
-		result, err := tool.Function(t.Context(), mustMarshalJSON(tools.ExecArgs{
+		result, err := tool.Execute(t.Context(), mustMarshalJSON(tools.ExecArgs{
 			Command: "sh",
 			Args:    []string{"-c", "echo 'Standard output'; echo 'Error output' >&2"},
 		}))
@@ -128,7 +128,7 @@ func TestNewExec(t *testing.T) {
 		tool := tools.NewExec()
 
 		// Run a command that doesn't exist
-		result, err := tool.Function(t.Context(), mustMarshalJSON(tools.ExecArgs{
+		result, err := tool.Execute(t.Context(), mustMarshalJSON(tools.ExecArgs{
 			Command: "nonexistentcommand",
 		}))
 
@@ -142,7 +142,7 @@ func TestNewExec(t *testing.T) {
 
 		// Run a command with a short timeout that will exceed the timeout
 		start := time.Now()
-		result, err := tool.Function(t.Context(), mustMarshalJSON(tools.ExecArgs{
+		result, err := tool.Execute(t.Context(), mustMarshalJSON(tools.ExecArgs{
 			Command: "sleep",
 			Args:    []string{"5"},
 			Timeout: 1, // 1 second timeout
@@ -160,7 +160,7 @@ func TestNewExec(t *testing.T) {
 		tool := tools.NewExec()
 
 		// Execute a command that produces no output
-		result, err := tool.Function(t.Context(), mustMarshalJSON(tools.ExecArgs{
+		result, err := tool.Execute(t.Context(), mustMarshalJSON(tools.ExecArgs{
 			Command: "true",
 		}))
 

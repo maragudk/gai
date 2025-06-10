@@ -115,7 +115,7 @@ func NewFetch(client *http.Client, completer gai.ChatCompleter) gai.Tool {
 
 			return summary, nil
 		},
-		Function: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
+		Execute: func(ctx context.Context, rawArgs json.RawMessage) (string, error) {
 			var args FetchArgs
 			if err := json.Unmarshal(rawArgs, &args); err != nil {
 				return "", fmt.Errorf("error unmarshaling fetch args from JSON: %w", err)
