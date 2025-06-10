@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"iter"
-	"strings"
 
 	"github.com/invopop/jsonschema"
 )
@@ -46,6 +45,16 @@ func NewUserTextMessage(text string) Message {
 	}
 }
 
+// NewUserDataMessage is a convenience function to create a new user data message.
+func NewUserDataMessage(mimeType string, data io.Reader) Message {
+	return Message{
+		Role: MessageRoleUser,
+		Parts: []MessagePart{
+			DataMessagePart(mimeType, data),
+		},
+	}
+}
+
 // NewModelTextMessage is a convenience function to create a new model text message.
 func NewModelTextMessage(text string) Message {
 	return Message{
@@ -79,6 +88,7 @@ const (
 type MessagePart struct {
 	Type       MessagePartType
 	Data       io.Reader
+	MIMEType   string
 	text       *string
 	toolCall   *ToolCall
 	toolResult *ToolResult
@@ -116,6 +126,7 @@ func (m MessagePart) ToolResult() ToolResult {
 type MessagePartType string
 
 const (
+	MessagePartTypeData       MessagePartType = "data"
 	MessagePartTypeText       MessagePartType = "text"
 	MessagePartTypeToolCall   MessagePartType = "tool_call"
 	MessagePartTypeToolResult MessagePartType = "tool_result"
@@ -124,8 +135,15 @@ const (
 func TextMessagePart(text string) MessagePart {
 	return MessagePart{
 		Type: MessagePartTypeText,
-		Data: strings.NewReader(text),
 		text: &text,
+	}
+}
+
+func DataMessagePart(mimeType string, data io.Reader) MessagePart {
+	return MessagePart{
+		Type:     MessagePartTypeData,
+		Data:     data,
+		MIMEType: mimeType,
 	}
 }
 
