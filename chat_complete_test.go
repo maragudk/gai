@@ -282,7 +282,7 @@ func TestGenerateSchema(t *testing.T) {
 	t.Run("unexported fields ignored", func(t *testing.T) {
 		type WithUnexported struct {
 			Public  string `json:"public"`
-			private string `json:"private"`
+			private string `json:"private"` //nolint:unused,govet // testing unexported field behavior
 		}
 
 		schema := gai.GenerateSchema[WithUnexported]()
