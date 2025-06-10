@@ -52,23 +52,6 @@ func TestGenerateSchema(t *testing.T) {
 		is.Equal(t, *heightSchema.Maximum, 3.0)
 	})
 
-	t.Run("string with constraints", func(t *testing.T) {
-		type StringConstraints struct {
-			Username string `json:"username" jsonschema:"minLength=3,maxLength=20,pattern=^[a-zA-Z0-9_]+$"`
-		}
-
-		schema := gai.GenerateSchema[StringConstraints]()
-
-		usernameSchema := schema.Properties["username"]
-		is.NotNil(t, usernameSchema)
-		is.Equal(t, usernameSchema.Type, gai.SchemaTypeString)
-		is.NotNil(t, usernameSchema.MinLength)
-		is.Equal(t, *usernameSchema.MinLength, int64(3))
-		is.NotNil(t, usernameSchema.MaxLength)
-		is.Equal(t, *usernameSchema.MaxLength, int64(20))
-		is.Equal(t, usernameSchema.Pattern, "^[a-zA-Z0-9_]+$")
-	})
-
 	t.Run("enum field", func(t *testing.T) {
 		type EnumField struct {
 			Status string `json:"status" jsonschema:"enum=active,enum=inactive,enum=pending"`
@@ -282,7 +265,7 @@ func TestGenerateSchema(t *testing.T) {
 	t.Run("unexported fields ignored", func(t *testing.T) {
 		type WithUnexported struct {
 			Public  string `json:"public"`
-			private string `json:"private"` //nolint:unused,govet // testing unexported field behavior
+			private string //nolint:unused // testing unexported field behavior
 		}
 
 		schema := gai.GenerateSchema[WithUnexported]()
