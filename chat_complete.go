@@ -158,9 +158,24 @@ func ToolCallPart(id, name string, args json.RawMessage) MessagePart {
 	}
 }
 
+type ChatCompleteResponseUsage struct {
+	PromptTokens     int
+	ThoughtsTokens   int
+	CompletionTokens int
+	TotalTokens      int // Includes PromptTokens and CompletionTokens, but not ThoughtsTokens
+}
+
+// ChatCompleteResponseMetadata contains metadata about the request and response, for example, token usage.
+type ChatCompleteResponseMetadata struct {
+	Usage ChatCompleteResponseUsage
+}
+
 // ChatCompleteResponse for [ChatCompleter].
 // Construct with [NewChatCompleteResponse].
+// Note that the [ChatCompleteResponse.Meta] field is a pointer, because it's updated continuously
+// until the streaming response with [ChatCompleteResponse.Parts] is complete.
 type ChatCompleteResponse struct {
+	Meta      *ChatCompleteResponseMetadata
 	partsFunc iter.Seq2[MessagePart, error]
 }
 
