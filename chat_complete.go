@@ -211,7 +211,7 @@ type Tool struct {
 
 // ToolSchema in JSON Schema format of the arguments the tool accepts.
 type ToolSchema struct {
-	Properties any
+	Properties map[string]*Schema
 }
 
 func GenerateToolSchema[T any]() ToolSchema {
@@ -337,6 +337,8 @@ func convertJSONSchemaToSchema(js *jsonschema.Schema) Schema {
 			s.Type = SchemaTypeArray
 		case "object":
 			s.Type = SchemaTypeObject
+		default:
+			panic("unsupported schema type " + js.Type)
 		}
 	}
 
