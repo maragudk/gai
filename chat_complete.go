@@ -162,7 +162,6 @@ type ChatCompleteResponseUsage struct {
 	PromptTokens     int
 	ThoughtsTokens   int
 	CompletionTokens int
-	TotalTokens      int // Includes PromptTokens and CompletionTokens, but not ThoughtsTokens
 }
 
 // ChatCompleteResponseMetadata contains metadata about the request and response, for example, token usage.
