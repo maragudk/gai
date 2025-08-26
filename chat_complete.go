@@ -225,17 +225,17 @@ type SchemaType string
 
 const (
 	// OpenAPI string type
-	SchemaTypeString SchemaType = "STRING"
+	SchemaTypeString SchemaType = "string"
 	// OpenAPI number type
-	SchemaTypeNumber SchemaType = "NUMBER"
+	SchemaTypeNumber SchemaType = "number"
 	// OpenAPI integer type
-	SchemaTypeInteger SchemaType = "INTEGER"
+	SchemaTypeInteger SchemaType = "integer"
 	// OpenAPI boolean type
-	SchemaTypeBoolean SchemaType = "BOOLEAN"
+	SchemaTypeBoolean SchemaType = "boolean"
 	// OpenAPI array type
-	SchemaTypeArray SchemaType = "ARRAY"
+	SchemaTypeArray SchemaType = "array"
 	// OpenAPI object type
-	SchemaTypeObject SchemaType = "OBJECT"
+	SchemaTypeObject SchemaType = "object"
 )
 
 type Schema struct {
@@ -324,18 +324,8 @@ func convertJSONSchemaToSchema(js *jsonschema.Schema) Schema {
 	// Convert type
 	if js.Type != "" {
 		switch js.Type {
-		case "string":
-			s.Type = SchemaTypeString
-		case "number":
-			s.Type = SchemaTypeNumber
-		case "integer":
-			s.Type = SchemaTypeInteger
-		case "boolean":
-			s.Type = SchemaTypeBoolean
-		case "array":
-			s.Type = SchemaTypeArray
-		case "object":
-			s.Type = SchemaTypeObject
+		case "string", "number", "integer", "boolean", "array", "object":
+			s.Type = SchemaType(js.Type)
 		default:
 			panic("unsupported schema type " + js.Type)
 		}
