@@ -23,11 +23,12 @@ func (t Temperature) Float64() float64 {
 
 // ChatCompleteRequest for a chat model.
 type ChatCompleteRequest struct {
-	Messages       []Message
-	ResponseSchema *Schema
-	System         *string
-	Temperature    *Temperature
-	Tools          []Tool
+	MaxCompletionTokens *int
+	Messages            []Message
+	ResponseSchema      *Schema
+	System              *string
+	Temperature         *Temperature
+	Tools               []Tool
 }
 
 type Message struct {
