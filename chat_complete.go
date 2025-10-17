@@ -165,9 +165,29 @@ type ChatCompleteResponseUsage struct {
 	CompletionTokens int
 }
 
+// ChatCompleteFinishReason describes why the model stopped generating tokens.
+type ChatCompleteFinishReason string
+
+const (
+	// ChatCompleteFinishReasonUnknown indicates that the provider did not supply a recognised termination code.
+	ChatCompleteFinishReasonUnknown ChatCompleteFinishReason = "unknown"
+	// ChatCompleteFinishReasonStop indicates that generation stopped naturally or due to a configured stop sequence.
+	ChatCompleteFinishReasonStop ChatCompleteFinishReason = "stop"
+	// ChatCompleteFinishReasonLength indicates that generation hit the configured token limit.
+	ChatCompleteFinishReasonLength ChatCompleteFinishReason = "length"
+	// ChatCompleteFinishReasonContentFilter indicates that a platform-level moderation filter blocked the content.
+	ChatCompleteFinishReasonContentFilter ChatCompleteFinishReason = "content_filter"
+	// ChatCompleteFinishReasonToolCalls indicates that the model requested a tool invocation mid-response.
+	ChatCompleteFinishReasonToolCalls ChatCompleteFinishReason = "tool_calls"
+	// ChatCompleteFinishReasonRefusal indicates that the model produced a refusal message of its own accord.
+	ChatCompleteFinishReasonRefusal ChatCompleteFinishReason = "refusal"
+)
+
 // ChatCompleteResponseMetadata contains metadata about the request and response, for example, token usage.
 type ChatCompleteResponseMetadata struct {
-	Usage ChatCompleteResponseUsage
+	Usage        ChatCompleteResponseUsage
+	// FinishReason is optional; nil indicates the provider omitted a finish signal entirely.
+	FinishReason *ChatCompleteFinishReason
 }
 
 // ChatCompleteResponse for [ChatCompleter].
