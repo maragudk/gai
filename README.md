@@ -397,7 +397,3 @@ Output in the file `evals.jsonl`:
 ```
 
 </details>
-
-## Evals
-
-![Evals](https://api.evals.fun/evals.svg?key=p_public_key_3cce2e69199da00dc5ae46643b42a001&branch=main)
