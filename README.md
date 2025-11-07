@@ -25,11 +25,9 @@ Made with ✨sparkles✨ by [maragu](https://www.maragu.dev/): independent softw
 
 These client implementations are available:
 
-- [gai-openai](https://github.com/maragudk/gai-openai)
-- [gai-google](https://github.com/maragudk/gai-google)
-- [gai-anthropic](https://github.com/maragudk/gai-anthropic)
-
-Also, there's an experimental agent at [gaigent](https://github.com/maragudk/gaigent).
+- [openai](./clients/openai)
+- [google](./clients/google)
+- [anthropic](./clients/anthropic)
 
 ### Examples
 
