@@ -5,11 +5,11 @@ import (
 	"testing"
 
 	"google.golang.org/genai"
-	"maragu.dev/gai"
-	"maragu.dev/gai/tools"
 	"maragu.dev/is"
 
+	"maragu.dev/gai"
 	"maragu.dev/gai/clients/google/internal/schema"
+	"maragu.dev/gai/tools"
 )
 
 func TestConvertToolToFunction(t *testing.T) {

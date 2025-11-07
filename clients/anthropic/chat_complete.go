@@ -21,7 +21,7 @@ type ChatCompleteModel string
 
 const (
 	ChatCompleteModelClaude3_5HaikuLatest  = ChatCompleteModel(anthropic.ModelClaude3_5HaikuLatest)
-	ChatCompleteModelClaude3_7SonnetLatest = ChatCompleteModel(anthropic.ModelClaude3_7SonnetLatest)
+	ChatCompleteModelClaude3_7SonnetLatest = ChatCompleteModel(anthropic.ModelClaude3_7SonnetLatest) //nolint:staticcheck // SA1019: deprecated model still supported for now
 	ChatCompleteModelClaude4OpusLatest     = ChatCompleteModel(anthropic.ModelClaude4Opus20250514)
 	ChatCompleteModelClaude4SonnetLatest   = ChatCompleteModel(anthropic.ModelClaude4Sonnet20250514)
 )

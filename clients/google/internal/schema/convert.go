@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"google.golang.org/genai"
+
 	"maragu.dev/gai"
 )
 
