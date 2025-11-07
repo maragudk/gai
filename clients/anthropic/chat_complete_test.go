@@ -39,9 +39,10 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			}
 		}
 
-		is.Equal(t, "Hello! How are you doing today? Is there anything I can help you with?", output)
+		is.True(t, strings.Contains(strings.ToLower(output), "hello"), output)
+		is.True(t, strings.Contains(strings.ToLower(output), "help") || strings.Contains(strings.ToLower(output), "assist"), output)
 
-		req.Messages = append(req.Messages, gai.NewModelTextMessage("Hello! How are you doing today? Is there anything I can help you with?"))
+		req.Messages = append(req.Messages, gai.NewModelTextMessage(output))
 		req.Messages = append(req.Messages, gai.NewUserTextMessage("What does the acronym AI stand for? Be brief."))
 
 		res, err = cc.ChatComplete(t.Context(), req)
@@ -59,7 +60,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 				t.Fatal("unexpected message parts")
 			}
 		}
-		is.Equal(t, "AI stands for Artificial Intelligence.", output)
+		is.True(t, strings.Contains(strings.ToLower(output), "artificial intelligence"), output)
 	})
 
 	t.Run("can use a tool", func(t *testing.T) {
@@ -115,7 +116,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			}
 		}
 
-		is.Equal(t, "I'll read the contents of the readme.txt file for you.", output)
+		// Anthropic may provide explanatory text before tool calls
 		is.True(t, found, "tool not found")
 		is.Equal(t, "Hi!\n", result.Content)
 		is.NotError(t, result.Err)
@@ -198,7 +199,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			}
 		}
 
-		is.Equal(t, "I'll help you list the contents of the current directory. I'll use the `list_dir` function to show you what files and directories are present.", output)
+		// Anthropic may provide explanatory text before tool calls
 		is.True(t, found, "tool not found")
 		is.Equal(t, `["readme.txt"]`, result.Content)
 		is.NotError(t, result.Err)
@@ -231,7 +232,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			}
 		}
 
-		is.True(t, strings.Contains(output, "Bonjour ! Comment allez-vous aujourd'hui ?"), output)
+		is.True(t, strings.Contains(strings.ToLower(output), "bonjour"), output)
 	})
 }
 
