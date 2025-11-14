@@ -29,10 +29,14 @@ jobs:
           check-latest: true
 
       - name: Build
-        run: go build -v ./...
+        run: go build ./...
 
       - name: Test
-        run: go test -v -shuffle on ./...
+        run: go test -shuffle on ./...
+        env:
+          ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_KEY }}
+          GOOGLE_KEY: ${{ secrets.GOOGLE_KEY }}
+          OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
 
   evaluate:
     name: Evaluate
@@ -53,19 +57,8 @@ jobs:
         run: |
           go test -run TestEval ./...
           jq -s '{"Branch": "${{ github.ref_name }}", "Evals": .}' evals.jsonl > evals.json
-          curl -X POST -H "Content-Type: application/json" -H "Authorization: Bearer ${{ secrets.EVALS_FUN_SECRET_KEY }}" -d @evals.json https://api.evals.fun/evals
-
-      - name: Add evals comment to PR
-        uses: actions/github-script@v8
-        if: ${{ github.event_name == 'pull_request' }}
-        with:
-          script: |
-            github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: `# Evals\n\n![Evals](https://api.evals.fun/evals.svg?key=${{ secrets.EVALS_FUN_PUBLIC_KEY }}&branch=${{ github.ref_name }}&cacheKey=${{ github.sha }})`
-            })
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_KEY }}
 
   lint:
     name: Lint

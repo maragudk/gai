@@ -185,7 +185,7 @@ const (
 
 // ChatCompleteResponseMetadata contains metadata about the request and response, for example, token usage.
 type ChatCompleteResponseMetadata struct {
-	Usage        ChatCompleteResponseUsage
+	Usage ChatCompleteResponseUsage
 	// FinishReason is optional; nil indicates the provider omitted a finish signal entirely.
 	FinishReason *ChatCompleteFinishReason
 }
