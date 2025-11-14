@@ -58,9 +58,7 @@ jobs:
           go test -run TestEval ./...
           jq -s '{"Branch": "${{ github.ref_name }}", "Evals": .}' evals.jsonl > evals.json
         env:
-          ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_KEY }}
-          GOOGLE_KEY: ${{ secrets.GOOGLE_KEY }}
-          OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_KEY }}
 
   lint:
     name: Lint
