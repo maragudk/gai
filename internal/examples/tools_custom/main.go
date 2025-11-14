@@ -9,7 +9,7 @@ import (
 	"os"
 
 	"maragu.dev/gai"
-	openai "maragu.dev/gai-openai"
+	"maragu.dev/gai/clients/openai"
 )
 
 type EatArgs struct {
