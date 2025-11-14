@@ -47,7 +47,7 @@ import (
 	"time"
 
 	"maragu.dev/gai"
-	openai "maragu.dev/gai-openai"
+	"maragu.dev/gai/clients/openai"
 	"maragu.dev/gai/tools"
 )
 
@@ -167,7 +167,7 @@ import (
 	"os"
 
 	"maragu.dev/gai"
-	openai "maragu.dev/gai-openai"
+	"maragu.dev/gai/clients/openai"
 )
 
 type EatArgs struct {
@@ -314,7 +314,7 @@ import (
 	"testing"
 
 	"maragu.dev/gai"
-	openai "maragu.dev/gai-openai"
+	"maragu.dev/gai/clients/openai"
 	"maragu.dev/gai/eval"
 )
 
