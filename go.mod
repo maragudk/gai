@@ -4,7 +4,7 @@ go 1.24.0
 
 require (
 	github.com/agnivade/levenshtein v1.2.1
-	github.com/anthropics/anthropic-sdk-go v1.19.0
+	github.com/anthropics/anthropic-sdk-go v1.22.0
 	github.com/invopop/jsonschema v0.13.0
 	github.com/openai/openai-go v1.12.0
 	go.opentelemetry.io/otel v1.39.0

@@ -20,10 +20,14 @@ import (
 type ChatCompleteModel string
 
 const (
-	ChatCompleteModelClaude3_5HaikuLatest  = ChatCompleteModel(anthropic.ModelClaude3_5HaikuLatest)
+	ChatCompleteModelClaude3_5HaikuLatest  = ChatCompleteModel(anthropic.ModelClaude3_5HaikuLatest)  //nolint:staticcheck // SA1019: deprecated model still supported for now
 	ChatCompleteModelClaude3_7SonnetLatest = ChatCompleteModel(anthropic.ModelClaude3_7SonnetLatest) //nolint:staticcheck // SA1019: deprecated model still supported for now
 	ChatCompleteModelClaude4OpusLatest     = ChatCompleteModel(anthropic.ModelClaude4Opus20250514)
 	ChatCompleteModelClaude4SonnetLatest   = ChatCompleteModel(anthropic.ModelClaude4Sonnet20250514)
+	ChatCompleteModelClaude4_5HaikuLatest  = ChatCompleteModel(anthropic.ModelClaudeHaiku4_5)
+	ChatCompleteModelClaude4_5SonnetLatest = ChatCompleteModel(anthropic.ModelClaudeSonnet4_5)
+	ChatCompleteModelClaude4_5OpusLatest   = ChatCompleteModel(anthropic.ModelClaudeOpus4_5)
+	ChatCompleteModelClaude4_6OpusLatest   = ChatCompleteModel(anthropic.ModelClaudeOpus4_6)
 )
 
 type ChatCompleter struct {
