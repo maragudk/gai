@@ -11,6 +11,7 @@ import (
 )
 
 // ThinkingLevel controls how much reasoning effort the model applies.
+// Not all levels are supported by all providers; unsupported levels will panic.
 type ThinkingLevel string
 
 const (
