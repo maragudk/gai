@@ -201,7 +201,7 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 		case gai.ThinkingLevelXHigh:
 			params.ReasoningEffort = shared.ReasoningEffort("xhigh")
 		default:
-			panic("unsupported thinking level for OpenAI: " + string(*req.ThinkingLevel))
+			panic("unsupported thinking level: " + string(*req.ThinkingLevel))
 		}
 		span.SetAttributes(attribute.String("ai.thinking_level", string(*req.ThinkingLevel)))
 	}

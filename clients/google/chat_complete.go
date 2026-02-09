@@ -92,7 +92,7 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 		case gai.ThinkingLevelHigh:
 			level = genai.ThinkingLevelHigh
 		default:
-			panic("unsupported thinking level for Google: " + string(*req.ThinkingLevel))
+			panic("unsupported thinking level: " + string(*req.ThinkingLevel))
 		}
 		config.ThinkingConfig = &genai.ThinkingConfig{
 			ThinkingLevel: level,

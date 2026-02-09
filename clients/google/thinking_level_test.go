@@ -45,13 +45,13 @@ func TestChatCompleter_ThinkingLevel(t *testing.T) {
 
 			if test.shouldPanic {
 				msg, ok := panicValue.(string)
-				if !ok || msg != "unsupported thinking level for Google: "+string(test.level) {
+				if !ok || msg != "unsupported thinking level: "+string(test.level) {
 					t.Fatalf("expected panic with unsupported thinking level message, got %v", panicValue)
 				}
 			} else {
 				if panicValue != nil {
 					msg, ok := panicValue.(string)
-					if ok && msg == "unsupported thinking level for Google: "+string(test.level) {
+					if ok && msg == "unsupported thinking level: "+string(test.level) {
 						t.Fatalf("unexpected panic on supported thinking level: %v", panicValue)
 					}
 				}
