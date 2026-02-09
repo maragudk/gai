@@ -21,7 +21,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			Messages: []gai.Message{
 				gai.NewUserTextMessage("Hi!"),
 			},
-			Temperature: gai.Ptr(gai.Temperature(0)),
+
 		}
 
 		res, err := cc.ChatComplete(t.Context(), req)
@@ -73,7 +73,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			Messages: []gai.Message{
 				gai.NewUserTextMessage("What is in the readme.txt file?"),
 			},
-			Temperature: gai.Ptr(gai.Temperature(0)),
+
 			Tools: []gai.Tool{
 				tools.NewReadFile(root),
 			},
@@ -161,7 +161,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			Messages: []gai.Message{
 				gai.NewUserTextMessage("What is in the current directory?"),
 			},
-			Temperature: gai.Ptr(gai.Temperature(0)),
+
 			Tools: []gai.Tool{
 				tools.NewListDir(root),
 			},
@@ -258,7 +258,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 				gai.NewUserTextMessage("Hi!"),
 			},
 			System:      gai.Ptr("You always respond in French."),
-			Temperature: gai.Ptr(gai.Temperature(0)),
+
 		}
 
 		res, err := cc.ChatComplete(t.Context(), req)
@@ -287,7 +287,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			Messages: []gai.Message{
 				gai.NewUserTextMessage("Hi!"),
 			},
-			Temperature: gai.Ptr(gai.Temperature(0)),
+
 		}
 
 		res, err := cc.ChatComplete(t.Context(), req)
