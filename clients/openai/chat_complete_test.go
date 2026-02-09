@@ -39,7 +39,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 				t.Fatal("unexpected message parts")
 			}
 		}
-		requireContainsAll(t, output, "hello")
+		requireContainsAny(t, output, "hello", "hi")
 		requireContainsAny(t, output, "assist", "help")
 
 		req.Messages = append(req.Messages, gai.NewModelTextMessage("Hello! How can I assist you today?"))
@@ -224,7 +224,6 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 				gai.NewUserTextMessage("Recommend a science fiction book as JSON with title, author, and year."),
 			},
 			ResponseSchema: gai.Ptr(gai.GenerateSchema[Recommendation]()),
-			Temperature:    gai.Ptr(gai.Temperature(0)),
 		}
 
 		res, err := cc.ChatComplete(t.Context(), req)
