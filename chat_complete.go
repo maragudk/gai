@@ -10,6 +10,27 @@ import (
 	"github.com/invopop/jsonschema"
 )
 
+// ThinkingLevel controls how much reasoning effort the model applies.
+// Not all levels are supported by all providers; unsupported levels will panic.
+type ThinkingLevel string
+
+const (
+	// ThinkingLevelNone disables thinking entirely.
+	ThinkingLevelNone ThinkingLevel = "none"
+	// ThinkingLevelMinimal applies minimal thinking.
+	ThinkingLevelMinimal ThinkingLevel = "minimal"
+	// ThinkingLevelLow applies low thinking effort.
+	ThinkingLevelLow ThinkingLevel = "low"
+	// ThinkingLevelMedium applies medium thinking effort.
+	ThinkingLevelMedium ThinkingLevel = "medium"
+	// ThinkingLevelHigh applies high thinking effort.
+	ThinkingLevelHigh ThinkingLevel = "high"
+	// ThinkingLevelXHigh applies extra-high thinking effort.
+	ThinkingLevelXHigh ThinkingLevel = "xhigh"
+	// ThinkingLevelMax applies maximum thinking effort.
+	ThinkingLevelMax ThinkingLevel = "max"
+)
+
 type Temperature float64
 
 // String satisfies [fmt.Stringer].
@@ -28,6 +49,7 @@ type ChatCompleteRequest struct {
 	ResponseSchema      *Schema
 	System              *string
 	Temperature         *Temperature
+	ThinkingLevel       *ThinkingLevel
 	Tools               []Tool
 }
 

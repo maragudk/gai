@@ -60,6 +60,11 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 		panic("no messages")
 	}
 
+	if req.ThinkingLevel != nil {
+		span.SetAttributes(attribute.String("ai.thinking_level", string(*req.ThinkingLevel)))
+		panic("unsupported thinking level: " + string(*req.ThinkingLevel))
+	}
+
 	var messages []anthropic.MessageParam
 	for _, m := range req.Messages {
 		var parts []anthropic.ContentBlockParamUnion

@@ -80,6 +80,25 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 		config.MaxOutputTokens = int32(*req.MaxCompletionTokens)
 		span.SetAttributes(attribute.Int("ai.max_completion_tokens", *req.MaxCompletionTokens))
 	}
+	if req.ThinkingLevel != nil {
+		var level genai.ThinkingLevel
+		switch *req.ThinkingLevel {
+		case gai.ThinkingLevelMinimal:
+			level = genai.ThinkingLevelMinimal
+		case gai.ThinkingLevelLow:
+			level = genai.ThinkingLevelLow
+		case gai.ThinkingLevelMedium:
+			level = genai.ThinkingLevelMedium
+		case gai.ThinkingLevelHigh:
+			level = genai.ThinkingLevelHigh
+		default:
+			panic("unsupported thinking level: " + string(*req.ThinkingLevel))
+		}
+		config.ThinkingConfig = &genai.ThinkingConfig{
+			ThinkingLevel: level,
+		}
+		span.SetAttributes(attribute.String("ai.thinking_level", string(*req.ThinkingLevel)))
+	}
 
 	if len(req.Tools) > 0 {
 		tools, err := schema.ConvertTools(req.Tools)

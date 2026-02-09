@@ -186,6 +186,25 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 		params.Temperature = openai.Opt(req.Temperature.Float64())
 		span.SetAttributes(attribute.Float64("ai.temperature", req.Temperature.Float64()))
 	}
+	if req.ThinkingLevel != nil {
+		switch *req.ThinkingLevel {
+		case gai.ThinkingLevelNone:
+			params.ReasoningEffort = shared.ReasoningEffort("none")
+		case gai.ThinkingLevelMinimal:
+			params.ReasoningEffort = shared.ReasoningEffort("minimal")
+		case gai.ThinkingLevelLow:
+			params.ReasoningEffort = shared.ReasoningEffortLow
+		case gai.ThinkingLevelMedium:
+			params.ReasoningEffort = shared.ReasoningEffortMedium
+		case gai.ThinkingLevelHigh:
+			params.ReasoningEffort = shared.ReasoningEffortHigh
+		case gai.ThinkingLevelXHigh:
+			params.ReasoningEffort = shared.ReasoningEffort("xhigh")
+		default:
+			panic("unsupported thinking level: " + string(*req.ThinkingLevel))
+		}
+		span.SetAttributes(attribute.String("ai.thinking_level", string(*req.ThinkingLevel)))
+	}
 
 	if req.ResponseSchema != nil {
 		normalized := normalizeToolSchema(req.ResponseSchema)
