@@ -45,8 +45,8 @@ func TestChatCompleter_ThinkingLevel(t *testing.T) {
 
 			if test.shouldPanic {
 				msg, ok := panicValue.(string)
-				if !ok || msg != "thinking levels not yet supported for Anthropic, waiting for SDK support" {
-					t.Fatalf("expected panic with unsupported message, got %v", panicValue)
+				if !ok || msg != "unsupported thinking level for Anthropic: "+string(test.level) {
+					t.Fatalf("expected panic with unsupported thinking level message, got %v", panicValue)
 				}
 			}
 		})
