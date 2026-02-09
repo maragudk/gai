@@ -316,7 +316,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 func newChatCompleter(t *testing.T) *openai.ChatCompleter {
 	c := newClient(t)
 	cc := c.NewChatCompleter(openai.NewChatCompleterOptions{
-		Model: openai.ChatCompleteModelGPT4oMini,
+		Model: openai.ChatCompleteModelGPT5Nano,
 	})
 	return cc
 }

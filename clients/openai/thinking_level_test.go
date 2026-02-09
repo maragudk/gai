@@ -28,7 +28,7 @@ func TestChatCompleter_ThinkingLevel(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			cc := &ChatCompleter{
 				log:    slog.New(slog.DiscardHandler),
-				model:  ChatCompleteModelGPT4oMini,
+				model:  ChatCompleteModelGPT5Nano,
 				tracer: otel.Tracer("test"),
 			}
 
