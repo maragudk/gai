@@ -8,8 +8,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/openai/openai-go"
-	"github.com/openai/openai-go/shared"
+	"github.com/openai/openai-go/v3"
+	"github.com/openai/openai-go/v3/shared"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -125,12 +125,14 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 					toolCall := part.ToolCall()
 					messages = append(messages, openai.ChatCompletionMessageParamUnion{
 						OfAssistant: &openai.ChatCompletionAssistantMessageParam{
-							ToolCalls: []openai.ChatCompletionMessageToolCallParam{
+							ToolCalls: []openai.ChatCompletionMessageToolCallUnionParam{
 								{
-									ID: toolCall.ID,
-									Function: openai.ChatCompletionMessageToolCallFunctionParam{
-										Name:      toolCall.Name,
-										Arguments: string(toolCall.Args),
+									OfFunction: &openai.ChatCompletionMessageFunctionToolCallParam{
+										ID: toolCall.ID,
+										Function: openai.ChatCompletionMessageFunctionToolCallFunctionParam{
+											Name:      toolCall.Name,
+											Arguments: string(toolCall.Args),
+										},
 									},
 								},
 							},
@@ -152,19 +154,17 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 		}
 	}
 
-	var tools []openai.ChatCompletionToolParam
+	var tools []openai.ChatCompletionToolUnionParam
 	var toolNames []string
 	for _, tool := range req.Tools {
-		tools = append(tools, openai.ChatCompletionToolParam{
-			Function: openai.FunctionDefinitionParam{
-				Name:        tool.Name,
-				Description: openai.String(tool.Description),
-				Parameters: openai.FunctionParameters{
-					"type":       "object",
-					"properties": normalizeToolSchemaProperties(tool.Schema.Properties),
-				},
+		tools = append(tools, openai.ChatCompletionFunctionTool(openai.FunctionDefinitionParam{
+			Name:        tool.Name,
+			Description: openai.String(tool.Description),
+			Parameters: openai.FunctionParameters{
+				"type":       "object",
+				"properties": normalizeToolSchemaProperties(tool.Schema.Properties),
 			},
-		})
+		}))
 		toolNames = append(toolNames, tool.Name)
 	}
 	sort.Strings(toolNames)
