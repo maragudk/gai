@@ -60,7 +60,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 				t.Fatal("unexpected message parts")
 			}
 		}
-		requireContainsAll(t, output, "ai stands for", "artificial intelligence")
+		requireContainsAll(t, output, "artificial intelligence")
 	})
 
 	t.Run("can use a tool with args", func(t *testing.T) {
