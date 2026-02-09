@@ -26,10 +26,10 @@ const (
 	ChatCompleteModelGPT5      = ChatCompleteModel(openai.ChatModelGPT5)
 	ChatCompleteModelGPT5Mini  = ChatCompleteModel(openai.ChatModelGPT5Mini)
 	ChatCompleteModelGPT5Nano  = ChatCompleteModel(openai.ChatModelGPT5Nano)
-	ChatCompleteModelGPT51     = ChatCompleteModel(openai.ChatModelGPT5_1)
-	ChatCompleteModelGPT51Mini = ChatCompleteModel(openai.ChatModelGPT5_1Mini)
-	ChatCompleteModelGPT52     = ChatCompleteModel(openai.ChatModelGPT5_2)
-	ChatCompleteModelGPT52Pro  = ChatCompleteModel(openai.ChatModelGPT5_2Pro)
+	ChatCompleteModelGPT5_1     = ChatCompleteModel(openai.ChatModelGPT5_1)
+	ChatCompleteModelGPT5_1Mini = ChatCompleteModel(openai.ChatModelGPT5_1Mini)
+	ChatCompleteModelGPT5_2     = ChatCompleteModel(openai.ChatModelGPT5_2)
+	ChatCompleteModelGPT5_2Pro  = ChatCompleteModel(openai.ChatModelGPT5_2Pro)
 )
 
 type ChatCompleter struct {
