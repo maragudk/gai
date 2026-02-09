@@ -56,6 +56,10 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 		),
 	)
 
+	if req.ThinkingLevel != nil {
+		panic("thinking levels not yet supported for Anthropic, waiting for SDK support")
+	}
+
 	if len(req.Messages) == 0 {
 		panic("no messages")
 	}
