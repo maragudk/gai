@@ -9,7 +9,7 @@ require (
 	github.com/openai/openai-go/v3 v3.19.0
 	go.opentelemetry.io/otel v1.40.0
 	go.opentelemetry.io/otel/trace v1.40.0
-	google.golang.org/genai v1.44.0
+	google.golang.org/genai v1.46.0
 	maragu.dev/env v0.2.0
 	maragu.dev/errors v0.3.0
 	maragu.dev/is v0.3.1
