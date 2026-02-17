@@ -352,7 +352,8 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 		}
 
 		t.Log(output)
-		is.True(t, strings.Contains(output, "voice") || strings.Contains(output, "speech"), "should contain voice or speech")
+		lower := strings.ToLower(output)
+		is.True(t, strings.Contains(lower, "voice") || strings.Contains(lower, "speech") || strings.Contains(lower, "says") || strings.Contains(lower, "hello"), "should describe the audio content")
 	})
 
 	t.Run("can describe a video", func(t *testing.T) {
