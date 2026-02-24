@@ -146,12 +146,12 @@ Executes the provided command with the specified arguments and returns the outpu
 					if result.Len() > 0 {
 						result.WriteString("\n")
 					}
-					result.WriteString(fmt.Sprintf("Command exited with status %d\n", exitErr.ExitCode()))
+					fmt.Fprintf(&result, "Command exited with status %d\n", exitErr.ExitCode())
 				} else {
 					if result.Len() > 0 {
 						result.WriteString("\n")
 					}
-					result.WriteString(fmt.Sprintf("ERROR: %s\n", err.Error()))
+					fmt.Fprintf(&result, "ERROR: %s\n", err.Error())
 				}
 				return result.String(), err
 			}
