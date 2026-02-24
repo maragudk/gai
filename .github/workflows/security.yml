@@ -25,7 +25,6 @@ jobs:
 
       - uses: actions/setup-go@v6
         with:
-          go-version-file: go.mod
-          check-latest: true
+          go-version: stable
 
       - run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
