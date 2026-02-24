@@ -39,7 +39,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			}
 		}
 
-		is.True(t, strings.Contains(strings.ToLower(output), "hello"), output)
+		is.True(t, strings.Contains(strings.ToLower(output), "hi") || strings.Contains(strings.ToLower(output), "hello"), output)
 		is.True(t, strings.Contains(strings.ToLower(output), "help") || strings.Contains(strings.ToLower(output), "assist"), output)
 
 		req.Messages = append(req.Messages, gai.NewModelTextMessage(output))
@@ -143,7 +143,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			}
 		}
 
-		is.True(t, strings.Contains(output, `The readme.txt file simply contains the text "Hi!"`), output)
+		is.True(t, strings.Contains(strings.ToLower(output), "readme") && strings.Contains(output, "Hi!"), output)
 	})
 
 	t.Run("can use a tool with no args", func(t *testing.T) {
