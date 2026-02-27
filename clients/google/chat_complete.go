@@ -45,7 +45,7 @@ func (c *Client) NewChatCompleter(opts NewChatCompleterOptions) *ChatCompleter {
 		Client: c.Client,
 		log:    c.log,
 		model:  opts.Model,
-		tracer: otel.Tracer("maragu.dev/gai-google"),
+		tracer: otel.Tracer("maragu.dev/gai/clients/google"),
 	}
 }
 
