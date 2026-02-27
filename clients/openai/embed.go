@@ -55,7 +55,7 @@ func (c *Client) NewEmbedder(opts NewEmbedderOptions) *Embedder {
 		dimensions: opts.Dimensions,
 		log:        c.log,
 		model:      opts.Model,
-		tracer:     otel.Tracer("maragu.dev/gai-openai"),
+		tracer:     otel.Tracer("maragu.dev/gai/clients/openai"),
 	}
 }
 
