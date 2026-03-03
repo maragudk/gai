@@ -4,7 +4,7 @@ go 1.24.0
 
 require (
 	github.com/agnivade/levenshtein v1.2.1
-	github.com/anthropics/anthropic-sdk-go v1.22.1
+	github.com/anthropics/anthropic-sdk-go v1.26.0
 	github.com/invopop/jsonschema v0.13.0
 	github.com/openai/openai-go/v3 v3.22.0
 	go.opentelemetry.io/otel v1.40.0
@@ -41,6 +41,7 @@ require (
 	go.opentelemetry.io/otel/metric v1.40.0 // indirect
 	golang.org/x/crypto v0.45.0 // indirect
 	golang.org/x/net v0.47.0 // indirect
+	golang.org/x/sync v0.18.0 // indirect
 	golang.org/x/sys v0.38.0 // indirect
 	golang.org/x/text v0.31.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250512202823-5a2f75b736a9 // indirect
