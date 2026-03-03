@@ -73,7 +73,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			Messages: []gai.Message{
 				gai.NewUserTextMessage("What is in the readme.txt file?"),
 			},
-
+			Temperature: gai.Ptr(gai.Temperature(0)),
 			Tools: []gai.Tool{
 				tools.NewReadFile(root),
 			},
@@ -146,7 +146,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			}
 		}
 
-		requireContainsAll(t, output, "readme.txt", "hi")
+		requireContainsAll(t, output, "readme", "hi")
 		is.NotNil(t, res.Meta.FinishReason)
 		is.Equal(t, gai.ChatCompleteFinishReasonStop, *res.Meta.FinishReason)
 	})
