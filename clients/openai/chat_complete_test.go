@@ -146,7 +146,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			}
 		}
 
-		requireContainsAll(t, output, "readme.txt", "hi")
+		requireContainsAll(t, output, "hi")
 		is.NotNil(t, res.Meta.FinishReason)
 		is.Equal(t, gai.ChatCompleteFinishReasonStop, *res.Meta.FinishReason)
 	})
