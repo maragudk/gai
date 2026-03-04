@@ -37,6 +37,7 @@ func skipIfNotEvaluating(t skipper) {
 // Run an evaluation.
 // Behaves similar to [testing.T.Run], except it skips the test if "go test" is not being run with "-test.run=TestEval".
 // The evaluation function [f] is passed an [E] to help with scoring, logging, etc.
+// It is safe to call [testing.T.Parallel] inside [f], as [E] methods are safe for concurrent use.
 func Run(t *testing.T, name string, f func(t *testing.T, e *E)) {
 	t.Helper()
 
@@ -83,6 +84,7 @@ var evalsFileOnce sync.Once
 
 // Log a [Sample] and [Result]-s to evals.jsonl.
 // This effectively logs the eval name, sample, and results, along with timing information.
+// Log is safe for concurrent use from parallel tests.
 // TODO include token information?
 func (e *E) Log(s Sample, rs ...Result) {
 	e.t.Helper()
