@@ -6,7 +6,7 @@ require (
 	github.com/agnivade/levenshtein v1.2.1
 	github.com/anthropics/anthropic-sdk-go v1.26.0
 	github.com/invopop/jsonschema v0.13.0
-	github.com/openai/openai-go/v3 v3.22.0
+	github.com/openai/openai-go/v3 v3.24.0
 	go.opentelemetry.io/otel v1.41.0
 	go.opentelemetry.io/otel/trace v1.41.0
 	google.golang.org/genai v1.48.0
