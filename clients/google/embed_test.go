@@ -29,6 +29,24 @@ func TestEmbedder_Embed(t *testing.T) {
 		is.Equal(t, 768, len(res.Embedding))
 	})
 
+	t.Run("can embed an image", func(t *testing.T) {
+		c := newClient(t)
+
+		e := c.NewEmbedder(google.NewEmbedderOptions{
+			Model:      google.EmbedModelGeminiEmbedding2Preview,
+			Dimensions: 768,
+		})
+
+		req := gai.EmbedRequest{
+			Parts: []gai.MessagePart{gai.DataMessagePart("image/jpeg", bytes.NewReader(image))},
+		}
+
+		res, err := e.Embed(t.Context(), req)
+		is.NotError(t, err)
+
+		is.Equal(t, 768, len(res.Embedding))
+	})
+
 	t.Run("can embed audio", func(t *testing.T) {
 		c := newClient(t)
 
