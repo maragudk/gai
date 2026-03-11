@@ -41,7 +41,7 @@ func main() {
 		return
 	}
 
-	var parts []gai.MessagePart
+	var parts []gai.Part
 	var result gai.ToolResult
 
 	for part, err := range res.Parts() {
@@ -53,10 +53,10 @@ func main() {
 		parts = append(parts, part)
 
 		switch part.Type {
-		case gai.MessagePartTypeText:
+		case gai.PartTypeText:
 			fmt.Print(part.Text())
 
-		case gai.MessagePartTypeToolCall:
+		case gai.PartTypeToolCall:
 			toolCall := part.ToolCall()
 			for _, tool := range req.Tools {
 				if tool.Name != toolCall.Name {
@@ -99,7 +99,7 @@ func main() {
 		}
 
 		switch part.Type {
-		case gai.MessagePartTypeText:
+		case gai.PartTypeText:
 			fmt.Print(part.Text())
 		}
 	}

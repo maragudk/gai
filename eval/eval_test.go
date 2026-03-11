@@ -263,8 +263,8 @@ func (m *mockChatCompleter) ChatComplete(ctx context.Context, req gai.ChatComple
 	response := m.responses["any"]
 
 	return gai.NewChatCompleteResponse(
-		func(yield func(gai.MessagePart, error) bool) {
-			yield(gai.TextMessagePart(response), nil)
+		func(yield func(gai.Part, error) bool) {
+			yield(gai.TextPart(response), nil)
 		},
 	), nil
 }

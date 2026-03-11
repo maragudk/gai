@@ -25,8 +25,8 @@ func (m *mockChatCompleter) ChatComplete(ctx context.Context, req gai.ChatComple
 	markdownText := "MARKDOWN: " + html
 
 	// Create a sequence function that yields a single markdown part
-	partsFunc := func(yield func(gai.MessagePart, error) bool) {
-		part := gai.TextMessagePart(markdownText)
+	partsFunc := func(yield func(gai.Part, error) bool) {
+		part := gai.TextPart(markdownText)
 		yield(part, nil)
 		// No need to signal end with EOF
 	}

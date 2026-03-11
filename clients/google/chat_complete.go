@@ -148,10 +148,10 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 
 		for _, part := range m.Parts {
 			switch part.Type {
-			case gai.MessagePartTypeText:
+			case gai.PartTypeText:
 				content.Parts = append(content.Parts, &genai.Part{Text: part.Text()})
 
-			case gai.MessagePartTypeToolCall:
+			case gai.PartTypeToolCall:
 				toolCall := part.ToolCall()
 				args := make(map[string]any)
 				if err := json.Unmarshal(toolCall.Args, &args); err != nil {
@@ -163,7 +163,7 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 				part.FunctionCall.ID = toolCall.ID
 				content.Parts = append(content.Parts, part)
 
-			case gai.MessagePartTypeToolResult:
+			case gai.PartTypeToolResult:
 				toolResult := part.ToolResult()
 				res := map[string]any{"output": toolResult.Content}
 				if toolResult.Err != nil {
@@ -173,7 +173,7 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 				part.FunctionResponse.ID = toolResult.ID
 				content.Parts = append(content.Parts, part)
 
-			case gai.MessagePartTypeData:
+			case gai.PartTypeData:
 				data, err := io.ReadAll(part.Data)
 				if err != nil {
 					span.RecordError(err)
@@ -210,14 +210,14 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 
 	meta := &gai.ChatCompleteResponseMetadata{}
 
-	res := gai.NewChatCompleteResponse(func(yield func(gai.MessagePart, error) bool) {
+	res := gai.NewChatCompleteResponse(func(yield func(gai.Part, error) bool) {
 		defer span.End()
 
 		for chunk, err := range chat.SendStream(ctx, lastContent.Parts...) {
 			if err != nil {
 				span.RecordError(err)
 				span.SetStatus(codes.Error, "chat stream send failed")
-				yield(gai.MessagePart{}, err)
+				yield(gai.Part{}, err)
 				return
 			}
 
@@ -245,7 +245,7 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 
 			for _, part := range chunk.Candidates[0].Content.Parts {
 				if part.Text != "" {
-					if !yield(gai.TextMessagePart(part.Text), nil) {
+					if !yield(gai.TextPart(part.Text), nil) {
 						return
 					}
 				}
@@ -255,7 +255,7 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 					if err != nil {
 						span.RecordError(err)
 						span.SetStatus(codes.Error, "response tool call args marshal failed")
-						yield(gai.MessagePart{}, fmt.Errorf("error marshaling response tool call args: %w", err))
+						yield(gai.Part{}, fmt.Errorf("error marshaling response tool call args: %w", err))
 						return
 					}
 					id := part.FunctionCall.ID
