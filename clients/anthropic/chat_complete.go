@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"io"
 	"log/slog"
 	"sort"
 	"strings"
@@ -117,14 +116,7 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 				})
 
 			case gai.PartTypeData:
-				data, err := io.ReadAll(part.Data)
-				if err != nil {
-					span.RecordError(err)
-					span.SetStatus(codes.Error, "data read failed")
-					return gai.ChatCompleteResponse{}, fmt.Errorf("error reading request data: %w", err)
-				}
-
-				encoded := base64.StdEncoding.EncodeToString(data)
+				encoded := base64.StdEncoding.EncodeToString(part.Data)
 
 				switch {
 				case strings.HasPrefix(part.MIMEType, "image/"):

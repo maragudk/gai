@@ -1,7 +1,6 @@
 package openai_test
 
 import (
-	"bytes"
 	_ "embed"
 	"encoding/json"
 	"os"
@@ -318,7 +317,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 
 		req := gai.ChatCompleteRequest{
 			Messages: []gai.Message{
-				gai.NewUserDataMessage("image/jpeg", bytes.NewReader(image)),
+				gai.NewUserDataMessage("image/jpeg", image),
 			},
 			System: gai.Ptr("Describe this image concisely."),
 		}

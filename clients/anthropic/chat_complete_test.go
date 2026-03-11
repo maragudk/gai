@@ -1,7 +1,6 @@
 package anthropic_test
 
 import (
-	"bytes"
 	_ "embed"
 	"os"
 	"strings"
@@ -245,7 +244,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 
 		req := gai.ChatCompleteRequest{
 			Messages: []gai.Message{
-				gai.NewUserDataMessage("image/jpeg", bytes.NewReader(image)),
+				gai.NewUserDataMessage("image/jpeg", image),
 			},
 			System:      gai.Ptr("Describe this image concisely."),
 			Temperature: gai.Ptr(gai.Temperature(0)),
