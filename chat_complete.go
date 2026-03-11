@@ -172,6 +172,12 @@ const (
 	MessagePartTypeToolResult = PartTypeToolResult
 )
 
+// Deprecated: Use [TextPart] instead.
+func TextMessagePart(text string) Part { return TextPart(text) }
+
+// Deprecated: Use [DataPart] instead.
+func DataMessagePart(mimeType string, data io.Reader) Part { return DataPart(mimeType, data) }
+
 func TextPart(text string) Part {
 	return Part{
 		Type: PartTypeText,
