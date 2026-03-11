@@ -171,4 +171,3 @@ func CosineSimilarity[T gai.VectorComponent](a, b []T) Score {
 
 	return Score(normalizedSimilarity)
 }
-

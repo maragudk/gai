@@ -115,4 +115,3 @@ func (m *embedder) Embed(ctx context.Context, req gai.EmbedRequest) (gai.EmbedRe
 	v := req.Parts[0].Text()
 	return gai.EmbedResponse[float64]{Embedding: m.embeddings[v]}, nil
 }
-
