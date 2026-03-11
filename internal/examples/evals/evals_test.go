@@ -69,20 +69,19 @@ func TestEvalSeagull(t *testing.T) {
 // TestEvalImageDescription evaluates how well a model describes an image.
 // This demonstrates multimodal evaluation using image input and semantic similarity scoring.
 func TestEvalImageDescription(t *testing.T) {
-	gc := google.NewClient(google.NewClientOptions{
-		Key: os.Getenv("GOOGLE_API_KEY"),
-	})
-
-	cc := gc.NewChatCompleter(google.NewChatCompleterOptions{
-		Model: google.ChatCompleteModelGemini2_5Flash,
-	})
-
-	embedder := gc.NewEmbedder(google.NewEmbedderOptions{
-		Model:      google.EmbedModelGeminiEmbedding2Preview,
-		Dimensions: 768,
-	})
-
 	eval.Run(t, "describes the logo", func(t *testing.T, e *eval.E) {
+		gc := google.NewClient(google.NewClientOptions{
+			Key: os.Getenv("GOOGLE_API_KEY"),
+		})
+
+		cc := gc.NewChatCompleter(google.NewChatCompleterOptions{
+			Model: google.ChatCompleteModelGemini2_5Flash,
+		})
+
+		embedder := gc.NewEmbedder(google.NewEmbedderOptions{
+			Model:      google.EmbedModelGeminiEmbedding2Preview,
+			Dimensions: 768,
+		})
 		// Send the image to the model and ask it to describe what it sees.
 		res, err := cc.ChatComplete(t.Context(), gai.ChatCompleteRequest{
 			Messages: []gai.Message{
