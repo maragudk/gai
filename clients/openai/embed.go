@@ -70,7 +70,14 @@ func (e *Embedder) Embed(ctx context.Context, req gai.EmbedRequest) (gai.EmbedRe
 	)
 	defer span.End()
 
-	v := gai.ReadAllString(req.Input)
+	if len(req.Parts) == 0 {
+		panic("no parts")
+	}
+	if len(req.Parts) != 1 || req.Parts[0].Type != gai.MessagePartTypeText {
+		panic("OpenAI embeddings only support a single text part")
+	}
+
+	v := req.Parts[0].Text()
 	span.SetAttributes(attribute.Int("ai.input_length", len(v)))
 
 	res, err := e.Client.Embeddings.New(ctx, openai.EmbeddingNewParams{

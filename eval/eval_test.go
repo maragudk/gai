@@ -250,7 +250,7 @@ type embedder struct {
 }
 
 func (m *embedder) Embed(ctx context.Context, req gai.EmbedRequest) (gai.EmbedResponse[float64], error) {
-	v := gai.ReadAllString(req.Input)
+	v := req.Parts[0].Text()
 	return gai.EmbedResponse[float64]{Embedding: m.embeddings[v]}, nil
 }
 

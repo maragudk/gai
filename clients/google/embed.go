@@ -2,6 +2,8 @@ package google
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"log/slog"
 
 	"go.opentelemetry.io/otel"
@@ -18,7 +20,8 @@ import (
 type EmbedModel string
 
 const (
-	EmbedModelGeminiEmbedding001 = EmbedModel("models/gemini-embedding-001")
+	EmbedModelGeminiEmbedding001      = EmbedModel("models/gemini-embedding-001")
+	EmbedModelGeminiEmbedding2Preview = EmbedModel("models/gemini-embedding-2-preview")
 )
 
 // Embedder satisfies [gai.Embedder] for Google Gemini models.
@@ -66,11 +69,35 @@ func (e *Embedder) Embed(ctx context.Context, req gai.EmbedRequest) (gai.EmbedRe
 	)
 	defer span.End()
 
-	v := gai.ReadAllString(req.Input)
-	span.SetAttributes(attribute.Int("ai.input_length", len(v)))
+	if len(req.Parts) == 0 {
+		panic("no parts")
+	}
+
+	var content genai.Content
+	for _, part := range req.Parts {
+		switch part.Type {
+		case gai.MessagePartTypeText:
+			content.Parts = append(content.Parts, &genai.Part{Text: part.Text()})
+		case gai.MessagePartTypeData:
+			data, err := io.ReadAll(part.Data)
+			if err != nil {
+				span.RecordError(err)
+				span.SetStatus(codes.Error, "data read failed")
+				return gai.EmbedResponse[float32]{}, fmt.Errorf("error reading request data: %w", err)
+			}
+			content.Parts = append(content.Parts, &genai.Part{
+				InlineData: &genai.Blob{
+					MIMEType: part.MIMEType,
+					Data:     data,
+				},
+			})
+		default:
+			panic("unsupported part type for embedding: " + part.Type)
+		}
+	}
 
 	dims := int32(e.dimensions)
-	res, err := e.Client.Models.EmbedContent(ctx, string(e.model), genai.Text(v), &genai.EmbedContentConfig{
+	res, err := e.Client.Models.EmbedContent(ctx, string(e.model), []*genai.Content{&content}, &genai.EmbedContentConfig{
 		OutputDimensionality: &dims,
 	})
 	if err != nil {

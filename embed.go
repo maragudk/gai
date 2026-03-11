@@ -7,7 +7,7 @@ import (
 
 // EmbedRequest for [Embedder].
 type EmbedRequest struct {
-	Input io.Reader
+	Parts []MessagePart
 }
 
 // VectorComponent is a single component of a vector.

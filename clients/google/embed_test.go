@@ -1,7 +1,6 @@
 package google_test
 
 import (
-	"strings"
 	"testing"
 
 	"maragu.dev/is"
@@ -20,7 +19,7 @@ func TestEmbedder_Embed(t *testing.T) {
 		})
 
 		req := gai.EmbedRequest{
-			Input: strings.NewReader("Embed this, please."),
+			Parts: []gai.MessagePart{gai.TextMessagePart("Embed this, please.")},
 		}
 
 		res, err := e.Embed(t.Context(), req)
