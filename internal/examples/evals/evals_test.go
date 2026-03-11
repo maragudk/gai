@@ -6,8 +6,6 @@ import (
 	"os"
 	"testing"
 
-	"maragu.dev/env"
-
 	"maragu.dev/gai"
 	"maragu.dev/gai/clients/google"
 	"maragu.dev/gai/clients/openai"
@@ -71,10 +69,8 @@ func TestEvalSeagull(t *testing.T) {
 // TestEvalImageDescription evaluates how well a model describes an image.
 // This demonstrates multimodal evaluation using image input and semantic similarity scoring.
 func TestEvalImageDescription(t *testing.T) {
-	_ = env.Load("../../../.env.test.local")
-
 	gc := google.NewClient(google.NewClientOptions{
-		Key: env.GetStringOrDefault("GOOGLE_KEY", ""),
+		Key: os.Getenv("GOOGLE_KEY"),
 	})
 
 	cc := gc.NewChatCompleter(google.NewChatCompleterOptions{
