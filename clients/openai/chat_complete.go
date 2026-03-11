@@ -103,6 +103,12 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 					continue
 
 				case gai.PartTypeData:
+					if part.MIMEType == "" {
+						panic("data part has empty MIME type")
+					}
+					if len(part.Data) == 0 {
+						panic("data part has empty data")
+					}
 					encoded := base64.StdEncoding.EncodeToString(part.Data)
 
 					switch {
@@ -116,7 +122,7 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 							},
 						})
 
-					case part.MIMEType == "audio/wav" || part.MIMEType == "audio/mp3":
+					case strings.HasPrefix(part.MIMEType, "audio/"):
 						format := strings.TrimPrefix(part.MIMEType, "audio/")
 						parts = append(parts, openai.ChatCompletionContentPartUnionParam{
 							OfInputAudio: &openai.ChatCompletionContentPartInputAudioParam{
@@ -128,14 +134,7 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 						})
 
 					default:
-						parts = append(parts, openai.ChatCompletionContentPartUnionParam{
-							OfFile: &openai.ChatCompletionContentPartFileParam{
-								File: openai.ChatCompletionContentPartFileFileParam{
-									FileData: openai.String(encoded),
-									Filename: openai.String("file"),
-								},
-							},
-						})
+						panic("unsupported MIME type for OpenAI: " + part.MIMEType)
 					}
 
 				default:

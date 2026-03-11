@@ -17,6 +17,9 @@ import (
 //go:embed testdata/logo.jpg
 var image []byte
 
+//go:embed testdata/hello.pdf
+var pdf []byte
+
 func TestChatCompleter_ChatComplete(t *testing.T) {
 	t.Run("can chat-complete", func(t *testing.T) {
 		cc := newChatCompleter(t)
@@ -340,6 +343,61 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 
 		t.Log(output)
 		is.True(t, len(output) > 0, "should have output")
+	})
+
+	t.Run("panics on unsupported MIME type", func(t *testing.T) {
+		cc := newChatCompleter(t)
+
+		defer func() {
+			r := recover()
+			is.True(t, r != nil)
+			is.Equal(t, "unsupported MIME type for OpenAI: application/pdf", r)
+		}()
+
+		req := gai.ChatCompleteRequest{
+			Messages: []gai.Message{
+				gai.NewUserDataMessage("application/pdf", pdf),
+			},
+		}
+		_, _ = cc.ChatComplete(t.Context(), req)
+	})
+
+	t.Run("panics on empty MIME type", func(t *testing.T) {
+		cc := newChatCompleter(t)
+
+		defer func() {
+			r := recover()
+			is.True(t, r != nil)
+			is.Equal(t, "data part has empty MIME type", r)
+		}()
+
+		req := gai.ChatCompleteRequest{
+			Messages: []gai.Message{
+				{Role: gai.MessageRoleUser, Parts: []gai.Part{
+					{Type: gai.PartTypeData, Data: []byte("data")},
+				}},
+			},
+		}
+		_, _ = cc.ChatComplete(t.Context(), req)
+	})
+
+	t.Run("panics on empty data", func(t *testing.T) {
+		cc := newChatCompleter(t)
+
+		defer func() {
+			r := recover()
+			is.True(t, r != nil)
+			is.Equal(t, "data part has empty data", r)
+		}()
+
+		req := gai.ChatCompleteRequest{
+			Messages: []gai.Message{
+				{Role: gai.MessageRoleUser, Parts: []gai.Part{
+					{Type: gai.PartTypeData, MIMEType: "image/jpeg"},
+				}},
+			},
+		}
+		_, _ = cc.ChatComplete(t.Context(), req)
 	})
 }
 

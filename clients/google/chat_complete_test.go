@@ -464,6 +464,44 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 		is.True(t, res.Meta.Usage.CompletionTokens > maxCompletionTokens, "should exceed limit when not constrained")
 		is.True(t, len(fullOutput) > len(limitedOutput), "should produce more output without limit")
 	})
+
+	t.Run("panics on empty MIME type", func(t *testing.T) {
+		cc := newChatCompleter(t)
+
+		defer func() {
+			r := recover()
+			is.True(t, r != nil)
+			is.Equal(t, "data part has empty MIME type", r)
+		}()
+
+		req := gai.ChatCompleteRequest{
+			Messages: []gai.Message{
+				{Role: gai.MessageRoleUser, Parts: []gai.Part{
+					{Type: gai.PartTypeData, Data: []byte("data")},
+				}},
+			},
+		}
+		_, _ = cc.ChatComplete(t.Context(), req)
+	})
+
+	t.Run("panics on empty data", func(t *testing.T) {
+		cc := newChatCompleter(t)
+
+		defer func() {
+			r := recover()
+			is.True(t, r != nil)
+			is.Equal(t, "data part has empty data", r)
+		}()
+
+		req := gai.ChatCompleteRequest{
+			Messages: []gai.Message{
+				{Role: gai.MessageRoleUser, Parts: []gai.Part{
+					{Type: gai.PartTypeData, MIMEType: "image/jpeg"},
+				}},
+			},
+		}
+		_, _ = cc.ChatComplete(t.Context(), req)
+	})
 }
 
 func newChatCompleter(t *testing.T) *google.ChatCompleter {

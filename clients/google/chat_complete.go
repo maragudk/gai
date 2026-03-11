@@ -173,6 +173,12 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 				content.Parts = append(content.Parts, part)
 
 			case gai.PartTypeData:
+				if part.MIMEType == "" {
+					panic("data part has empty MIME type")
+				}
+				if len(part.Data) == 0 {
+					panic("data part has empty data")
+				}
 				content.Parts = append(content.Parts, &genai.Part{
 					InlineData: &genai.Blob{
 						MIMEType: part.MIMEType,
