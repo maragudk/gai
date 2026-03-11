@@ -55,15 +55,15 @@ type ChatCompleteRequest struct {
 
 type Message struct {
 	Role  MessageRole
-	Parts []MessagePart
+	Parts []Part
 }
 
 // NewUserTextMessage is a convenience function to create a new user text message.
 func NewUserTextMessage(text string) Message {
 	return Message{
 		Role: MessageRoleUser,
-		Parts: []MessagePart{
-			TextMessagePart(text),
+		Parts: []Part{
+			TextPart(text),
 		},
 	}
 }
@@ -72,8 +72,8 @@ func NewUserTextMessage(text string) Message {
 func NewUserDataMessage(mimeType string, data io.Reader) Message {
 	return Message{
 		Role: MessageRoleUser,
-		Parts: []MessagePart{
-			DataMessagePart(mimeType, data),
+		Parts: []Part{
+			DataPart(mimeType, data),
 		},
 	}
 }
@@ -82,8 +82,8 @@ func NewUserDataMessage(mimeType string, data io.Reader) Message {
 func NewModelTextMessage(text string) Message {
 	return Message{
 		Role: MessageRoleModel,
-		Parts: []MessagePart{
-			TextMessagePart(text),
+		Parts: []Part{
+			TextPart(text),
 		},
 	}
 }
@@ -91,9 +91,9 @@ func NewModelTextMessage(text string) Message {
 func NewUserToolResultMessage(result ToolResult) Message {
 	return Message{
 		Role: MessageRoleUser,
-		Parts: []MessagePart{
+		Parts: []Part{
 			{
-				Type:       MessagePartTypeToolResult,
+				Type:       PartTypeToolResult,
 				toolResult: &result,
 			},
 		},
@@ -108,8 +108,8 @@ const (
 	MessageRoleModel MessageRole = "model"
 )
 
-type MessagePart struct {
-	Type       MessagePartType
+type Part struct {
+	Type       PartType
 	Data       io.Reader
 	MIMEType   string
 	text       *string
@@ -117,8 +117,8 @@ type MessagePart struct {
 	toolResult *ToolResult
 }
 
-func (m MessagePart) Text() string {
-	if m.Type != MessagePartTypeText {
+func (m Part) Text() string {
+	if m.Type != PartTypeText {
 		panic("not text type")
 	}
 	if m.text != nil {
@@ -131,48 +131,71 @@ func (m MessagePart) Text() string {
 	return string(text)
 }
 
-func (m MessagePart) ToolCall() ToolCall {
-	if m.Type != MessagePartTypeToolCall {
+func (m Part) ToolCall() ToolCall {
+	if m.Type != PartTypeToolCall {
 		panic("not tool call type")
 	}
 	return *m.toolCall
 }
 
-func (m MessagePart) ToolResult() ToolResult {
-	if m.Type != MessagePartTypeToolResult {
+func (m Part) ToolResult() ToolResult {
+	if m.Type != PartTypeToolResult {
 		panic("not tool result type")
 	}
 	return *m.toolResult
 }
 
-// MessagePartType for [MessagePart].
-type MessagePartType string
+// PartType for [Part].
+type PartType string
 
 const (
-	MessagePartTypeData       MessagePartType = "data"
-	MessagePartTypeText       MessagePartType = "text"
-	MessagePartTypeToolCall   MessagePartType = "tool_call"
-	MessagePartTypeToolResult MessagePartType = "tool_result"
+	PartTypeData       PartType = "data"
+	PartTypeText       PartType = "text"
+	PartTypeToolCall   PartType = "tool_call"
+	PartTypeToolResult PartType = "tool_result"
 )
 
-func TextMessagePart(text string) MessagePart {
-	return MessagePart{
-		Type: MessagePartTypeText,
+// Deprecated: Use [Part] instead.
+type MessagePart = Part
+
+// Deprecated: Use [PartType] instead.
+type MessagePartType = PartType
+
+const (
+	// Deprecated: Use [PartTypeData] instead.
+	MessagePartTypeData = PartTypeData
+	// Deprecated: Use [PartTypeText] instead.
+	MessagePartTypeText = PartTypeText
+	// Deprecated: Use [PartTypeToolCall] instead.
+	MessagePartTypeToolCall = PartTypeToolCall
+	// Deprecated: Use [PartTypeToolResult] instead.
+	MessagePartTypeToolResult = PartTypeToolResult
+)
+
+// Deprecated: Use [TextPart] instead.
+func TextMessagePart(text string) Part { return TextPart(text) }
+
+// Deprecated: Use [DataPart] instead.
+func DataMessagePart(mimeType string, data io.Reader) Part { return DataPart(mimeType, data) }
+
+func TextPart(text string) Part {
+	return Part{
+		Type: PartTypeText,
 		text: &text,
 	}
 }
 
-func DataMessagePart(mimeType string, data io.Reader) MessagePart {
-	return MessagePart{
-		Type:     MessagePartTypeData,
+func DataPart(mimeType string, data io.Reader) Part {
+	return Part{
+		Type:     PartTypeData,
 		Data:     data,
 		MIMEType: mimeType,
 	}
 }
 
-func ToolCallPart(id, name string, args json.RawMessage) MessagePart {
-	return MessagePart{
-		Type: MessagePartTypeToolCall,
+func ToolCallPart(id, name string, args json.RawMessage) Part {
+	return Part{
+		Type: PartTypeToolCall,
 		toolCall: &ToolCall{
 			ID:   id,
 			Name: name,
@@ -218,16 +241,16 @@ type ChatCompleteResponseMetadata struct {
 // until the streaming response with [ChatCompleteResponse.Parts] is complete.
 type ChatCompleteResponse struct {
 	Meta      *ChatCompleteResponseMetadata
-	partsFunc iter.Seq2[MessagePart, error]
+	partsFunc iter.Seq2[Part, error]
 }
 
-func NewChatCompleteResponse(partsFunc iter.Seq2[MessagePart, error]) ChatCompleteResponse {
+func NewChatCompleteResponse(partsFunc iter.Seq2[Part, error]) ChatCompleteResponse {
 	return ChatCompleteResponse{
 		partsFunc: partsFunc,
 	}
 }
 
-func (c ChatCompleteResponse) Parts() iter.Seq2[MessagePart, error] {
+func (c ChatCompleteResponse) Parts() iter.Seq2[Part, error] {
 	return c.partsFunc
 }
 

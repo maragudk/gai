@@ -75,14 +75,14 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 
 		for _, part := range m.Parts {
 			switch part.Type {
-			case gai.MessagePartTypeText:
+			case gai.PartTypeText:
 				parts = append(parts, anthropic.ContentBlockParamUnion{
 					OfText: &anthropic.TextBlockParam{
 						Text: part.Text(),
 					},
 				})
 
-			case gai.MessagePartTypeToolCall:
+			case gai.PartTypeToolCall:
 				toolCall := part.ToolCall()
 				parts = append(parts, anthropic.ContentBlockParamUnion{
 					OfToolUse: &anthropic.ToolUseBlockParam{
@@ -92,7 +92,7 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 					},
 				})
 
-			case gai.MessagePartTypeToolResult:
+			case gai.PartTypeToolResult:
 				toolResult := part.ToolResult()
 				content := toolResult.Content
 				var isError bool
@@ -184,7 +184,7 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 		Tools:       tools,
 	})
 
-	return gai.NewChatCompleteResponse(func(yield func(gai.MessagePart, error) bool) {
+	return gai.NewChatCompleteResponse(func(yield func(gai.Part, error) bool) {
 		defer span.End()
 
 		defer func() {
@@ -202,7 +202,7 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 				if !strings.Contains(err.Error(), "unexpected end of JSON input") {
 					span.RecordError(err)
 					span.SetStatus(codes.Error, "message accumulation failed")
-					yield(gai.MessagePart{}, fmt.Errorf("error accumulating message: %w", err))
+					yield(gai.Part{}, fmt.Errorf("error accumulating message: %w", err))
 					return
 				}
 			}
@@ -213,7 +213,7 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 			case anthropic.ContentBlockDeltaEvent:
 				switch delta := event.Delta.AsAny().(type) {
 				case anthropic.TextDelta:
-					if !yield(gai.TextMessagePart(delta.Text), nil) {
+					if !yield(gai.TextPart(delta.Text), nil) {
 						return
 					}
 				}
@@ -245,7 +245,7 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 		if stream.Err() != nil {
 			span.RecordError(stream.Err())
 			span.SetStatus(codes.Error, "stream error")
-			yield(gai.MessagePart{}, stream.Err())
+			yield(gai.Part{}, stream.Err())
 		}
 	}), nil
 }

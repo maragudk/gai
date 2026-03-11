@@ -63,8 +63,8 @@ type powerfulModel struct {
 
 // ChatComplete satisfies [gai.ChatCompleter].
 func (m *powerfulModel) ChatComplete(ctx context.Context, req gai.ChatCompleteRequest) (gai.ChatCompleteResponse, error) {
-	return gai.NewChatCompleteResponse(func(yield func(gai.MessagePart, error) bool) {
-		if !yield(gai.TextMessagePart(m.response), nil) {
+	return gai.NewChatCompleteResponse(func(yield func(gai.Part, error) bool) {
+		if !yield(gai.TextPart(m.response), nil) {
 			return
 		}
 	}), nil

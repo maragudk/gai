@@ -43,7 +43,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			is.NotError(t, err)
 
 			switch part.Type {
-			case gai.MessagePartTypeText:
+			case gai.PartTypeText:
 				output += part.Text()
 
 			default:
@@ -64,7 +64,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			is.NotError(t, err)
 
 			switch part.Type {
-			case gai.MessagePartTypeText:
+			case gai.PartTypeText:
 				output += part.Text()
 
 			default:
@@ -95,7 +95,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 
 		var output string
 		var found bool
-		var parts []gai.MessagePart
+		var parts []gai.Part
 		var result gai.ToolResult
 		for part, err := range res.Parts() {
 			is.NotError(t, err)
@@ -103,7 +103,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			parts = append(parts, part)
 
 			switch part.Type {
-			case gai.MessagePartTypeToolCall:
+			case gai.PartTypeToolCall:
 				toolCall := part.ToolCall()
 				for _, tool := range req.Tools {
 					if tool.Name == toolCall.Name {
@@ -119,7 +119,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 					}
 				}
 
-			case gai.MessagePartTypeText:
+			case gai.PartTypeText:
 				output += part.Text()
 
 			default:
@@ -146,7 +146,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			is.NotError(t, err)
 
 			switch part.Type {
-			case gai.MessagePartTypeText:
+			case gai.PartTypeText:
 				output += part.Text()
 
 			default:
@@ -181,7 +181,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 
 		var output string
 		var found bool
-		var parts []gai.MessagePart
+		var parts []gai.Part
 		var result gai.ToolResult
 		for part, err := range res.Parts() {
 			is.NotError(t, err)
@@ -189,7 +189,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			parts = append(parts, part)
 
 			switch part.Type {
-			case gai.MessagePartTypeToolCall:
+			case gai.PartTypeToolCall:
 				toolCall := part.ToolCall()
 				for _, tool := range req.Tools {
 					if tool.Name == toolCall.Name {
@@ -205,7 +205,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 					}
 				}
 
-			case gai.MessagePartTypeText:
+			case gai.PartTypeText:
 				output += part.Text()
 
 			default:
@@ -238,7 +238,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			is.NotError(t, err)
 
 			switch part.Type {
-			case gai.MessagePartTypeText:
+			case gai.PartTypeText:
 				output += part.Text()
 
 			default:
@@ -274,7 +274,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			is.NotError(t, err)
 
 			switch part.Type {
-			case gai.MessagePartTypeText:
+			case gai.PartTypeText:
 				output += part.Text()
 
 			default:
@@ -312,7 +312,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			is.NotError(t, err)
 
 			switch part.Type {
-			case gai.MessagePartTypeText:
+			case gai.PartTypeText:
 				output += part.Text()
 
 			default:
@@ -343,7 +343,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			is.NotError(t, err)
 
 			switch part.Type {
-			case gai.MessagePartTypeText:
+			case gai.PartTypeText:
 				output += part.Text()
 
 			default:
@@ -375,7 +375,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			is.NotError(t, err)
 
 			switch part.Type {
-			case gai.MessagePartTypeText:
+			case gai.PartTypeText:
 				output += part.Text()
 
 			default:
@@ -405,7 +405,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 		var output string
 		for part, err := range res.Parts() {
 			is.NotError(t, err)
-			if part.Type == gai.MessagePartTypeText {
+			if part.Type == gai.PartTypeText {
 				output += part.Text()
 			}
 		}
@@ -440,7 +440,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 		var limitedOutput string
 		for part, err := range res.Parts() {
 			is.NotError(t, err)
-			if part.Type == gai.MessagePartTypeText {
+			if part.Type == gai.PartTypeText {
 				limitedOutput += part.Text()
 			}
 		}
@@ -456,7 +456,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 		var fullOutput string
 		for part, err := range res.Parts() {
 			is.NotError(t, err)
-			if part.Type == gai.MessagePartTypeText {
+			if part.Type == gai.PartTypeText {
 				fullOutput += part.Text()
 			}
 		}
