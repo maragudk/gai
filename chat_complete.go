@@ -131,7 +131,7 @@ func (m Part) MarshalText() ([]byte, error) {
 	case PartTypeText:
 		return []byte(m.Text()), nil
 	case PartTypeData:
-		return []byte("[data: " + m.MIMEType + "]"), nil
+		return []byte(fmt.Sprintf("[data: %v, %v bytes]", m.MIMEType, len(m.Data))), nil
 	case PartTypeToolCall:
 		return []byte("[tool_call: " + m.toolCall.Name + "]"), nil
 	case PartTypeToolResult:
@@ -211,14 +211,15 @@ func TextPart(text string) Part {
 
 // DataPart creates a data [Part] with the given MIME type and content.
 // Data is stored as a byte slice for safe reuse across multiple reads.
+// The caller must not mutate the slice after passing it.
 // See https://github.com/maragudk/gai/issues/169.
-// Panics if mimeType is empty or data is nil.
+// Panics if mimeType is empty or data is empty.
 func DataPart(mimeType string, data []byte) Part {
 	if mimeType == "" {
 		panic("MIME type must not be empty")
 	}
-	if data == nil {
-		panic("data must not be nil")
+	if len(data) == 0 {
+		panic("data must not be empty")
 	}
 	return Part{
 		Type:     PartTypeData,
