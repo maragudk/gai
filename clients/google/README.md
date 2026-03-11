@@ -9,4 +9,4 @@
   - [x] Structured output
   - [x] Multi-modal input
   - [ ] Multi-modal output
-- [ ] Embedding
+- [x] Embedding
