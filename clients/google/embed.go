@@ -92,7 +92,7 @@ func (e *Embedder) Embed(ctx context.Context, req gai.EmbedRequest) (gai.EmbedRe
 				},
 			})
 		default:
-			panic("unsupported part type for embedding: " + part.Type)
+			panic("unsupported part type for embedding: " + string(part.Type))
 		}
 	}
 

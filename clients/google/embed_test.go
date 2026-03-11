@@ -25,6 +25,40 @@ func TestEmbedder_Embed(t *testing.T) {
 		is.Equal(t, 768, len(res.Embedding))
 	})
 
+	t.Run("panics with no parts", func(t *testing.T) {
+		c := newClient(t)
+
+		e := c.NewEmbedder(google.NewEmbedderOptions{
+			Model:      google.EmbedModelGeminiEmbedding001,
+			Dimensions: 768,
+		})
+
+		defer func() {
+			r := recover()
+			is.Equal(t, "no parts", r)
+		}()
+
+		e.Embed(t.Context(), gai.EmbedRequest{})
+	})
+
+	t.Run("panics with unsupported part type", func(t *testing.T) {
+		c := newClient(t)
+
+		e := c.NewEmbedder(google.NewEmbedderOptions{
+			Model:      google.EmbedModelGeminiEmbedding001,
+			Dimensions: 768,
+		})
+
+		defer func() {
+			r := recover()
+			is.Equal(t, "unsupported part type for embedding: tool_call", r)
+		}()
+
+		e.Embed(t.Context(), gai.EmbedRequest{
+			Parts: []gai.Part{gai.ToolCallPart("id", "name", nil)},
+		})
+	})
+
 	t.Run("can embed an image", func(t *testing.T) {
 		c := newClient(t)
 
