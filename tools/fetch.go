@@ -61,7 +61,7 @@ func (c *chatCompleterConverter) ConvertHTMLToMarkdown(ctx context.Context, html
 			convErr = fmt.Errorf("error reading response parts: %w", err)
 			break
 		}
-		if part.Type == gai.MessagePartTypeText {
+		if part.Type == gai.PartTypeText {
 			markdown.WriteString(part.Text())
 		}
 	}

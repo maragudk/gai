@@ -79,12 +79,12 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 
 			for _, part := range m.Parts {
 				switch part.Type {
-				case gai.MessagePartTypeText:
+				case gai.PartTypeText:
 					parts = append(parts, openai.ChatCompletionContentPartUnionParam{
 						OfText: &openai.ChatCompletionContentPartTextParam{Text: part.Text()},
 					})
 
-				case gai.MessagePartTypeToolResult:
+				case gai.PartTypeToolResult:
 					// Even though this is just a part, we append to messages directly
 
 					// Take existing parts and append to messages first
@@ -115,12 +115,12 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 
 			for _, part := range m.Parts {
 				switch part.Type {
-				case gai.MessagePartTypeText:
+				case gai.PartTypeText:
 					parts = append(parts, openai.ChatCompletionAssistantMessageParamContentArrayOfContentPartUnion{
 						OfText: &openai.ChatCompletionContentPartTextParam{Text: part.Text()},
 					})
 
-				case gai.MessagePartTypeToolCall:
+				case gai.PartTypeToolCall:
 					// Even though this is just a part, we append to messages directly
 
 					// Take existing parts and append to messages first
@@ -238,7 +238,7 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 
 	meta := &gai.ChatCompleteResponseMetadata{}
 
-	res := gai.NewChatCompleteResponse(func(yield func(gai.MessagePart, error) bool) {
+	res := gai.NewChatCompleteResponse(func(yield func(gai.Part, error) bool) {
 		defer span.End()
 
 		defer func() {
@@ -276,12 +276,12 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 					span.SetAttributes(attribute.String("ai.finish_reason", string(gai.ChatCompleteFinishReasonRefusal)))
 					span.RecordError(err)
 					span.SetStatus(codes.Error, "model refused request")
-					yield(gai.MessagePart{}, err)
+					yield(gai.Part{}, err)
 					return
 				}
 
 				if len(chunk.Choices) > 0 {
-					if !yield(gai.TextMessagePart(chunk.Choices[0].Delta.Content), nil) {
+					if !yield(gai.TextPart(chunk.Choices[0].Delta.Content), nil) {
 						return
 					}
 				}
@@ -313,7 +313,7 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 		if err := stream.Err(); err != nil {
 			span.RecordError(err)
 			span.SetStatus(codes.Error, "stream error")
-			yield(gai.MessagePart{}, err)
+			yield(gai.Part{}, err)
 		}
 	})
 
