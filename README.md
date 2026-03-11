@@ -391,3 +391,82 @@ Output in the file `evals.jsonl`:
 ```
 
 </details>
+
+<details>
+	<summary>Evals (multimodal)</summary>
+
+Evaluate a model's image description using multimodal semantic similarity:
+
+```go
+package evals_test
+
+import (
+	"bytes"
+	_ "embed"
+	"testing"
+
+	"maragu.dev/gai"
+	"maragu.dev/gai/clients/google"
+	"maragu.dev/gai/eval"
+)
+
+//go:embed testdata/logo.jpg
+var logo []byte
+
+// TestEvalImageDescription evaluates how well a model describes an image.
+func TestEvalImageDescription(t *testing.T) {
+	gc := google.NewClient(google.NewClientOptions{
+		Key: "your-google-api-key",
+	})
+
+	cc := gc.NewChatCompleter(google.NewChatCompleterOptions{
+		Model: google.ChatCompleteModelGemini2_0Flash,
+	})
+
+	// Use the multimodal embedder for semantic similarity scoring.
+	embedder := gc.NewEmbedder(google.NewEmbedderOptions{
+		Model:      google.EmbedModelGeminiEmbedding2Preview,
+		Dimensions: 768,
+	})
+
+	eval.Run(t, "describes the logo", func(t *testing.T, e *eval.E) {
+		// Send the image to the model and ask it to describe what it sees.
+		res, err := cc.ChatComplete(t.Context(), gai.ChatCompleteRequest{
+			Messages: []gai.Message{
+				{
+					Role: gai.MessageRoleUser,
+					Parts: []gai.Part{
+						gai.DataPart("image/jpeg", bytes.NewReader(logo)),
+						gai.TextPart("Describe this image in one sentence."),
+					},
+				},
+			},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		var output string
+		for part, err := range res.Parts() {
+			if err != nil {
+				t.Fatal(err)
+			}
+			output += part.Text()
+		}
+
+		// Create a multimodal sample: input is the image, output and expected are text descriptions.
+		sample := eval.Sample{
+			Input:    []gai.Part{gai.DataPart("image/jpeg", bytes.NewReader(logo))},
+			Output:   []gai.Part{gai.TextPart(output)},
+			Expected: []gai.Part{gai.TextPart("A cute cartoon turquoise gopher character on a pink background.")},
+		}
+
+		// Score with semantic similarity using the multimodal embedder.
+		semanticResult := e.Score(sample, eval.SemanticSimilarityScorer(t, embedder, eval.CosineSimilarity))
+
+		e.Log(sample, semanticResult)
+	})
+}
+```
+
+</details>
