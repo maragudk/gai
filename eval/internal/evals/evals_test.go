@@ -39,11 +39,7 @@ func TestEvalPing(t *testing.T) {
 		}
 
 		// Create a sample to pass to the scorer.
-		sample := eval.Sample{
-			Input:    input,
-			Output:   output,
-			Expected: "pong",
-		}
+		sample := eval.NewTextSample(input, "pong", output)
 
 		// Score the sample using a lexical similarity scorer with the Levenshtein distance.
 		lexicalSimilarityResult := e.Score(sample, eval.LexicalSimilarityScorer(eval.LevenshteinDistance))

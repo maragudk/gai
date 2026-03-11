@@ -13,10 +13,35 @@ import (
 	"maragu.dev/gai"
 )
 
+// Sample for evaluation, containing the input, expected output, and actual output.
+// Each field is a slice of [gai.Part] to support multimodal content.
+// Use [NewTextSample] for text-only samples.
 type Sample struct {
-	Expected string
-	Input    string
-	Output   string
+	Input    []gai.Part
+	Expected []gai.Part
+	Output   []gai.Part
+}
+
+// NewTextSample is a convenience function to create a text-only [Sample].
+func NewTextSample(input, expected, output string) Sample {
+	return Sample{
+		Input:    []gai.Part{gai.TextPart(input)},
+		Output:   []gai.Part{gai.TextPart(output)},
+		Expected: []gai.Part{gai.TextPart(expected)},
+	}
+}
+
+// sampleText extracts the text content from a slice of parts.
+// Panics if any part is not [gai.PartTypeText].
+func sampleText(parts []gai.Part) string {
+	var b strings.Builder
+	for _, p := range parts {
+		if p.Type != gai.PartTypeText {
+			panic("sampleText: all parts must be text, got " + string(p.Type))
+		}
+		b.WriteString(p.Text())
+	}
+	return b.String()
 }
 
 // Score between 0 and 1.
@@ -43,13 +68,12 @@ type Result struct {
 // Scorer produces a [Result] (including a [Score]) for the given [Sample].
 type Scorer = func(s Sample) Result
 
-// LexicalSimilarityScorer returns a [Scorer] which uses a lexical similarity metric to compare
-// expected and output strings from a [Sample].
-// This is a common way to score texts if you have a reference text.
+// LexicalSimilarityScorer returns a text-only [Scorer] which uses a lexical similarity metric to compare
+// expected and output text from a [Sample]. Panics if the sample contains non-text parts.
 // You can choose which similarity function to use, such as [LevenshteinDistance], [ExactMatch], or [Contains].
 func LexicalSimilarityScorer(similarityFunc func(a, b string) Score) Scorer {
 	return func(sample Sample) Result {
-		score := similarityFunc(sample.Output, sample.Expected)
+		score := similarityFunc(sampleText(sample.Output), sampleText(sample.Expected))
 		return Result{Score: score, Type: "LexicalSimilarity"}
 	}
 }
@@ -90,17 +114,17 @@ type fataler interface {
 	Fatal(args ...any)
 }
 
-// SemanticSimilarityScorer returns a [Scorer] which uses embedding vectors to compare expected and output strings from a [Sample].
+// SemanticSimilarityScorer returns a [Scorer] which uses embedding vectors to compare expected and output from a [Sample].
 // You can choose which vector similarity function to use. If in doubt, use [CosineSimilarity].
 func SemanticSimilarityScorer[T gai.VectorComponent](t fataler, e gai.Embedder[T], similarityFunc func(a, b []T) Score) Scorer {
 	return func(sample Sample) Result {
-		expected, err := e.Embed(t.Context(), gai.NewTextEmbedRequest(sample.Expected))
+		expected, err := e.Embed(t.Context(), gai.EmbedRequest{Parts: sample.Expected})
 		if err != nil {
-			t.Fatal("could not get embedding for expected string:", err)
+			t.Fatal("could not get embedding for expected:", err)
 		}
-		output, err := e.Embed(t.Context(), gai.NewTextEmbedRequest(sample.Output))
+		output, err := e.Embed(t.Context(), gai.EmbedRequest{Parts: sample.Output})
 		if err != nil {
-			t.Fatal("could not get embedding for output string:", err)
+			t.Fatal("could not get embedding for output:", err)
 		}
 
 		score := similarityFunc(expected.Embedding, output.Embedding)

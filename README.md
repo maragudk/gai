@@ -357,11 +357,7 @@ func TestEvalSeagull(t *testing.T) {
 		}
 
 		// Create a sample to pass to the scorer.
-		sample := eval.Sample{
-			Input:    input,
-			Output:   output,
-			Expected: "Oh, splendid day it is! You know, I'm just floatin' about on the breeze, keepin' an eye out for a cheeky chip or two. Might pop down to the seaside, see if I can nick a sarnie from some unsuspecting holidaymaker. It's a gull's life, innit? How about you, what are you up to?",
-		}
+		sample := eval.NewTextSample(input, "Oh, splendid day it is! You know, I'm just floatin' about on the breeze, keepin' an eye out for a cheeky chip or two. Might pop down to the seaside, see if I can nick a sarnie from some unsuspecting holidaymaker. It's a gull's life, innit? How about you, what are you up to?", output)
 
 		// Score the sample using a lexical similarity scorer with the Levenshtein distance.
 		lexicalSimilarityResult := e.Score(sample, eval.LexicalSimilarityScorer(eval.LevenshteinDistance))
@@ -391,6 +387,85 @@ Output in the file `evals.jsonl`:
 		{"Score":0.9064784491110223,"Type":"SemanticSimilarity"}
 	],
 	"Duration":6316444292
+}
+```
+
+</details>
+
+<details>
+	<summary>Evals (multimodal)</summary>
+
+Evaluate a model's image description using multimodal semantic similarity:
+
+```go
+package evals_test
+
+import (
+	"bytes"
+	_ "embed"
+	"os"
+	"testing"
+
+	"maragu.dev/gai"
+	"maragu.dev/gai/clients/google"
+	"maragu.dev/gai/eval"
+)
+
+//go:embed testdata/logo.jpg
+var logo []byte
+
+// TestEvalImageDescription evaluates how well a model describes an image.
+func TestEvalImageDescription(t *testing.T) {
+	eval.Run(t, "describes the logo", func(t *testing.T, e *eval.E) {
+		gc := google.NewClient(google.NewClientOptions{
+			Key: os.Getenv("GOOGLE_API_KEY"),
+		})
+
+		cc := gc.NewChatCompleter(google.NewChatCompleterOptions{
+			Model: google.ChatCompleteModelGemini2_5Flash,
+		})
+
+		// Use the multimodal embedder for semantic similarity scoring.
+		embedder := gc.NewEmbedder(google.NewEmbedderOptions{
+			Model:      google.EmbedModelGeminiEmbedding2Preview,
+			Dimensions: 768,
+		})
+		// Send the image to the model and ask it to describe what it sees.
+		res, err := cc.ChatComplete(t.Context(), gai.ChatCompleteRequest{
+			Messages: []gai.Message{
+				{
+					Role: gai.MessageRoleUser,
+					Parts: []gai.Part{
+						gai.DataPart("image/jpeg", bytes.NewReader(logo)),
+						gai.TextPart("Describe this image in one sentence."),
+					},
+				},
+			},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		var output string
+		for part, err := range res.Parts() {
+			if err != nil {
+				t.Fatal(err)
+			}
+			output += part.Text()
+		}
+
+		// Create a multimodal sample: input is the image, output and expected are text descriptions.
+		sample := eval.Sample{
+			Input:    []gai.Part{gai.DataPart("image/jpeg", bytes.NewReader(logo))},
+			Output:   []gai.Part{gai.TextPart(output)},
+			Expected: []gai.Part{gai.TextPart("A cute cartoon turquoise gopher character on a pink background.")},
+		}
+
+		// Score with semantic similarity using the multimodal embedder.
+		semanticResult := e.Score(sample, eval.SemanticSimilarityScorer(t, embedder, eval.CosineSimilarity))
+
+		e.Log(sample, semanticResult)
+	})
 }
 ```
 

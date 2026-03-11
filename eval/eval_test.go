@@ -30,7 +30,7 @@ func TestLexicalSimilarityScorer(t *testing.T) {
 		for _, test := range tests {
 			t.Run(test.expected+" "+test.output, func(t *testing.T) {
 				scorer := eval.LexicalSimilarityScorer(eval.LevenshteinDistance)
-				result := scorer(eval.Sample{Expected: test.expected, Output: test.output})
+				result := scorer(eval.NewTextSample("", test.expected, test.output))
 				is.True(t, math.Abs(float64(test.score-result.Score)) < 0.01)
 			})
 		}
@@ -52,7 +52,7 @@ func TestLexicalSimilarityScorer(t *testing.T) {
 		for _, test := range tests {
 			t.Run(test.expected+" "+test.output, func(t *testing.T) {
 				scorer := eval.LexicalSimilarityScorer(eval.ExactMatch)
-				result := scorer(eval.Sample{Expected: test.expected, Output: test.output})
+				result := scorer(eval.NewTextSample("", test.expected, test.output))
 				is.Equal(t, test.score, result.Score)
 			})
 		}
@@ -74,7 +74,7 @@ func TestLexicalSimilarityScorer(t *testing.T) {
 		for _, test := range tests {
 			t.Run(test.expected+" "+test.output, func(t *testing.T) {
 				scorer := eval.LexicalSimilarityScorer(eval.Contains)
-				result := scorer(eval.Sample{Expected: test.expected, Output: test.output})
+				result := scorer(eval.NewTextSample("", test.expected, test.output))
 				is.Equal(t, test.score, result.Score)
 			})
 		}
@@ -101,7 +101,7 @@ func TestSemanticSimilarityScorer(t *testing.T) {
 			}
 
 			scorer := eval.SemanticSimilarityScorer(t, e, eval.CosineSimilarity)
-			result := scorer(eval.Sample{Expected: test.expected, Output: test.output})
+			result := scorer(eval.NewTextSample("", test.expected, test.output))
 			is.True(t, math.Abs(float64(test.score-result.Score)) < 0.01)
 		})
 	}
