@@ -2,6 +2,7 @@ package openai
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -101,8 +102,43 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 					messages = append(messages, openai.ToolMessage(content, toolResult.ID))
 					continue
 
+				case gai.PartTypeData:
+					if part.MIMEType == "" {
+						panic("data part has empty MIME type")
+					}
+					if len(part.Data) == 0 {
+						panic("data part has empty data")
+					}
+					encoded := base64.StdEncoding.EncodeToString(part.Data)
+
+					switch {
+					case strings.HasPrefix(part.MIMEType, "image/"):
+						dataURI := "data:" + part.MIMEType + ";base64," + encoded
+						parts = append(parts, openai.ChatCompletionContentPartUnionParam{
+							OfImageURL: &openai.ChatCompletionContentPartImageParam{
+								ImageURL: openai.ChatCompletionContentPartImageImageURLParam{
+									URL: dataURI,
+								},
+							},
+						})
+
+					case strings.HasPrefix(part.MIMEType, "audio/"):
+						format := strings.TrimPrefix(part.MIMEType, "audio/")
+						parts = append(parts, openai.ChatCompletionContentPartUnionParam{
+							OfInputAudio: &openai.ChatCompletionContentPartInputAudioParam{
+								InputAudio: openai.ChatCompletionContentPartInputAudioInputAudioParam{
+									Data:   encoded,
+									Format: format,
+								},
+							},
+						})
+
+					default:
+						panic("unsupported MIME type for OpenAI: " + part.MIMEType)
+					}
+
 				default:
-					panic("not implemented")
+					panic("unknown part type " + string(part.Type))
 				}
 			}
 
@@ -148,7 +184,7 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 					continue
 
 				default:
-					panic("not implemented")
+					panic("unknown part type " + string(part.Type))
 				}
 			}
 
