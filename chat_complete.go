@@ -119,6 +119,22 @@ type Part struct {
 	toolResult *ToolResult
 }
 
+// MarshalText satisfies [encoding.TextMarshaler].
+func (m Part) MarshalText() ([]byte, error) {
+	switch m.Type {
+	case PartTypeText:
+		return []byte(m.Text()), nil
+	case PartTypeData:
+		return []byte("[data: " + m.MIMEType + "]"), nil
+	case PartTypeToolCall:
+		return []byte("[tool_call: " + m.toolCall.Name + "]"), nil
+	case PartTypeToolResult:
+		return []byte("[tool_result: " + m.toolResult.Name + "]"), nil
+	default:
+		return []byte("[unknown part type]"), nil
+	}
+}
+
 // Text returns the text content. Panics if the part is not [PartTypeText].
 func (m Part) Text() string {
 	if m.Type != PartTypeText {
