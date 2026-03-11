@@ -28,19 +28,26 @@ func TestSampleText(t *testing.T) {
 		is.Equal(t, "hello world", sampleText(parts))
 	})
 
-	t.Run("skips data parts", func(t *testing.T) {
-		parts := []gai.Part{
+	t.Run("panics on data parts", func(t *testing.T) {
+		defer func() {
+			r := recover()
+			is.Equal(t, "sampleText: all parts must be text, got data", r)
+		}()
+
+		sampleText([]gai.Part{
 			gai.DataPart("image/jpeg", strings.NewReader("not real image data")),
-		}
-		is.Equal(t, "", sampleText(parts))
+		})
 	})
 
-	t.Run("extracts text from mixed parts", func(t *testing.T) {
-		parts := []gai.Part{
+	t.Run("panics on mixed parts", func(t *testing.T) {
+		defer func() {
+			r := recover()
+			is.Equal(t, "sampleText: all parts must be text, got data", r)
+		}()
+
+		sampleText([]gai.Part{
 			gai.TextPart("before"),
 			gai.DataPart("image/jpeg", strings.NewReader("not real image data")),
-			gai.TextPart(" after"),
-		}
-		is.Equal(t, "before after", sampleText(parts))
+		})
 	})
 }
