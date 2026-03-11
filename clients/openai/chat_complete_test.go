@@ -21,7 +21,6 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			Messages: []gai.Message{
 				gai.NewUserTextMessage("Hi!"),
 			},
-
 		}
 
 		res, err := cc.ChatComplete(t.Context(), req)
@@ -256,8 +255,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			Messages: []gai.Message{
 				gai.NewUserTextMessage("Hi!"),
 			},
-			System:      gai.Ptr("You always respond in French."),
-
+			System: gai.Ptr("You always respond in French."),
 		}
 
 		res, err := cc.ChatComplete(t.Context(), req)
@@ -286,7 +284,6 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			Messages: []gai.Message{
 				gai.NewUserTextMessage("Hi!"),
 			},
-
 		}
 
 		res, err := cc.ChatComplete(t.Context(), req)

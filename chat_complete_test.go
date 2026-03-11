@@ -2,7 +2,6 @@ package gai_test
 
 import (
 	"fmt"
-	"strings"
 	"testing"
 
 	"maragu.dev/is"
@@ -10,23 +9,50 @@ import (
 	"maragu.dev/gai"
 )
 
+func TestPart_MarshalText(t *testing.T) {
+	t.Run("includes MIME type and size for data parts", func(t *testing.T) {
+		part := gai.DataPart("image/jpeg", []byte("fake image"))
+		text, err := part.MarshalText()
+		is.NotError(t, err)
+		is.Equal(t, "[data: image/jpeg, 10 bytes]", string(text))
+	})
+}
+
 func TestDataPart(t *testing.T) {
+	t.Run("creates a data part", func(t *testing.T) {
+		data := []byte("image data")
+		part := gai.DataPart("image/jpeg", data)
+
+		is.Equal(t, gai.PartTypeData, part.Type)
+		is.Equal(t, "image/jpeg", part.MIMEType)
+		is.EqualSlice(t, data, part.Data)
+	})
+
 	t.Run("panics with empty MIME type", func(t *testing.T) {
 		defer func() {
 			r := recover()
 			is.Equal(t, "MIME type must not be empty", r)
 		}()
 
-		gai.DataPart("", strings.NewReader("data"))
+		gai.DataPart("", []byte("data"))
 	})
 
 	t.Run("panics with nil data", func(t *testing.T) {
 		defer func() {
 			r := recover()
-			is.Equal(t, "data must not be nil", r)
+			is.Equal(t, "data must not be empty", r)
 		}()
 
 		gai.DataPart("image/jpeg", nil)
+	})
+
+	t.Run("panics with empty data", func(t *testing.T) {
+		defer func() {
+			r := recover()
+			is.Equal(t, "data must not be empty", r)
+		}()
+
+		gai.DataPart("image/jpeg", []byte{})
 	})
 }
 
