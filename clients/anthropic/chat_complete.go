@@ -2,6 +2,7 @@ package anthropic
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"sort"
@@ -175,14 +176,25 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 		)
 	}
 
-	stream := c.Client.Messages.NewStreaming(ctx, anthropic.MessageNewParams{
+	params := anthropic.MessageNewParams{
 		MaxTokens:   1024, // TODO make variable
 		Messages:    messages,
 		Model:       anthropic.Model(c.model),
 		System:      system,
 		Temperature: temperature,
 		Tools:       tools,
-	})
+	}
+
+	if req.ResponseSchema != nil {
+		params.OutputConfig = anthropic.OutputConfigParam{
+			Format: anthropic.JSONOutputFormatParam{
+				Schema: schemaToMap(req.ResponseSchema),
+			},
+		}
+		span.SetAttributes(attribute.Bool("ai.has_response_schema", true))
+	}
+
+	stream := c.Client.Messages.NewStreaming(ctx, params)
 
 	return gai.NewChatCompleteResponse(func(yield func(gai.Part, error) bool) {
 		defer span.End()
@@ -248,6 +260,89 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 			yield(gai.Part{}, stream.Err())
 		}
 	}), nil
+}
+
+// schemaToMap converts a gai.Schema to a map[string]any for the Anthropic API.
+func schemaToMap(schema *gai.Schema) map[string]any {
+	if schema == nil {
+		return nil
+	}
+
+	data, err := json.Marshal(schema)
+	if err != nil {
+		panic(err)
+	}
+
+	var obj map[string]any
+	if err := json.Unmarshal(data, &obj); err != nil {
+		panic(err)
+	}
+
+	ensureAdditionalPropertiesFalse(obj)
+	removeUnsupportedFields(obj)
+	return obj
+}
+
+// ensureAdditionalPropertiesFalse recursively sets additionalProperties to false
+// on all object-type schemas, as required by the Anthropic structured output API.
+func ensureAdditionalPropertiesFalse(obj map[string]any) {
+	if obj == nil {
+		return
+	}
+
+	if t, ok := obj["type"].(string); ok && t == "object" {
+		if _, ok := obj["additionalProperties"]; !ok {
+			obj["additionalProperties"] = false
+		}
+		if props, ok := obj["properties"].(map[string]any); ok {
+			for _, v := range props {
+				if child, ok := v.(map[string]any); ok {
+					ensureAdditionalPropertiesFalse(child)
+				}
+			}
+		}
+	}
+
+	if items, ok := obj["items"].(map[string]any); ok {
+		ensureAdditionalPropertiesFalse(items)
+	}
+
+	if anyOf, ok := obj["anyOf"].([]any); ok {
+		for _, v := range anyOf {
+			if child, ok := v.(map[string]any); ok {
+				ensureAdditionalPropertiesFalse(child)
+			}
+		}
+	}
+}
+
+// removeUnsupportedFields recursively removes fields not supported by the Anthropic schema API.
+func removeUnsupportedFields(obj map[string]any) {
+	if obj == nil {
+		return
+	}
+
+	delete(obj, "propertyOrdering")
+
+	if props, ok := obj["properties"].(map[string]any); ok {
+		for _, v := range props {
+			if child, ok := v.(map[string]any); ok {
+				removeUnsupportedFields(child)
+			}
+		}
+	}
+
+	if items, ok := obj["items"].(map[string]any); ok {
+		removeUnsupportedFields(items)
+	}
+
+	if anyOf, ok := obj["anyOf"].([]any); ok {
+		for _, v := range anyOf {
+			if child, ok := v.(map[string]any); ok {
+				removeUnsupportedFields(child)
+			}
+		}
+	}
 }
 
 var _ gai.ChatCompleter = (*ChatCompleter)(nil)
