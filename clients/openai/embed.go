@@ -73,7 +73,7 @@ func (e *Embedder) Embed(ctx context.Context, req gai.EmbedRequest) (gai.EmbedRe
 	if len(req.Parts) == 0 {
 		panic("no parts")
 	}
-	if len(req.Parts) != 1 || req.Parts[0].Type != gai.MessagePartTypeText {
+	if len(req.Parts) != 1 || req.Parts[0].Type != gai.PartTypeText {
 		panic("OpenAI embeddings only support a single text part")
 	}
 

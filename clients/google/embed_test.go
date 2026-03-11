@@ -20,7 +20,7 @@ func TestEmbedder_Embed(t *testing.T) {
 		})
 
 		req := gai.EmbedRequest{
-			Parts: []gai.MessagePart{gai.TextMessagePart("Embed this, please.")},
+			Parts: []gai.Part{gai.TextPart("Embed this, please.")},
 		}
 
 		res, err := e.Embed(t.Context(), req)
@@ -38,7 +38,7 @@ func TestEmbedder_Embed(t *testing.T) {
 		})
 
 		req := gai.EmbedRequest{
-			Parts: []gai.MessagePart{gai.DataMessagePart("image/jpeg", bytes.NewReader(image))},
+			Parts: []gai.Part{gai.DataPart("image/jpeg", bytes.NewReader(image))},
 		}
 
 		res, err := e.Embed(t.Context(), req)
@@ -56,7 +56,7 @@ func TestEmbedder_Embed(t *testing.T) {
 		})
 
 		req := gai.EmbedRequest{
-			Parts: []gai.MessagePart{gai.DataMessagePart("audio/mp4", bytes.NewReader(audio))},
+			Parts: []gai.Part{gai.DataPart("audio/mp4", bytes.NewReader(audio))},
 		}
 
 		res, err := e.Embed(t.Context(), req)
@@ -74,7 +74,7 @@ func TestEmbedder_Embed(t *testing.T) {
 		})
 
 		req := gai.EmbedRequest{
-			Parts: []gai.MessagePart{gai.DataMessagePart("video/quicktime", bytes.NewReader(video))},
+			Parts: []gai.Part{gai.DataPart("video/quicktime", bytes.NewReader(video))},
 		}
 
 		res, err := e.Embed(t.Context(), req)
@@ -92,11 +92,11 @@ func TestEmbedder_Embed(t *testing.T) {
 		})
 
 		req := gai.EmbedRequest{
-			Parts: []gai.MessagePart{
-				gai.TextMessagePart("A multimedia embedding test."),
-				gai.DataMessagePart("image/jpeg", bytes.NewReader(image)),
-				gai.DataMessagePart("audio/mp4", bytes.NewReader(audio)),
-				gai.DataMessagePart("video/quicktime", bytes.NewReader(video)),
+			Parts: []gai.Part{
+				gai.TextPart("A multimedia embedding test."),
+				gai.DataPart("image/jpeg", bytes.NewReader(image)),
+				gai.DataPart("audio/mp4", bytes.NewReader(audio)),
+				gai.DataPart("video/quicktime", bytes.NewReader(video)),
 			},
 		}
 

@@ -96,11 +96,11 @@ type fataler interface {
 // You can choose which vector similarity function to use. If in doubt, use [CosineSimilarity].
 func SemanticSimilarityScorer[T gai.VectorComponent](t fataler, e gai.Embedder[T], similarityFunc func(a, b []T) Score) Scorer {
 	return func(sample Sample) Result {
-		expected, err := e.Embed(t.Context(), gai.EmbedRequest{Parts: []gai.MessagePart{gai.TextMessagePart(sample.Expected)}})
+		expected, err := e.Embed(t.Context(), gai.EmbedRequest{Parts: []gai.Part{gai.TextPart(sample.Expected)}})
 		if err != nil {
 			t.Fatal("could not get embedding for expected string:", err)
 		}
-		output, err := e.Embed(t.Context(), gai.EmbedRequest{Parts: []gai.MessagePart{gai.TextMessagePart(sample.Output)}})
+		output, err := e.Embed(t.Context(), gai.EmbedRequest{Parts: []gai.Part{gai.TextPart(sample.Output)}})
 		if err != nil {
 			t.Fatal("could not get embedding for output string:", err)
 		}

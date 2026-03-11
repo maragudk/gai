@@ -19,7 +19,7 @@ func TestEmbedder_Embed(t *testing.T) {
 		})
 
 		req := gai.EmbedRequest{
-			Parts: []gai.MessagePart{gai.TextMessagePart("Embed this, please.")},
+			Parts: []gai.Part{gai.TextPart("Embed this, please.")},
 		}
 
 		res, err := e.Embed(t.Context(), req)
