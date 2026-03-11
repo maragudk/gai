@@ -68,9 +68,8 @@ type Result struct {
 // Scorer produces a [Result] (including a [Score]) for the given [Sample].
 type Scorer = func(s Sample) Result
 
-// LexicalSimilarityScorer returns a [Scorer] which uses a lexical similarity metric to compare
-// expected and output strings from a [Sample].
-// This is a common way to score texts if you have a reference text.
+// LexicalSimilarityScorer returns a text-only [Scorer] which uses a lexical similarity metric to compare
+// expected and output text from a [Sample]. Panics if the sample contains non-text parts.
 // You can choose which similarity function to use, such as [LevenshteinDistance], [ExactMatch], or [Contains].
 func LexicalSimilarityScorer(similarityFunc func(a, b string) Score) Scorer {
 	return func(sample Sample) Result {
