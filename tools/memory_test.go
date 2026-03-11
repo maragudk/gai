@@ -49,7 +49,11 @@ func (m *mockMemoryStore) SearchMemories(_ context.Context, query string) ([]str
 }
 
 func TestNewSaveMemory(t *testing.T) {
+	t.Parallel()
+
 	t.Run("saves a memory successfully", func(t *testing.T) {
+		t.Parallel()
+
 		store := &mockMemoryStore{}
 		tool := tools.NewSaveMemory(store)
 
@@ -67,6 +71,8 @@ func TestNewSaveMemory(t *testing.T) {
 	})
 
 	t.Run("handles error when saving memory fails", func(t *testing.T) {
+		t.Parallel()
+
 		store := &mockMemoryStore{failMode: true}
 		tool := tools.NewSaveMemory(store)
 
@@ -79,6 +85,8 @@ func TestNewSaveMemory(t *testing.T) {
 	})
 
 	t.Run("handles invalid JSON input", func(t *testing.T) {
+		t.Parallel()
+
 		store := &mockMemoryStore{}
 		tool := tools.NewSaveMemory(store)
 
@@ -89,6 +97,8 @@ func TestNewSaveMemory(t *testing.T) {
 	})
 
 	t.Run("summarize save_memory with short memory", func(t *testing.T) {
+		t.Parallel()
+
 		store := &mockMemoryStore{}
 		tool := tools.NewSaveMemory(store)
 
@@ -101,6 +111,8 @@ func TestNewSaveMemory(t *testing.T) {
 	})
 
 	t.Run("summarize save_memory with long memory", func(t *testing.T) {
+		t.Parallel()
+
 		store := &mockMemoryStore{}
 		tool := tools.NewSaveMemory(store)
 
@@ -113,6 +125,8 @@ func TestNewSaveMemory(t *testing.T) {
 	})
 
 	t.Run("summarize save_memory with invalid JSON", func(t *testing.T) {
+		t.Parallel()
+
 		store := &mockMemoryStore{}
 		tool := tools.NewSaveMemory(store)
 
@@ -125,7 +139,11 @@ func TestNewSaveMemory(t *testing.T) {
 }
 
 func TestNewGetMemories(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns all memories", func(t *testing.T) {
+		t.Parallel()
+
 		store := &mockMemoryStore{
 			memories: []string{"Memory 1", "Memory 2", "Memory 3"},
 		}
@@ -140,6 +158,8 @@ func TestNewGetMemories(t *testing.T) {
 	})
 
 	t.Run("returns empty list when no memories exist", func(t *testing.T) {
+		t.Parallel()
+
 		store := &mockMemoryStore{}
 		tool := tools.NewGetMemories(store)
 
@@ -150,6 +170,8 @@ func TestNewGetMemories(t *testing.T) {
 	})
 
 	t.Run("handles error when retrieving memories fails", func(t *testing.T) {
+		t.Parallel()
+
 		store := &mockMemoryStore{failMode: true}
 		tool := tools.NewGetMemories(store)
 
@@ -160,6 +182,8 @@ func TestNewGetMemories(t *testing.T) {
 	})
 
 	t.Run("summarize get_memories", func(t *testing.T) {
+		t.Parallel()
+
 		store := &mockMemoryStore{}
 		tool := tools.NewGetMemories(store)
 
@@ -171,7 +195,11 @@ func TestNewGetMemories(t *testing.T) {
 }
 
 func TestNewSearchMemories(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns matching memories", func(t *testing.T) {
+		t.Parallel()
+
 		store := &mockMemoryStore{
 			memories: []string{
 				"My pet rock needs a bath but hates getting wet",
@@ -192,6 +220,8 @@ func TestNewSearchMemories(t *testing.T) {
 	})
 
 	t.Run("returns multiple matching memories", func(t *testing.T) {
+		t.Parallel()
+
 		store := &mockMemoryStore{
 			memories: []string{
 				"I dreamt my code compiled on the first try",
@@ -210,6 +240,8 @@ func TestNewSearchMemories(t *testing.T) {
 	})
 
 	t.Run("returns no memories when no matches found", func(t *testing.T) {
+		t.Parallel()
+
 		store := &mockMemoryStore{
 			memories: []string{
 				"My houseplant is plotting world domination",
@@ -228,6 +260,8 @@ func TestNewSearchMemories(t *testing.T) {
 	})
 
 	t.Run("handles error when search fails", func(t *testing.T) {
+		t.Parallel()
+
 		store := &mockMemoryStore{failMode: true}
 		tool := tools.NewSearchMemories(store)
 
@@ -240,6 +274,8 @@ func TestNewSearchMemories(t *testing.T) {
 	})
 
 	t.Run("handles invalid JSON input", func(t *testing.T) {
+		t.Parallel()
+
 		store := &mockMemoryStore{}
 		tool := tools.NewSearchMemories(store)
 
@@ -250,6 +286,8 @@ func TestNewSearchMemories(t *testing.T) {
 	})
 
 	t.Run("summarize search_memories", func(t *testing.T) {
+		t.Parallel()
+
 		store := &mockMemoryStore{}
 		tool := tools.NewSearchMemories(store)
 
@@ -262,6 +300,8 @@ func TestNewSearchMemories(t *testing.T) {
 	})
 
 	t.Run("summarize search_memories with invalid JSON", func(t *testing.T) {
+		t.Parallel()
+
 		store := &mockMemoryStore{}
 		tool := tools.NewSearchMemories(store)
 

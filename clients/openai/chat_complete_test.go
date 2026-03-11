@@ -21,7 +21,11 @@ var image []byte
 var pdf []byte
 
 func TestChatCompleter_ChatComplete(t *testing.T) {
+	t.Parallel()
+
 	t.Run("can chat-complete", func(t *testing.T) {
+		t.Parallel()
+
 		cc := newChatCompleter(t)
 
 		req := gai.ChatCompleteRequest{
@@ -70,6 +74,8 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 	})
 
 	t.Run("can use a tool with args", func(t *testing.T) {
+		t.Parallel()
+
 		cc := newChatCompleter(t)
 
 		root, err := os.OpenRoot("testdata")
@@ -158,6 +164,8 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 	})
 
 	t.Run("can use a tool with no args", func(t *testing.T) {
+		t.Parallel()
+
 		cc := newChatCompleter(t)
 
 		root, err := os.OpenRoot("testdata")
@@ -217,6 +225,8 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 	})
 
 	t.Run("can use structured output", func(t *testing.T) {
+		t.Parallel()
+
 		cc := newChatCompleter(t)
 
 		type Recommendation struct {
@@ -256,6 +266,8 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 	})
 
 	t.Run("can use a system prompt", func(t *testing.T) {
+		t.Parallel()
+
 		cc := newChatCompleter(t)
 
 		req := gai.ChatCompleteRequest{
@@ -285,6 +297,8 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 	})
 
 	t.Run("tracks token usage", func(t *testing.T) {
+		t.Parallel()
+
 		cc := newChatCompleter(t)
 
 		req := gai.ChatCompleteRequest{
@@ -316,6 +330,8 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 	})
 
 	t.Run("can describe an image", func(t *testing.T) {
+		t.Parallel()
+
 		cc := newChatCompleter(t)
 
 		req := gai.ChatCompleteRequest{
@@ -346,6 +362,8 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 	})
 
 	t.Run("panics on unsupported MIME type", func(t *testing.T) {
+		t.Parallel()
+
 		cc := newChatCompleter(t)
 
 		defer func() {
@@ -363,6 +381,8 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 	})
 
 	t.Run("panics on empty MIME type", func(t *testing.T) {
+		t.Parallel()
+
 		cc := newChatCompleter(t)
 
 		defer func() {
@@ -382,6 +402,8 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 	})
 
 	t.Run("panics on empty data", func(t *testing.T) {
+		t.Parallel()
+
 		cc := newChatCompleter(t)
 
 		defer func() {

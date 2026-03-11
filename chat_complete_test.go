@@ -10,7 +10,11 @@ import (
 )
 
 func TestPart_MarshalText(t *testing.T) {
+	t.Parallel()
+
 	t.Run("includes MIME type and size for data parts", func(t *testing.T) {
+		t.Parallel()
+
 		part := gai.DataPart("image/jpeg", []byte("fake image"))
 		text, err := part.MarshalText()
 		is.NotError(t, err)
@@ -19,7 +23,11 @@ func TestPart_MarshalText(t *testing.T) {
 }
 
 func TestDataPart(t *testing.T) {
+	t.Parallel()
+
 	t.Run("creates a data part", func(t *testing.T) {
+		t.Parallel()
+
 		data := []byte("image data")
 		part := gai.DataPart("image/jpeg", data)
 
@@ -29,6 +37,8 @@ func TestDataPart(t *testing.T) {
 	})
 
 	t.Run("panics with empty MIME type", func(t *testing.T) {
+		t.Parallel()
+
 		defer func() {
 			r := recover()
 			is.Equal(t, "MIME type must not be empty", r)
@@ -38,6 +48,8 @@ func TestDataPart(t *testing.T) {
 	})
 
 	t.Run("panics with nil data", func(t *testing.T) {
+		t.Parallel()
+
 		defer func() {
 			r := recover()
 			is.Equal(t, "data must not be empty", r)
@@ -47,6 +59,8 @@ func TestDataPart(t *testing.T) {
 	})
 
 	t.Run("panics with empty data", func(t *testing.T) {
+		t.Parallel()
+
 		defer func() {
 			r := recover()
 			is.Equal(t, "data must not be empty", r)
@@ -57,7 +71,11 @@ func TestDataPart(t *testing.T) {
 }
 
 func TestGenerateSchema(t *testing.T) {
+	t.Parallel()
+
 	t.Run("simple string type", func(t *testing.T) {
+		t.Parallel()
+
 		type SimpleString struct {
 			Name string `json:"name" jsonschema:"title=Name,description=The name field"`
 		}
@@ -75,6 +93,8 @@ func TestGenerateSchema(t *testing.T) {
 	})
 
 	t.Run("numeric types with constraints", func(t *testing.T) {
+		t.Parallel()
+
 		type NumericTypes struct {
 			Age    int     `json:"age" jsonschema:"minimum=0,maximum=150"`
 			Height float64 `json:"height" jsonschema:"minimum=0.0,maximum=3.0"`
@@ -100,6 +120,8 @@ func TestGenerateSchema(t *testing.T) {
 	})
 
 	t.Run("enum field", func(t *testing.T) {
+		t.Parallel()
+
 		type EnumField struct {
 			Status string `json:"status" jsonschema:"enum=active,enum=inactive,enum=pending"`
 		}
@@ -116,6 +138,8 @@ func TestGenerateSchema(t *testing.T) {
 	})
 
 	t.Run("array types", func(t *testing.T) {
+		t.Parallel()
+
 		type ArrayTypes struct {
 			Tags   []string `json:"tags" jsonschema:"minItems=1,maxItems=10"`
 			Scores []int    `json:"scores"`
@@ -141,6 +165,8 @@ func TestGenerateSchema(t *testing.T) {
 	})
 
 	t.Run("nested object", func(t *testing.T) {
+		t.Parallel()
+
 		type Address struct {
 			Street string `json:"street"`
 			City   string `json:"city"`
@@ -170,6 +196,8 @@ func TestGenerateSchema(t *testing.T) {
 	})
 
 	t.Run("mixed required and omitempty", func(t *testing.T) {
+		t.Parallel()
+
 		type MixedRequirements struct {
 			AlwaysRequired   string  `json:"always_required"`
 			ExplicitRequired string  `json:"explicit_required" jsonschema:"required"`
@@ -200,6 +228,8 @@ func TestGenerateSchema(t *testing.T) {
 	})
 
 	t.Run("property ordering", func(t *testing.T) {
+		t.Parallel()
+
 		type OrderedProps struct {
 			First  string `json:"first"`
 			Second string `json:"second"`
@@ -215,6 +245,8 @@ func TestGenerateSchema(t *testing.T) {
 	})
 
 	t.Run("boolean type", func(t *testing.T) {
+		t.Parallel()
+
 		type BooleanField struct {
 			IsActive bool `json:"is_active"`
 		}
@@ -227,6 +259,8 @@ func TestGenerateSchema(t *testing.T) {
 	})
 
 	t.Run("default and example values", func(t *testing.T) {
+		t.Parallel()
+
 		type DefaultExample struct {
 			Port int `json:"port" jsonschema:"default=8080,example=3000"`
 		}
@@ -241,6 +275,8 @@ func TestGenerateSchema(t *testing.T) {
 	})
 
 	t.Run("format field", func(t *testing.T) {
+		t.Parallel()
+
 		type FormatField struct {
 			Email string `json:"email" jsonschema:"format=email"`
 			Date  string `json:"date" jsonschema:"format=date"`
@@ -258,6 +294,8 @@ func TestGenerateSchema(t *testing.T) {
 	})
 
 	t.Run("pointer types", func(t *testing.T) {
+		t.Parallel()
+
 		type PointerTypes struct {
 			OptionalString *string `json:"optional_string"`
 			OptionalInt    *int    `json:"optional_int"`
@@ -275,6 +313,8 @@ func TestGenerateSchema(t *testing.T) {
 	})
 
 	t.Run("map type", func(t *testing.T) {
+		t.Parallel()
+
 		type MapField struct {
 			Metadata map[string]string `json:"metadata"`
 		}
@@ -287,6 +327,8 @@ func TestGenerateSchema(t *testing.T) {
 	})
 
 	t.Run("any type", func(t *testing.T) {
+		t.Parallel()
+
 		type InterfaceField struct {
 			Value any `json:"value"`
 		}
@@ -300,6 +342,8 @@ func TestGenerateSchema(t *testing.T) {
 	})
 
 	t.Run("empty struct", func(t *testing.T) {
+		t.Parallel()
+
 		type Empty struct{}
 
 		schema := gai.GenerateSchema[Empty]()
@@ -310,6 +354,8 @@ func TestGenerateSchema(t *testing.T) {
 	})
 
 	t.Run("unexported fields ignored", func(t *testing.T) {
+		t.Parallel()
+
 		type WithUnexported struct {
 			Public  string `json:"public"`
 			private string //nolint:unused // testing unexported field behavior
@@ -324,6 +370,8 @@ func TestGenerateSchema(t *testing.T) {
 	})
 
 	t.Run("json tag with dash ignored", func(t *testing.T) {
+		t.Parallel()
+
 		type WithIgnored struct {
 			Name    string `json:"name"`
 			Ignored string `json:"-"`
@@ -338,6 +386,8 @@ func TestGenerateSchema(t *testing.T) {
 	})
 
 	t.Run("anonymous embedded struct", func(t *testing.T) {
+		t.Parallel()
+
 		type Embedded struct {
 			EmbeddedField string `json:"embedded_field"`
 		}
@@ -355,6 +405,8 @@ func TestGenerateSchema(t *testing.T) {
 	})
 
 	t.Run("struct with no json tags", func(t *testing.T) {
+		t.Parallel()
+
 		type NoTags struct {
 			FirstName string
 			LastName  string

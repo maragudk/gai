@@ -10,7 +10,11 @@ import (
 )
 
 func TestNewGetTime(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns the current time in RFC3339 format", func(t *testing.T) {
+		t.Parallel()
+
 		// Create a fixed time for testing
 		fixedTime := time.Date(2023, 5, 1, 12, 30, 45, 0, time.UTC)
 
@@ -27,6 +31,8 @@ func TestNewGetTime(t *testing.T) {
 	})
 
 	t.Run("summarize get_time", func(t *testing.T) {
+		t.Parallel()
+
 		// Create tool with any time function (not used in summarize)
 		tool := tools.NewGetTime(time.Now)
 
@@ -36,6 +42,8 @@ func TestNewGetTime(t *testing.T) {
 	})
 
 	t.Run("summarize get_time with invalid JSON", func(t *testing.T) {
+		t.Parallel()
+
 		// Create tool with any time function (not used in summarize)
 		tool := tools.NewGetTime(time.Now)
 

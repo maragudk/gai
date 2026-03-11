@@ -11,7 +11,11 @@ import (
 )
 
 func TestNewExec(t *testing.T) {
+	t.Parallel()
+
 	t.Run("successfully executes a command", func(t *testing.T) {
+		t.Parallel()
+
 		tool := tools.NewExec()
 
 		// Check tool name
@@ -28,6 +32,8 @@ func TestNewExec(t *testing.T) {
 	})
 
 	t.Run("handles command with stdin input", func(t *testing.T) {
+		t.Parallel()
+
 		tool := tools.NewExec()
 
 		// Execute the cat command, which reads from stdin
@@ -41,6 +47,8 @@ func TestNewExec(t *testing.T) {
 	})
 
 	t.Run("handles command failure", func(t *testing.T) {
+		t.Parallel()
+
 		tool := tools.NewExec()
 
 		// Execute a command that will fail
@@ -55,6 +63,8 @@ func TestNewExec(t *testing.T) {
 	})
 
 	t.Run("properly escapes arguments", func(t *testing.T) {
+		t.Parallel()
+
 		tool := tools.NewExec()
 
 		// Execute echo with arguments that need escaping
@@ -68,6 +78,8 @@ func TestNewExec(t *testing.T) {
 	})
 
 	t.Run("returns error for empty command", func(t *testing.T) {
+		t.Parallel()
+
 		tool := tools.NewExec()
 
 		// Execute with an empty command
@@ -80,6 +92,8 @@ func TestNewExec(t *testing.T) {
 	})
 
 	t.Run("handles command with multiple arguments", func(t *testing.T) {
+		t.Parallel()
+
 		tool := tools.NewExec()
 
 		// Execute a command with multiple arguments
@@ -93,6 +107,8 @@ func TestNewExec(t *testing.T) {
 	})
 
 	t.Run("handles binary data in stdin", func(t *testing.T) {
+		t.Parallel()
+
 		tool := tools.NewExec()
 
 		// Create binary data with null bytes
@@ -111,6 +127,8 @@ func TestNewExec(t *testing.T) {
 	})
 
 	t.Run("captures stderr output", func(t *testing.T) {
+		t.Parallel()
+
 		tool := tools.NewExec()
 
 		// Run a command that writes to stderr
@@ -125,6 +143,8 @@ func TestNewExec(t *testing.T) {
 	})
 
 	t.Run("handles nonexistent command", func(t *testing.T) {
+		t.Parallel()
+
 		tool := tools.NewExec()
 
 		// Run a command that doesn't exist
@@ -138,6 +158,8 @@ func TestNewExec(t *testing.T) {
 	})
 
 	t.Run("respects custom timeout", func(t *testing.T) {
+		t.Parallel()
+
 		tool := tools.NewExec()
 
 		// Run a command with a short timeout that will exceed the timeout
@@ -157,6 +179,8 @@ func TestNewExec(t *testing.T) {
 	})
 
 	t.Run("handles command with no output", func(t *testing.T) {
+		t.Parallel()
+
 		tool := tools.NewExec()
 
 		// Execute a command that produces no output
@@ -169,6 +193,8 @@ func TestNewExec(t *testing.T) {
 	})
 
 	t.Run("summarize with basic command", func(t *testing.T) {
+		t.Parallel()
+
 		tool := tools.NewExec()
 
 		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.ExecArgs{
@@ -180,6 +206,8 @@ func TestNewExec(t *testing.T) {
 	})
 
 	t.Run("summarize with command and args", func(t *testing.T) {
+		t.Parallel()
+
 		tool := tools.NewExec()
 
 		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.ExecArgs{
@@ -192,6 +220,8 @@ func TestNewExec(t *testing.T) {
 	})
 
 	t.Run("summarize with many args", func(t *testing.T) {
+		t.Parallel()
+
 		tool := tools.NewExec()
 
 		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.ExecArgs{
@@ -204,6 +234,8 @@ func TestNewExec(t *testing.T) {
 	})
 
 	t.Run("summarize with input", func(t *testing.T) {
+		t.Parallel()
+
 		tool := tools.NewExec()
 
 		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.ExecArgs{
@@ -216,6 +248,8 @@ func TestNewExec(t *testing.T) {
 	})
 
 	t.Run("summarize with long input", func(t *testing.T) {
+		t.Parallel()
+
 		tool := tools.NewExec()
 
 		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.ExecArgs{
@@ -228,6 +262,8 @@ func TestNewExec(t *testing.T) {
 	})
 
 	t.Run("summarize with custom timeout", func(t *testing.T) {
+		t.Parallel()
+
 		tool := tools.NewExec()
 
 		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.ExecArgs{
@@ -241,6 +277,8 @@ func TestNewExec(t *testing.T) {
 	})
 
 	t.Run("summarize with default timeout", func(t *testing.T) {
+		t.Parallel()
+
 		tool := tools.NewExec()
 
 		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.ExecArgs{
@@ -254,6 +292,8 @@ func TestNewExec(t *testing.T) {
 	})
 
 	t.Run("summarize with all options", func(t *testing.T) {
+		t.Parallel()
+
 		tool := tools.NewExec()
 
 		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.ExecArgs{
@@ -268,6 +308,8 @@ func TestNewExec(t *testing.T) {
 	})
 
 	t.Run("summarize with invalid JSON", func(t *testing.T) {
+		t.Parallel()
+
 		tool := tools.NewExec()
 
 		summary, err := tool.Summarize(t.Context(), []byte(`{invalid json`))

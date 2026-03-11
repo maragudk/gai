@@ -11,7 +11,11 @@ import (
 )
 
 func TestNewClient(t *testing.T) {
+	t.Parallel()
+
 	t.Run("can create a new client with a key", func(t *testing.T) {
+		t.Parallel()
+
 		client := newClient(t)
 		is.NotNil(t, client)
 	})

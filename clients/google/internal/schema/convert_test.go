@@ -13,7 +13,11 @@ import (
 )
 
 func TestConvertToolToFunction(t *testing.T) {
+	t.Parallel()
+
 	t.Run("converts ReadFile tool", func(t *testing.T) {
+		t.Parallel()
+
 		root, err := os.OpenRoot("../../testdata")
 		is.NotError(t, err)
 
@@ -36,6 +40,8 @@ func TestConvertToolToFunction(t *testing.T) {
 	})
 
 	t.Run("converts ListDir tool", func(t *testing.T) {
+		t.Parallel()
+
 		root, err := os.OpenRoot("../../testdata")
 		is.NotError(t, err)
 
@@ -57,7 +63,11 @@ func TestConvertToolToFunction(t *testing.T) {
 }
 
 func TestConvertTools(t *testing.T) {
+	t.Parallel()
+
 	t.Run("converts multiple tools", func(t *testing.T) {
+		t.Parallel()
+
 		root, err := os.OpenRoot("../../testdata")
 		is.NotError(t, err)
 
@@ -78,7 +88,11 @@ func TestConvertTools(t *testing.T) {
 }
 
 func TestConvertToolSchema(t *testing.T) {
+	t.Parallel()
+
 	t.Run("converts empty schema", func(t *testing.T) {
+		t.Parallel()
+
 		testSchema := gai.ToolSchema{}
 
 		genaiSchema, err := schema.ConvertToolSchema(testSchema)
@@ -89,6 +103,8 @@ func TestConvertToolSchema(t *testing.T) {
 	})
 
 	t.Run("converts simple properties", func(t *testing.T) {
+		t.Parallel()
+
 		toolSchema := gai.ToolSchema{
 			Properties: map[string]*gai.Schema{
 				"name": {
@@ -118,6 +134,8 @@ func TestConvertToolSchema(t *testing.T) {
 	})
 
 	t.Run("converts JSON Schema format with properties wrapper", func(t *testing.T) {
+		t.Parallel()
+
 		toolSchema := gai.ToolSchema{
 			Properties: map[string]*gai.Schema{
 				"file": {
@@ -140,6 +158,8 @@ func TestConvertToolSchema(t *testing.T) {
 	})
 
 	t.Run("converts array type", func(t *testing.T) {
+		t.Parallel()
+
 		toolSchema := gai.ToolSchema{
 			Properties: map[string]*gai.Schema{
 				"tags": {
@@ -162,6 +182,8 @@ func TestConvertToolSchema(t *testing.T) {
 	})
 
 	t.Run("converts nested object type", func(t *testing.T) {
+		t.Parallel()
+
 		toolSchema := gai.ToolSchema{
 			Properties: map[string]*gai.Schema{
 				"person": {
@@ -192,6 +214,8 @@ func TestConvertToolSchema(t *testing.T) {
 	})
 
 	t.Run("converts all basic types", func(t *testing.T) {
+		t.Parallel()
+
 		toolSchema := gai.ToolSchema{
 			Properties: map[string]*gai.Schema{
 				"text":    {Type: gai.SchemaTypeString},
@@ -214,7 +238,11 @@ func TestConvertToolSchema(t *testing.T) {
 }
 
 func TestConvertResponseSchema(t *testing.T) {
+	t.Parallel()
+
 	t.Run("converts simple object schema", func(t *testing.T) {
+		t.Parallel()
+
 		inputSchema := gai.Schema{
 			Type: gai.SchemaTypeObject,
 			Properties: map[string]*gai.Schema{
@@ -255,6 +283,8 @@ func TestConvertResponseSchema(t *testing.T) {
 	})
 
 	t.Run("converts array schema", func(t *testing.T) {
+		t.Parallel()
+
 		inputSchema := gai.Schema{
 			Type: gai.SchemaTypeArray,
 			Items: &gai.Schema{
@@ -272,6 +302,8 @@ func TestConvertResponseSchema(t *testing.T) {
 	})
 
 	t.Run("converts nested object schema", func(t *testing.T) {
+		t.Parallel()
+
 		inputSchema := gai.Schema{
 			Type: gai.SchemaTypeObject,
 			Properties: map[string]*gai.Schema{
@@ -305,6 +337,8 @@ func TestConvertResponseSchema(t *testing.T) {
 	})
 
 	t.Run("converts array of objects schema", func(t *testing.T) {
+		t.Parallel()
+
 		inputSchema := gai.Schema{
 			Type: gai.SchemaTypeArray,
 			Items: &gai.Schema{
@@ -331,6 +365,8 @@ func TestConvertResponseSchema(t *testing.T) {
 	})
 
 	t.Run("converts all basic types", func(t *testing.T) {
+		t.Parallel()
+
 		testCases := []struct {
 			name     string
 			input    gai.SchemaType
@@ -346,6 +382,8 @@ func TestConvertResponseSchema(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
+				t.Parallel()
+
 				inputSchema := gai.Schema{Type: tc.input}
 				genaiSchema, err := schema.ConvertResponseSchema(inputSchema)
 				is.NotError(t, err)
@@ -355,6 +393,8 @@ func TestConvertResponseSchema(t *testing.T) {
 	})
 
 	t.Run("defaults to string for unspecified type", func(t *testing.T) {
+		t.Parallel()
+
 		inputSchema := gai.Schema{
 			Description: "Some field",
 		}
@@ -367,6 +407,8 @@ func TestConvertResponseSchema(t *testing.T) {
 	})
 
 	t.Run("handles empty schema", func(t *testing.T) {
+		t.Parallel()
+
 		inputSchema := gai.Schema{}
 
 		genaiSchema, err := schema.ConvertResponseSchema(inputSchema)
@@ -376,6 +418,8 @@ func TestConvertResponseSchema(t *testing.T) {
 	})
 
 	t.Run("copies all fields", func(t *testing.T) {
+		t.Parallel()
+
 		inputSchema := gai.Schema{
 			Type:        gai.SchemaTypeString,
 			Description: "Test description",
@@ -399,6 +443,8 @@ func TestConvertResponseSchema(t *testing.T) {
 	})
 
 	t.Run("copies numeric constraints", func(t *testing.T) {
+		t.Parallel()
+
 		inputSchema := gai.Schema{
 			Type:    gai.SchemaTypeNumber,
 			Maximum: gai.Ptr(float64(100.5)),
@@ -414,6 +460,8 @@ func TestConvertResponseSchema(t *testing.T) {
 	})
 
 	t.Run("copies array constraints", func(t *testing.T) {
+		t.Parallel()
+
 		inputSchema := gai.Schema{
 			Type:     gai.SchemaTypeArray,
 			MaxItems: gai.Ptr(int64(50)),
@@ -433,6 +481,8 @@ func TestConvertResponseSchema(t *testing.T) {
 	})
 
 	t.Run("copies object constraints", func(t *testing.T) {
+		t.Parallel()
+
 		inputSchema := gai.Schema{
 			Type:             gai.SchemaTypeObject,
 			PropertyOrdering: []string{"first", "second", "third"},
@@ -449,6 +499,8 @@ func TestConvertResponseSchema(t *testing.T) {
 	})
 
 	t.Run("converts anyOf schemas", func(t *testing.T) {
+		t.Parallel()
+
 		inputSchema := gai.Schema{
 			Type: gai.SchemaTypeString,
 			AnyOf: []*gai.Schema{

@@ -12,6 +12,8 @@ import (
 // TestEvalPing evaluates pinging the model.
 // All evals must be prefixed with "TestEval".
 func TestEvalPing(t *testing.T) {
+	t.Parallel()
+
 	// Evals only run if "go test" is being run with "-test.run=TestEval", e.g.: "go test -test.run=TestEval ./..."
 	eval.Run(t, "answers with a pong", func(t *testing.T, e *eval.E) {
 		// Initialize our intensely powerful in-memory foundation model,

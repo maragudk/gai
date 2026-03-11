@@ -10,6 +10,8 @@ import (
 )
 
 func TestChatCompleter_ThinkingLevel(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name        string
 		level       gai.ThinkingLevel
@@ -26,6 +28,8 @@ func TestChatCompleter_ThinkingLevel(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
 			cc := &ChatCompleter{
 				log:    slog.New(slog.DiscardHandler),
 				model:  ChatCompleteModelGemini2_5Flash,

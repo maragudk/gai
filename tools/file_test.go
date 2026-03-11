@@ -13,10 +13,14 @@ import (
 )
 
 func TestNewReadFile(t *testing.T) {
+	t.Parallel()
+
 	testdata, err := os.OpenRoot("testdata")
 	is.NotError(t, err)
 
 	t.Run("reads the contents of a file", func(t *testing.T) {
+		t.Parallel()
+
 		tool := tools.NewReadFile(testdata)
 
 		is.Equal(t, "read_file", tool.Name)
@@ -27,6 +31,8 @@ func TestNewReadFile(t *testing.T) {
 	})
 
 	t.Run("errors if file does not exist", func(t *testing.T) {
+		t.Parallel()
+
 		tool := tools.NewReadFile(testdata)
 
 		_, err := tool.Execute(t.Context(), mustMarshalJSON(tools.ReadFileArgs{Path: "nonexistent.txt"}))
@@ -35,10 +41,14 @@ func TestNewReadFile(t *testing.T) {
 }
 
 func TestNewListDir(t *testing.T) {
+	t.Parallel()
+
 	testdata, err := os.OpenRoot("testdata")
 	is.NotError(t, err)
 
 	t.Run("lists files in a directory", func(t *testing.T) {
+		t.Parallel()
+
 		tool := tools.NewListDir(testdata)
 
 		is.Equal(t, "list_dir", tool.Name)
@@ -57,6 +67,8 @@ func TestNewListDir(t *testing.T) {
 	})
 
 	t.Run("uses current directory if no path provided", func(t *testing.T) {
+		t.Parallel()
+
 		tool := tools.NewListDir(testdata)
 
 		result, err := tool.Execute(t.Context(), mustMarshalJSON(tools.ListDirArgs{}))
@@ -72,6 +84,8 @@ func TestNewListDir(t *testing.T) {
 	})
 
 	t.Run("errors if directory does not exist", func(t *testing.T) {
+		t.Parallel()
+
 		tool := tools.NewListDir(testdata)
 
 		_, err := tool.Execute(t.Context(), mustMarshalJSON(tools.ListDirArgs{Path: "nonexistent"}))
@@ -81,7 +95,11 @@ func TestNewListDir(t *testing.T) {
 }
 
 func TestNewEditFile(t *testing.T) {
+	t.Parallel()
+
 	t.Run("edits the contents of a file", func(t *testing.T) {
+		t.Parallel()
+
 		tempDir := t.TempDir()
 		root, err := os.OpenRoot(tempDir)
 		is.NotError(t, err)
@@ -109,6 +127,8 @@ func TestNewEditFile(t *testing.T) {
 	})
 
 	t.Run("creates a new file if it doesn't exist", func(t *testing.T) {
+		t.Parallel()
+
 		tempDir := t.TempDir()
 		root, err := os.OpenRoot(tempDir)
 		is.NotError(t, err)
@@ -130,6 +150,8 @@ func TestNewEditFile(t *testing.T) {
 	})
 
 	t.Run("creates a new file in subdirectories", func(t *testing.T) {
+		t.Parallel()
+
 		tempDir := t.TempDir()
 		root, err := os.OpenRoot(tempDir)
 		is.NotError(t, err)
@@ -160,6 +182,8 @@ func TestNewEditFile(t *testing.T) {
 	})
 
 	t.Run("errors if search_str and replace_str are the same", func(t *testing.T) {
+		t.Parallel()
+
 		tempDir := t.TempDir()
 		root, err := os.OpenRoot(tempDir)
 		is.NotError(t, err)
@@ -175,6 +199,8 @@ func TestNewEditFile(t *testing.T) {
 	})
 
 	t.Run("errors if search_str not found in file", func(t *testing.T) {
+		t.Parallel()
+
 		tempDir := t.TempDir()
 		root, err := os.OpenRoot(tempDir)
 		is.NotError(t, err)
@@ -194,6 +220,8 @@ func TestNewEditFile(t *testing.T) {
 	})
 
 	t.Run("summarize read_file", func(t *testing.T) {
+		t.Parallel()
+
 		testdata, err := os.OpenRoot("testdata")
 		is.NotError(t, err)
 
@@ -208,6 +236,8 @@ func TestNewEditFile(t *testing.T) {
 	})
 
 	t.Run("summarize read_file with invalid JSON", func(t *testing.T) {
+		t.Parallel()
+
 		testdata, err := os.OpenRoot("testdata")
 		is.NotError(t, err)
 
@@ -220,6 +250,8 @@ func TestNewEditFile(t *testing.T) {
 	})
 
 	t.Run("summarize list_dir with path", func(t *testing.T) {
+		t.Parallel()
+
 		testdata, err := os.OpenRoot("testdata")
 		is.NotError(t, err)
 
@@ -234,6 +266,8 @@ func TestNewEditFile(t *testing.T) {
 	})
 
 	t.Run("summarize list_dir with current directory", func(t *testing.T) {
+		t.Parallel()
+
 		testdata, err := os.OpenRoot("testdata")
 		is.NotError(t, err)
 
@@ -248,6 +282,8 @@ func TestNewEditFile(t *testing.T) {
 	})
 
 	t.Run("summarize list_dir with empty path", func(t *testing.T) {
+		t.Parallel()
+
 		testdata, err := os.OpenRoot("testdata")
 		is.NotError(t, err)
 
@@ -260,6 +296,8 @@ func TestNewEditFile(t *testing.T) {
 	})
 
 	t.Run("summarize edit_file with short strings", func(t *testing.T) {
+		t.Parallel()
+
 		tempDir := t.TempDir()
 		root, err := os.OpenRoot(tempDir)
 		is.NotError(t, err)
@@ -277,6 +315,8 @@ func TestNewEditFile(t *testing.T) {
 	})
 
 	t.Run("summarize edit_file with long strings", func(t *testing.T) {
+		t.Parallel()
+
 		tempDir := t.TempDir()
 		root, err := os.OpenRoot(tempDir)
 		is.NotError(t, err)
@@ -294,6 +334,8 @@ func TestNewEditFile(t *testing.T) {
 	})
 
 	t.Run("summarize edit_file with invalid JSON", func(t *testing.T) {
+		t.Parallel()
+
 		tempDir := t.TempDir()
 		root, err := os.OpenRoot(tempDir)
 		is.NotError(t, err)

@@ -17,6 +17,8 @@ var logo []byte
 // TestEvalSeagull evaluates how a seagull's day is going.
 // All evals must be prefixed with "TestEval".
 func TestEvalSeagull(t *testing.T) {
+	t.Parallel()
+
 	c := openai.NewClient(openai.NewClientOptions{
 		Key: os.Getenv("OPENAI_API_KEY"),
 	})
@@ -68,6 +70,8 @@ func TestEvalSeagull(t *testing.T) {
 // TestEvalImageDescription evaluates how well a model describes an image.
 // This demonstrates multimodal evaluation using image input and semantic similarity scoring.
 func TestEvalImageDescription(t *testing.T) {
+	t.Parallel()
+
 	eval.Run(t, "describes the logo", func(t *testing.T, e *eval.E) {
 		gc := google.NewClient(google.NewClientOptions{
 			Key: os.Getenv("GOOGLE_API_KEY"),

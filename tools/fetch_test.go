@@ -35,7 +35,11 @@ func (m *mockChatCompleter) ChatComplete(ctx context.Context, req gai.ChatComple
 }
 
 func TestNewFetch(t *testing.T) {
+	t.Parallel()
+
 	t.Run("successfully fetches content from a URL as HTML", func(t *testing.T) {
+		t.Parallel()
+
 		// Create a test server that serves a simple response
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
@@ -61,6 +65,8 @@ func TestNewFetch(t *testing.T) {
 	})
 
 	t.Run("successfully fetches content and converts to Markdown", func(t *testing.T) {
+		t.Parallel()
+
 		// Create a test server that serves HTML content
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
@@ -83,6 +89,8 @@ func TestNewFetch(t *testing.T) {
 	})
 
 	t.Run("uses Markdown as default output format when converter is available", func(t *testing.T) {
+		t.Parallel()
+
 		// Create a test server that serves HTML content
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
@@ -104,6 +112,8 @@ func TestNewFetch(t *testing.T) {
 	})
 
 	t.Run("follows redirects correctly", func(t *testing.T) {
+		t.Parallel()
+
 		// Create a mux to handle both routes
 		mux := http.NewServeMux()
 		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -132,6 +142,8 @@ func TestNewFetch(t *testing.T) {
 	})
 
 	t.Run("returns error for client-side HTTP errors (4xx)", func(t *testing.T) {
+		t.Parallel()
+
 		// Create a server that returns a 404 Not Found error
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusNotFound)
@@ -152,6 +164,8 @@ func TestNewFetch(t *testing.T) {
 	})
 
 	t.Run("retries and returns error for server-side HTTP errors (5xx)", func(t *testing.T) {
+		t.Parallel()
+
 		// Track the number of request attempts
 		attempts := 0
 
@@ -179,6 +193,8 @@ func TestNewFetch(t *testing.T) {
 	})
 
 	t.Run("returns error for empty URL", func(t *testing.T) {
+		t.Parallel()
+
 		client := &http.Client{Timeout: 5 * time.Second}
 		tool := tools.NewFetch(client, nil)
 
@@ -192,6 +208,8 @@ func TestNewFetch(t *testing.T) {
 	})
 
 	t.Run("returns error for invalid URL", func(t *testing.T) {
+		t.Parallel()
+
 		client := &http.Client{Timeout: 5 * time.Second}
 		tool := tools.NewFetch(client, nil)
 
@@ -205,6 +223,8 @@ func TestNewFetch(t *testing.T) {
 	})
 
 	t.Run("works with nil http client (creates default client)", func(t *testing.T) {
+		t.Parallel()
+
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte("Default client works!"))
@@ -224,6 +244,8 @@ func TestNewFetch(t *testing.T) {
 	})
 
 	t.Run("returns error when markdown is requested but no converter is available", func(t *testing.T) {
+		t.Parallel()
+
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte("<p>Hello, no converter!</p>"))
@@ -245,6 +267,8 @@ func TestNewFetch(t *testing.T) {
 	})
 
 	t.Run("summarize with URL only", func(t *testing.T) {
+		t.Parallel()
+
 		tool := tools.NewFetch(nil, nil)
 
 		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.FetchArgs{
@@ -256,6 +280,8 @@ func TestNewFetch(t *testing.T) {
 	})
 
 	t.Run("summarize with URL and HTML format", func(t *testing.T) {
+		t.Parallel()
+
 		tool := tools.NewFetch(nil, nil)
 
 		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.FetchArgs{
@@ -268,6 +294,8 @@ func TestNewFetch(t *testing.T) {
 	})
 
 	t.Run("summarize with URL and markdown format", func(t *testing.T) {
+		t.Parallel()
+
 		tool := tools.NewFetch(nil, nil)
 
 		summary, err := tool.Summarize(t.Context(), mustMarshalJSON(tools.FetchArgs{
@@ -280,6 +308,8 @@ func TestNewFetch(t *testing.T) {
 	})
 
 	t.Run("summarize with invalid JSON", func(t *testing.T) {
+		t.Parallel()
+
 		tool := tools.NewFetch(nil, nil)
 
 		summary, err := tool.Summarize(t.Context(), []byte(`{invalid json`))

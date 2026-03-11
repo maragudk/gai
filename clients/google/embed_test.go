@@ -10,7 +10,11 @@ import (
 )
 
 func TestEmbedder_Embed(t *testing.T) {
+	t.Parallel()
+
 	t.Run("can embed a text", func(t *testing.T) {
+		t.Parallel()
+
 		c := newClient(t)
 
 		e := c.NewEmbedder(google.NewEmbedderOptions{
@@ -25,6 +29,8 @@ func TestEmbedder_Embed(t *testing.T) {
 	})
 
 	t.Run("panics with no parts", func(t *testing.T) {
+		t.Parallel()
+
 		c := newClient(t)
 
 		e := c.NewEmbedder(google.NewEmbedderOptions{
@@ -41,6 +47,8 @@ func TestEmbedder_Embed(t *testing.T) {
 	})
 
 	t.Run("panics with unsupported part type", func(t *testing.T) {
+		t.Parallel()
+
 		c := newClient(t)
 
 		e := c.NewEmbedder(google.NewEmbedderOptions{
@@ -59,6 +67,8 @@ func TestEmbedder_Embed(t *testing.T) {
 	})
 
 	t.Run("can embed an image", func(t *testing.T) {
+		t.Parallel()
+
 		c := newClient(t)
 
 		e := c.NewEmbedder(google.NewEmbedderOptions{
@@ -77,6 +87,8 @@ func TestEmbedder_Embed(t *testing.T) {
 	})
 
 	t.Run("can embed audio", func(t *testing.T) {
+		t.Parallel()
+
 		c := newClient(t)
 
 		e := c.NewEmbedder(google.NewEmbedderOptions{
@@ -95,6 +107,8 @@ func TestEmbedder_Embed(t *testing.T) {
 	})
 
 	t.Run("can embed video", func(t *testing.T) {
+		t.Parallel()
+
 		c := newClient(t)
 
 		e := c.NewEmbedder(google.NewEmbedderOptions{
@@ -113,6 +127,8 @@ func TestEmbedder_Embed(t *testing.T) {
 	})
 
 	t.Run("can embed a mixture of text, image, audio, and video", func(t *testing.T) {
+		t.Parallel()
+
 		c := newClient(t)
 
 		e := c.NewEmbedder(google.NewEmbedderOptions{

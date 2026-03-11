@@ -10,7 +10,11 @@ import (
 )
 
 func TestEmbedder_Embed(t *testing.T) {
+	t.Parallel()
+
 	t.Run("can embed a text", func(t *testing.T) {
+		t.Parallel()
+
 		c := newClient(t)
 
 		e := c.NewEmbedder(openai.NewEmbedderOptions{
@@ -25,6 +29,8 @@ func TestEmbedder_Embed(t *testing.T) {
 	})
 
 	t.Run("panics with no parts", func(t *testing.T) {
+		t.Parallel()
+
 		c := newClient(t)
 
 		e := c.NewEmbedder(openai.NewEmbedderOptions{
@@ -41,6 +47,8 @@ func TestEmbedder_Embed(t *testing.T) {
 	})
 
 	t.Run("panics with a non-text part", func(t *testing.T) {
+		t.Parallel()
+
 		c := newClient(t)
 
 		e := c.NewEmbedder(openai.NewEmbedderOptions{
@@ -59,6 +67,8 @@ func TestEmbedder_Embed(t *testing.T) {
 	})
 
 	t.Run("panics with multiple parts", func(t *testing.T) {
+		t.Parallel()
+
 		c := newClient(t)
 
 		e := c.NewEmbedder(openai.NewEmbedderOptions{

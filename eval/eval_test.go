@@ -12,7 +12,11 @@ import (
 )
 
 func TestLexicalSimilarityScorer(t *testing.T) {
+	t.Parallel()
+
 	t.Run("with LevenshteinDistance", func(t *testing.T) {
+		t.Parallel()
+
 		tests := []struct {
 			expected, output string
 			score            eval.Score
@@ -29,6 +33,8 @@ func TestLexicalSimilarityScorer(t *testing.T) {
 		}
 		for _, test := range tests {
 			t.Run(test.expected+" "+test.output, func(t *testing.T) {
+				t.Parallel()
+
 				scorer := eval.LexicalSimilarityScorer(eval.LevenshteinDistance)
 				result := scorer(eval.NewTextSample("", test.expected, test.output))
 				is.True(t, math.Abs(float64(test.score-result.Score)) < 0.01)
@@ -37,6 +43,8 @@ func TestLexicalSimilarityScorer(t *testing.T) {
 	})
 
 	t.Run("with ExactMatch", func(t *testing.T) {
+		t.Parallel()
+
 		tests := []struct {
 			expected, output string
 			score            eval.Score
@@ -51,6 +59,8 @@ func TestLexicalSimilarityScorer(t *testing.T) {
 		}
 		for _, test := range tests {
 			t.Run(test.expected+" "+test.output, func(t *testing.T) {
+				t.Parallel()
+
 				scorer := eval.LexicalSimilarityScorer(eval.ExactMatch)
 				result := scorer(eval.NewTextSample("", test.expected, test.output))
 				is.Equal(t, test.score, result.Score)
@@ -59,6 +69,8 @@ func TestLexicalSimilarityScorer(t *testing.T) {
 	})
 
 	t.Run("with Contains", func(t *testing.T) {
+		t.Parallel()
+
 		tests := []struct {
 			output, expected string // note the fields are reversed here, to match [strings.Contains]
 			score            eval.Score
@@ -73,6 +85,8 @@ func TestLexicalSimilarityScorer(t *testing.T) {
 		}
 		for _, test := range tests {
 			t.Run(test.expected+" "+test.output, func(t *testing.T) {
+				t.Parallel()
+
 				scorer := eval.LexicalSimilarityScorer(eval.Contains)
 				result := scorer(eval.NewTextSample("", test.expected, test.output))
 				is.Equal(t, test.score, result.Score)
@@ -82,6 +96,8 @@ func TestLexicalSimilarityScorer(t *testing.T) {
 }
 
 func TestSemanticSimilarityScorer(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		expected, output                   string
 		expectedEmbedding, outputEmbedding []float64
@@ -93,6 +109,8 @@ func TestSemanticSimilarityScorer(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.expected+" "+test.output, func(t *testing.T) {
+			t.Parallel()
+
 			e := &embedder{
 				embeddings: map[string][]float64{
 					test.expected: test.expectedEmbedding,
