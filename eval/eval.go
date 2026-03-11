@@ -23,7 +23,7 @@ type Sample struct {
 }
 
 // NewTextSample is a convenience function to create a text-only [Sample].
-func NewTextSample(input, output, expected string) Sample {
+func NewTextSample(input, expected, output string) Sample {
 	return Sample{
 		Input:    []gai.Part{gai.TextPart(input)},
 		Output:   []gai.Part{gai.TextPart(output)},
