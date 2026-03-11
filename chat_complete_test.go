@@ -1,7 +1,9 @@
 package gai_test
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"strings"
 	"testing"
 
@@ -11,6 +13,21 @@ import (
 )
 
 func TestDataPart(t *testing.T) {
+	t.Run("data can be read multiple times", func(t *testing.T) {
+		data := []byte("hello, world")
+		part := gai.DataPart("text/plain", bytes.NewReader(data))
+
+		// First read should return the data.
+		first, err := io.ReadAll(part.Data)
+		is.NotError(t, err)
+		is.Equal(t, "hello, world", string(first))
+
+		// Second read should also return the data, not be empty.
+		second, err := io.ReadAll(part.Data)
+		is.NotError(t, err)
+		is.Equal(t, "hello, world", string(second))
+	})
+
 	t.Run("panics with empty MIME type", func(t *testing.T) {
 		defer func() {
 			r := recover()
