@@ -15,10 +15,33 @@ import (
 	"maragu.dev/gai"
 )
 
+// Sample for evaluation, containing the input, expected output, and actual output.
+// Each field is a slice of [gai.Part] to support multimodal content.
+// Use [NewTextSample] for text-only samples.
 type Sample struct {
-	Expected string
-	Input    string
-	Output   string
+	Input    []gai.Part
+	Expected []gai.Part
+	Output   []gai.Part
+}
+
+// NewTextSample is a convenience function to create a text-only [Sample].
+func NewTextSample(input, output, expected string) Sample {
+	return Sample{
+		Input:    []gai.Part{gai.TextPart(input)},
+		Output:   []gai.Part{gai.TextPart(output)},
+		Expected: []gai.Part{gai.TextPart(expected)},
+	}
+}
+
+// sampleText extracts the text content from a slice of parts.
+func sampleText(parts []gai.Part) string {
+	var b strings.Builder
+	for _, p := range parts {
+		if p.Type == gai.PartTypeText {
+			b.WriteString(p.Text())
+		}
+	}
+	return b.String()
 }
 
 // Score between 0 and 1.
@@ -51,7 +74,7 @@ type Scorer = func(s Sample) Result
 // You can choose which similarity function to use, such as [LevenshteinDistance], [ExactMatch], or [Contains].
 func LexicalSimilarityScorer(similarityFunc func(a, b string) Score) Scorer {
 	return func(sample Sample) Result {
-		score := similarityFunc(sample.Output, sample.Expected)
+		score := similarityFunc(sampleText(sample.Output), sampleText(sample.Expected))
 		return Result{Score: score, Type: "LexicalSimilarity"}
 	}
 }
@@ -92,17 +115,17 @@ type fataler interface {
 	Fatal(args ...any)
 }
 
-// SemanticSimilarityScorer returns a [Scorer] which uses embedding vectors to compare expected and output strings from a [Sample].
+// SemanticSimilarityScorer returns a [Scorer] which uses embedding vectors to compare expected and output from a [Sample].
 // You can choose which vector similarity function to use. If in doubt, use [CosineSimilarity].
 func SemanticSimilarityScorer[T gai.VectorComponent](t fataler, e gai.Embedder[T], similarityFunc func(a, b []T) Score) Scorer {
 	return func(sample Sample) Result {
-		expected, err := e.Embed(t.Context(), gai.NewTextEmbedRequest(sample.Expected))
+		expected, err := e.Embed(t.Context(), gai.EmbedRequest{Parts: sample.Expected})
 		if err != nil {
-			t.Fatal("could not get embedding for expected string:", err)
+			t.Fatal("could not get embedding for expected:", err)
 		}
-		output, err := e.Embed(t.Context(), gai.NewTextEmbedRequest(sample.Output))
+		output, err := e.Embed(t.Context(), gai.EmbedRequest{Parts: sample.Output})
 		if err != nil {
-			t.Fatal("could not get embedding for output string:", err)
+			t.Fatal("could not get embedding for output:", err)
 		}
 
 		score := similarityFunc(expected.Embedding, output.Embedding)
@@ -245,7 +268,7 @@ Score the response on a scale from 0.0 to 1.0, where:
 - 0.0: Completely incorrect or irrelevant
 
 Provide your assessment and reasoning, then on the final line include ONLY your numerical score in format "Score: X.XX" (a number between 0.0 and 1.0).`,
-			s.Input, s.Expected, s.Output)
+			sampleText(s.Input), sampleText(s.Expected), sampleText(s.Output))
 	}
 }
 
@@ -345,7 +368,7 @@ Provide brief reasoning for each score. Then output a JSON object with your scor
 }
 `+"```"+`
 
-Ensure the JSON is valid and contains only numeric values between 0 and 10 for each dimension.`, s.Input, s.Expected, s.Output)
+Ensure the JSON is valid and contains only numeric values between 0 and 10 for each dimension.`, sampleText(s.Input), sampleText(s.Expected), sampleText(s.Output))
 	}
 }
 

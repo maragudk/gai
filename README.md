@@ -357,11 +357,7 @@ func TestEvalSeagull(t *testing.T) {
 		}
 
 		// Create a sample to pass to the scorer.
-		sample := eval.Sample{
-			Input:    input,
-			Output:   output,
-			Expected: "Oh, splendid day it is! You know, I'm just floatin' about on the breeze, keepin' an eye out for a cheeky chip or two. Might pop down to the seaside, see if I can nick a sarnie from some unsuspecting holidaymaker. It's a gull's life, innit? How about you, what are you up to?",
-		}
+		sample := eval.NewTextSample(input, output, "Oh, splendid day it is! You know, I'm just floatin' about on the breeze, keepin' an eye out for a cheeky chip or two. Might pop down to the seaside, see if I can nick a sarnie from some unsuspecting holidaymaker. It's a gull's life, innit? How about you, what are you up to?")
 
 		// Score the sample using a lexical similarity scorer with the Levenshtein distance.
 		lexicalSimilarityResult := e.Score(sample, eval.LexicalSimilarityScorer(eval.LevenshteinDistance))

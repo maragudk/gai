@@ -30,7 +30,7 @@ func TestLexicalSimilarityScorer(t *testing.T) {
 		for _, test := range tests {
 			t.Run(test.expected+" "+test.output, func(t *testing.T) {
 				scorer := eval.LexicalSimilarityScorer(eval.LevenshteinDistance)
-				result := scorer(eval.Sample{Expected: test.expected, Output: test.output})
+				result := scorer(eval.NewTextSample("", test.output, test.expected))
 				is.True(t, math.Abs(float64(test.score-result.Score)) < 0.01)
 			})
 		}
@@ -52,7 +52,7 @@ func TestLexicalSimilarityScorer(t *testing.T) {
 		for _, test := range tests {
 			t.Run(test.expected+" "+test.output, func(t *testing.T) {
 				scorer := eval.LexicalSimilarityScorer(eval.ExactMatch)
-				result := scorer(eval.Sample{Expected: test.expected, Output: test.output})
+				result := scorer(eval.NewTextSample("", test.output, test.expected))
 				is.Equal(t, test.score, result.Score)
 			})
 		}
@@ -74,7 +74,7 @@ func TestLexicalSimilarityScorer(t *testing.T) {
 		for _, test := range tests {
 			t.Run(test.expected+" "+test.output, func(t *testing.T) {
 				scorer := eval.LexicalSimilarityScorer(eval.Contains)
-				result := scorer(eval.Sample{Expected: test.expected, Output: test.output})
+				result := scorer(eval.NewTextSample("", test.output, test.expected))
 				is.Equal(t, test.score, result.Score)
 			})
 		}
@@ -101,7 +101,7 @@ func TestSemanticSimilarityScorer(t *testing.T) {
 			}
 
 			scorer := eval.SemanticSimilarityScorer(t, e, eval.CosineSimilarity)
-			result := scorer(eval.Sample{Expected: test.expected, Output: test.output})
+			result := scorer(eval.NewTextSample("", test.output, test.expected))
 			is.True(t, math.Abs(float64(test.score-result.Score)) < 0.01)
 		})
 	}
@@ -154,11 +154,7 @@ func TestLLMScorer(t *testing.T) {
 				judge := eval.DefaultJudge(0.0)
 				scorer := eval.LLMScorer(t, judge, mockLLM)
 
-				sample := eval.Sample{
-					Input:    test.input,
-					Expected: test.expected,
-					Output:   test.output,
-				}
+				sample := eval.NewTextSample(test.input, test.output, test.expected)
 
 				result := scorer(sample)
 				is.Equal(t, test.expectedScore, result.Score)
@@ -231,11 +227,7 @@ Clarity: 8/10 - Clear but overly simplistic.
 				judge := eval.RubricJudge(0.0)
 				scorer := eval.LLMScorer(t, judge, mockLLM)
 
-				sample := eval.Sample{
-					Input:    test.input,
-					Expected: test.expected,
-					Output:   test.output,
-				}
+				sample := eval.NewTextSample(test.input, test.output, test.expected)
 
 				result := scorer(sample)
 				is.Equal(t, test.expectedScore, result.Score)
