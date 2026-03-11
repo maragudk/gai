@@ -1,6 +1,8 @@
 package anthropic_test
 
 import (
+	"bytes"
+	_ "embed"
 	"os"
 	"strings"
 	"testing"
@@ -11,6 +13,9 @@ import (
 	"maragu.dev/gai/clients/anthropic"
 	"maragu.dev/gai/tools"
 )
+
+//go:embed testdata/logo.jpg
+var image []byte
 
 func TestChatCompleter_ChatComplete(t *testing.T) {
 	t.Run("can chat-complete", func(t *testing.T) {
@@ -233,6 +238,37 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 		}
 
 		is.True(t, strings.Contains(strings.ToLower(output), "bonjour"), output)
+	})
+
+	t.Run("can describe an image", func(t *testing.T) {
+		cc := newChatCompleter(t)
+
+		req := gai.ChatCompleteRequest{
+			Messages: []gai.Message{
+				gai.NewUserDataMessage("image/jpeg", bytes.NewReader(image)),
+			},
+			System:      gai.Ptr("Describe this image concisely."),
+			Temperature: gai.Ptr(gai.Temperature(0)),
+		}
+
+		res, err := cc.ChatComplete(t.Context(), req)
+		is.NotError(t, err)
+
+		var output string
+		for part, err := range res.Parts() {
+			is.NotError(t, err)
+
+			switch part.Type {
+			case gai.PartTypeText:
+				output += part.Text()
+
+			default:
+				t.Fatal("unexpected message parts")
+			}
+		}
+
+		t.Log(output)
+		is.True(t, len(output) > 0, "should have output")
 	})
 }
 

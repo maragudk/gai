@@ -2,7 +2,9 @@ package anthropic
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
+	"io"
 	"log/slog"
 	"sort"
 	"strings"
@@ -114,8 +116,46 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 					},
 				})
 
+			case gai.PartTypeData:
+				data, err := io.ReadAll(part.Data)
+				if err != nil {
+					span.RecordError(err)
+					span.SetStatus(codes.Error, "data read failed")
+					return gai.ChatCompleteResponse{}, fmt.Errorf("error reading request data: %w", err)
+				}
+
+				encoded := base64.StdEncoding.EncodeToString(data)
+
+				switch {
+				case strings.HasPrefix(part.MIMEType, "image/"):
+					parts = append(parts, anthropic.ContentBlockParamUnion{
+						OfImage: &anthropic.ImageBlockParam{
+							Source: anthropic.ImageBlockParamSourceUnion{
+								OfBase64: &anthropic.Base64ImageSourceParam{
+									Data:      encoded,
+									MediaType: anthropic.Base64ImageSourceMediaType(part.MIMEType),
+								},
+							},
+						},
+					})
+
+				case part.MIMEType == "application/pdf":
+					parts = append(parts, anthropic.ContentBlockParamUnion{
+						OfDocument: &anthropic.DocumentBlockParam{
+							Source: anthropic.DocumentBlockParamSourceUnion{
+								OfBase64: &anthropic.Base64PDFSourceParam{
+									Data: encoded,
+								},
+							},
+						},
+					})
+
+				default:
+					panic("unsupported MIME type for Anthropic: " + part.MIMEType)
+				}
+
 			default:
-				panic("not implemented")
+				panic("unknown part type " + string(part.Type))
 			}
 		}
 

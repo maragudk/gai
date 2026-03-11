@@ -2,8 +2,10 @@ package openai
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"sort"
 	"strings"
@@ -21,11 +23,11 @@ import (
 type ChatCompleteModel string
 
 const (
-	ChatCompleteModelGPT4o     = ChatCompleteModel(openai.ChatModelGPT4o)
-	ChatCompleteModelGPT4oMini = ChatCompleteModel(openai.ChatModelGPT4oMini)
-	ChatCompleteModelGPT5      = ChatCompleteModel(openai.ChatModelGPT5)
-	ChatCompleteModelGPT5Mini  = ChatCompleteModel(openai.ChatModelGPT5Mini)
-	ChatCompleteModelGPT5Nano  = ChatCompleteModel(openai.ChatModelGPT5Nano)
+	ChatCompleteModelGPT4o      = ChatCompleteModel(openai.ChatModelGPT4o)
+	ChatCompleteModelGPT4oMini  = ChatCompleteModel(openai.ChatModelGPT4oMini)
+	ChatCompleteModelGPT5       = ChatCompleteModel(openai.ChatModelGPT5)
+	ChatCompleteModelGPT5Mini   = ChatCompleteModel(openai.ChatModelGPT5Mini)
+	ChatCompleteModelGPT5Nano   = ChatCompleteModel(openai.ChatModelGPT5Nano)
 	ChatCompleteModelGPT5_1     = ChatCompleteModel(openai.ChatModelGPT5_1)
 	ChatCompleteModelGPT5_1Mini = ChatCompleteModel(openai.ChatModelGPT5_1Mini)
 	ChatCompleteModelGPT5_2     = ChatCompleteModel(openai.ChatModelGPT5_2)
@@ -101,8 +103,51 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 					messages = append(messages, openai.ToolMessage(content, toolResult.ID))
 					continue
 
+				case gai.PartTypeData:
+					data, err := io.ReadAll(part.Data)
+					if err != nil {
+						span.RecordError(err)
+						span.SetStatus(codes.Error, "data read failed")
+						return gai.ChatCompleteResponse{}, fmt.Errorf("error reading request data: %w", err)
+					}
+
+					encoded := base64.StdEncoding.EncodeToString(data)
+
+					switch {
+					case strings.HasPrefix(part.MIMEType, "image/"):
+						dataURI := "data:" + part.MIMEType + ";base64," + encoded
+						parts = append(parts, openai.ChatCompletionContentPartUnionParam{
+							OfImageURL: &openai.ChatCompletionContentPartImageParam{
+								ImageURL: openai.ChatCompletionContentPartImageImageURLParam{
+									URL: dataURI,
+								},
+							},
+						})
+
+					case part.MIMEType == "audio/wav" || part.MIMEType == "audio/mp3":
+						format := strings.TrimPrefix(part.MIMEType, "audio/")
+						parts = append(parts, openai.ChatCompletionContentPartUnionParam{
+							OfInputAudio: &openai.ChatCompletionContentPartInputAudioParam{
+								InputAudio: openai.ChatCompletionContentPartInputAudioInputAudioParam{
+									Data:   encoded,
+									Format: format,
+								},
+							},
+						})
+
+					default:
+						parts = append(parts, openai.ChatCompletionContentPartUnionParam{
+							OfFile: &openai.ChatCompletionContentPartFileParam{
+								File: openai.ChatCompletionContentPartFileFileParam{
+									FileData: openai.String(encoded),
+									Filename: openai.String("file"),
+								},
+							},
+						})
+					}
+
 				default:
-					panic("not implemented")
+					panic("unknown part type " + string(part.Type))
 				}
 			}
 
@@ -148,7 +193,7 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 					continue
 
 				default:
-					panic("not implemented")
+					panic("unknown part type " + string(part.Type))
 				}
 			}
 
