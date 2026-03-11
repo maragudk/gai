@@ -78,7 +78,7 @@ func TestEvalImageDescription(t *testing.T) {
 	})
 
 	cc := gc.NewChatCompleter(google.NewChatCompleterOptions{
-		Model: google.ChatCompleteModelGemini2_0Flash,
+		Model: google.ChatCompleteModelGemini2_5Flash,
 	})
 
 	embedder := gc.NewEmbedder(google.NewEmbedderOptions{
