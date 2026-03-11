@@ -2,6 +2,7 @@ package anthropic_test
 
 import (
 	_ "embed"
+	"encoding/json"
 	"os"
 	"strings"
 	"testing"
@@ -210,6 +211,46 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 		is.True(t, found, "tool not found")
 		is.Equal(t, `["readme.txt"]`, result.Content)
 		is.NotError(t, result.Err)
+	})
+
+	t.Run("can use structured output", func(t *testing.T) {
+		cc := newChatCompleter(t)
+
+		type Recommendation struct {
+			Title  string `json:"title"`
+			Author string `json:"author"`
+			Year   int    `json:"year"`
+		}
+
+		req := gai.ChatCompleteRequest{
+			Messages: []gai.Message{
+				gai.NewUserTextMessage("Recommend a science fiction book as JSON with title, author, and year."),
+			},
+			ResponseSchema: gai.Ptr(gai.GenerateSchema[Recommendation]()),
+			Temperature:    gai.Ptr(gai.Temperature(0)),
+		}
+
+		res, err := cc.ChatComplete(t.Context(), req)
+		is.NotError(t, err)
+
+		var output string
+		for part, err := range res.Parts() {
+			is.NotError(t, err)
+
+			switch part.Type {
+			case gai.PartTypeText:
+				output += part.Text()
+
+			default:
+				t.Fatalf("unexpected message part type: %s", part.Type)
+			}
+		}
+
+		var rec Recommendation
+		is.NotError(t, json.Unmarshal([]byte(output), &rec))
+		is.True(t, rec.Title != "", "title should not be empty")
+		is.True(t, rec.Author != "", "author should not be empty")
+		is.True(t, rec.Year > 0, "year should be positive")
 	})
 
 	t.Run("can use a system prompt", func(t *testing.T) {
