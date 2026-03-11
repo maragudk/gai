@@ -1,7 +1,6 @@
 package google_test
 
 import (
-	"bytes"
 	"testing"
 
 	"maragu.dev/is"
@@ -68,7 +67,7 @@ func TestEmbedder_Embed(t *testing.T) {
 		})
 
 		req := gai.EmbedRequest{
-			Parts: []gai.Part{gai.DataPart("image/jpeg", bytes.NewReader(image))},
+			Parts: []gai.Part{gai.DataPart("image/jpeg", image)},
 		}
 
 		res, err := e.Embed(t.Context(), req)
@@ -86,7 +85,7 @@ func TestEmbedder_Embed(t *testing.T) {
 		})
 
 		req := gai.EmbedRequest{
-			Parts: []gai.Part{gai.DataPart("audio/mp4", bytes.NewReader(audio))},
+			Parts: []gai.Part{gai.DataPart("audio/mp4", audio)},
 		}
 
 		res, err := e.Embed(t.Context(), req)
@@ -104,7 +103,7 @@ func TestEmbedder_Embed(t *testing.T) {
 		})
 
 		req := gai.EmbedRequest{
-			Parts: []gai.Part{gai.DataPart("video/quicktime", bytes.NewReader(video))},
+			Parts: []gai.Part{gai.DataPart("video/quicktime", video)},
 		}
 
 		res, err := e.Embed(t.Context(), req)
@@ -124,9 +123,9 @@ func TestEmbedder_Embed(t *testing.T) {
 		req := gai.EmbedRequest{
 			Parts: []gai.Part{
 				gai.TextPart("A multimedia embedding test."),
-				gai.DataPart("image/jpeg", bytes.NewReader(image)),
-				gai.DataPart("audio/mp4", bytes.NewReader(audio)),
-				gai.DataPart("video/quicktime", bytes.NewReader(video)),
+				gai.DataPart("image/jpeg", image),
+				gai.DataPart("audio/mp4", audio),
+				gai.DataPart("video/quicktime", video),
 			},
 		}
 

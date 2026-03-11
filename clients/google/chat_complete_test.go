@@ -1,7 +1,6 @@
 package google_test
 
 import (
-	"bytes"
 	_ "embed"
 	"encoding/json"
 	"os"
@@ -298,7 +297,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 
 		req := gai.ChatCompleteRequest{
 			Messages: []gai.Message{
-				gai.NewUserDataMessage("image/jpeg", bytes.NewReader(image)),
+				gai.NewUserDataMessage("image/jpeg", image),
 			},
 			System:      gai.Ptr("Describe this image concisely."),
 			Temperature: gai.Ptr(gai.Temperature(0)),
@@ -329,7 +328,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 
 		req := gai.ChatCompleteRequest{
 			Messages: []gai.Message{
-				gai.NewUserDataMessage("audio/mp4", bytes.NewReader(audio)),
+				gai.NewUserDataMessage("audio/mp4", audio),
 			},
 			System:      gai.Ptr("Describe this audio concisely."),
 			Temperature: gai.Ptr(gai.Temperature(0)),
@@ -361,7 +360,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 
 		req := gai.ChatCompleteRequest{
 			Messages: []gai.Message{
-				gai.NewUserDataMessage("video/quicktime", bytes.NewReader(video)),
+				gai.NewUserDataMessage("video/quicktime", video),
 			},
 			System:      gai.Ptr("Describe this video concisely."),
 			Temperature: gai.Ptr(gai.Temperature(0)),

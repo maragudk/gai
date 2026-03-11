@@ -2,7 +2,6 @@ package gai_test
 
 import (
 	"fmt"
-	"strings"
 	"testing"
 
 	"maragu.dev/is"
@@ -17,7 +16,7 @@ func TestDataPart(t *testing.T) {
 			is.Equal(t, "MIME type must not be empty", r)
 		}()
 
-		gai.DataPart("", strings.NewReader("data"))
+		gai.DataPart("", []byte("data"))
 	})
 
 	t.Run("panics with nil data", func(t *testing.T) {

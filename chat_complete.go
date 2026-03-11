@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"iter"
 
 	"github.com/invopop/jsonschema"
@@ -69,7 +68,7 @@ func NewUserTextMessage(text string) Message {
 }
 
 // NewUserDataMessage is a convenience function to create a new user data message.
-func NewUserDataMessage(mimeType string, data io.Reader) Message {
+func NewUserDataMessage(mimeType string, data []byte) Message {
 	return Message{
 		Role: MessageRoleUser,
 		Parts: []Part{
@@ -110,10 +109,17 @@ const (
 
 // Part is a single piece of content, such as text, data, a tool call, or a tool result.
 // Used in both [Message] and [EmbedRequest].
+//
+// Data is stored as a byte slice rather than an io.Reader because all known provider
+// SDKs (Google genai, OpenAI, Anthropic) require the full data in memory, either as
+// []byte or base64-encoded string. A streaming reader would be consumed on first use,
+// making Parts single-use and breaking message replay, multi-turn conversations, and
+// multi-scorer evaluations. See https://github.com/maragudk/gai/issues/169.
 type Part struct {
-	Type       PartType
-	Data       io.Reader
-	MIMEType   string
+	Type     PartType
+	Data     []byte
+	MIMEType string
+
 	text       *string
 	toolCall   *ToolCall
 	toolResult *ToolResult
@@ -140,14 +146,10 @@ func (m Part) Text() string {
 	if m.Type != PartTypeText {
 		panic("not text type")
 	}
-	if m.text != nil {
-		return *m.text
+	if m.text == nil {
+		panic("text not set")
 	}
-	text, err := io.ReadAll(m.Data)
-	if err != nil {
-		panic("error reading text: " + err.Error())
-	}
-	return string(text)
+	return *m.text
 }
 
 // ToolCall returns the tool call. Panics if the part is not [PartTypeToolCall].
@@ -197,7 +199,7 @@ const (
 func TextMessagePart(text string) Part { return TextPart(text) }
 
 // Deprecated: Use [DataPart] instead.
-func DataMessagePart(mimeType string, data io.Reader) Part { return DataPart(mimeType, data) }
+func DataMessagePart(mimeType string, data []byte) Part { return DataPart(mimeType, data) }
 
 // TextPart creates a text [Part].
 func TextPart(text string) Part {
@@ -208,8 +210,10 @@ func TextPart(text string) Part {
 }
 
 // DataPart creates a data [Part] with the given MIME type and content.
+// Data is stored as a byte slice for safe reuse across multiple reads.
+// See https://github.com/maragudk/gai/issues/169.
 // Panics if mimeType is empty or data is nil.
-func DataPart(mimeType string, data io.Reader) Part {
+func DataPart(mimeType string, data []byte) Part {
 	if mimeType == "" {
 		panic("MIME type must not be empty")
 	}

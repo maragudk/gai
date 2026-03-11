@@ -1,7 +1,6 @@
 package openai_test
 
 import (
-	"strings"
 	"testing"
 
 	"maragu.dev/is"
@@ -55,7 +54,7 @@ func TestEmbedder_Embed(t *testing.T) {
 		}()
 
 		_, _ = e.Embed(t.Context(), gai.EmbedRequest{
-			Parts: []gai.Part{gai.DataPart("image/jpeg", strings.NewReader("not an image"))},
+			Parts: []gai.Part{gai.DataPart("image/jpeg", []byte("not an image"))},
 		})
 	})
 

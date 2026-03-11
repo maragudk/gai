@@ -2,8 +2,6 @@ package google
 
 import (
 	"context"
-	"fmt"
-	"io"
 	"log/slog"
 
 	"go.opentelemetry.io/otel"
@@ -81,16 +79,10 @@ func (e *Embedder) Embed(ctx context.Context, req gai.EmbedRequest) (gai.EmbedRe
 			span.SetAttributes(attribute.Int("ai.input_length", len(text)))
 			content.Parts = append(content.Parts, &genai.Part{Text: text})
 		case gai.PartTypeData:
-			data, err := io.ReadAll(part.Data)
-			if err != nil {
-				span.RecordError(err)
-				span.SetStatus(codes.Error, "data read failed")
-				return gai.EmbedResponse[float32]{}, fmt.Errorf("error reading request data: %w", err)
-			}
 			content.Parts = append(content.Parts, &genai.Part{
 				InlineData: &genai.Blob{
 					MIMEType: part.MIMEType,
-					Data:     data,
+					Data:     part.Data,
 				},
 			})
 		default:
