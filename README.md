@@ -417,7 +417,7 @@ var logo []byte
 // TestEvalImageDescription evaluates how well a model describes an image.
 func TestEvalImageDescription(t *testing.T) {
 	gc := google.NewClient(google.NewClientOptions{
-		Key: os.Getenv("GOOGLE_KEY"),
+		Key: os.Getenv("GOOGLE_API_KEY"),
 	})
 
 	cc := gc.NewChatCompleter(google.NewChatCompleterOptions{
