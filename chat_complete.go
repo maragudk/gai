@@ -155,6 +155,23 @@ const (
 	PartTypeToolResult PartType = "tool_result"
 )
 
+// Deprecated: Use [Part] instead.
+type MessagePart = Part
+
+// Deprecated: Use [PartType] instead.
+type MessagePartType = PartType
+
+const (
+	// Deprecated: Use [PartTypeData] instead.
+	MessagePartTypeData = PartTypeData
+	// Deprecated: Use [PartTypeText] instead.
+	MessagePartTypeText = PartTypeText
+	// Deprecated: Use [PartTypeToolCall] instead.
+	MessagePartTypeToolCall = PartTypeToolCall
+	// Deprecated: Use [PartTypeToolResult] instead.
+	MessagePartTypeToolResult = PartTypeToolResult
+)
+
 func TextPart(text string) Part {
 	return Part{
 		Type: PartTypeText,
