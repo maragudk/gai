@@ -186,6 +186,12 @@ func TextPart(text string) Part {
 }
 
 func DataPart(mimeType string, data io.Reader) Part {
+	if mimeType == "" {
+		panic("MIME type must not be empty")
+	}
+	if data == nil {
+		panic("data must not be nil")
+	}
 	return Part{
 		Type:     PartTypeData,
 		Data:     data,

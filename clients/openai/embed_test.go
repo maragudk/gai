@@ -38,7 +38,7 @@ func TestEmbedder_Embed(t *testing.T) {
 			is.Equal(t, "no parts", r)
 		}()
 
-		e.Embed(t.Context(), gai.EmbedRequest{})
+		_, _ = e.Embed(t.Context(), gai.EmbedRequest{})
 	})
 
 	t.Run("panics with a non-text part", func(t *testing.T) {
@@ -54,7 +54,7 @@ func TestEmbedder_Embed(t *testing.T) {
 			is.Equal(t, "OpenAI embeddings only support a single text part", r)
 		}()
 
-		e.Embed(t.Context(), gai.EmbedRequest{
+		_, _ = e.Embed(t.Context(), gai.EmbedRequest{
 			Parts: []gai.Part{gai.DataPart("image/jpeg", strings.NewReader("not an image"))},
 		})
 	})
@@ -72,7 +72,7 @@ func TestEmbedder_Embed(t *testing.T) {
 			is.Equal(t, "OpenAI embeddings only support a single text part", r)
 		}()
 
-		e.Embed(t.Context(), gai.EmbedRequest{
+		_, _ = e.Embed(t.Context(), gai.EmbedRequest{
 			Parts: []gai.Part{gai.TextPart("one"), gai.TextPart("two")},
 		})
 	})

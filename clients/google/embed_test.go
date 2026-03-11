@@ -38,7 +38,7 @@ func TestEmbedder_Embed(t *testing.T) {
 			is.Equal(t, "no parts", r)
 		}()
 
-		e.Embed(t.Context(), gai.EmbedRequest{})
+		_, _ = e.Embed(t.Context(), gai.EmbedRequest{})
 	})
 
 	t.Run("panics with unsupported part type", func(t *testing.T) {
@@ -54,7 +54,7 @@ func TestEmbedder_Embed(t *testing.T) {
 			is.Equal(t, "unsupported part type for embedding: tool_call", r)
 		}()
 
-		e.Embed(t.Context(), gai.EmbedRequest{
+		_, _ = e.Embed(t.Context(), gai.EmbedRequest{
 			Parts: []gai.Part{gai.ToolCallPart("id", "name", nil)},
 		})
 	})
