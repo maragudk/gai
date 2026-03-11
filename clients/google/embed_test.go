@@ -19,11 +19,7 @@ func TestEmbedder_Embed(t *testing.T) {
 			Dimensions: 768,
 		})
 
-		req := gai.EmbedRequest{
-			Parts: []gai.Part{gai.TextPart("Embed this, please.")},
-		}
-
-		res, err := e.Embed(t.Context(), req)
+		res, err := e.Embed(t.Context(), gai.NewTextEmbedRequest("Embed this, please."))
 		is.NotError(t, err)
 
 		is.Equal(t, 768, len(res.Embedding))
