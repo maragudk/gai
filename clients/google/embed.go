@@ -77,7 +77,9 @@ func (e *Embedder) Embed(ctx context.Context, req gai.EmbedRequest) (gai.EmbedRe
 	for _, part := range req.Parts {
 		switch part.Type {
 		case gai.PartTypeText:
-			content.Parts = append(content.Parts, &genai.Part{Text: part.Text()})
+			text := part.Text()
+			span.SetAttributes(attribute.Int("ai.input_length", len(text)))
+			content.Parts = append(content.Parts, &genai.Part{Text: text})
 		case gai.PartTypeData:
 			data, err := io.ReadAll(part.Data)
 			if err != nil {
