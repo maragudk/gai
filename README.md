@@ -403,6 +403,7 @@ package evals_test
 import (
 	"bytes"
 	_ "embed"
+	"os"
 	"testing"
 
 	"maragu.dev/gai"
@@ -416,7 +417,7 @@ var logo []byte
 // TestEvalImageDescription evaluates how well a model describes an image.
 func TestEvalImageDescription(t *testing.T) {
 	gc := google.NewClient(google.NewClientOptions{
-		Key: "your-google-api-key",
+		Key: os.Getenv("GOOGLE_KEY"),
 	})
 
 	cc := gc.NewChatCompleter(google.NewChatCompleterOptions{
