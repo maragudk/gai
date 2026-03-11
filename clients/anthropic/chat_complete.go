@@ -176,26 +176,25 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 		)
 	}
 
-	var outputConfig anthropic.OutputConfigParam
+	params := anthropic.MessageNewParams{
+		MaxTokens:   1024, // TODO make variable
+		Messages:    messages,
+		Model:       anthropic.Model(c.model),
+		System:      system,
+		Temperature: temperature,
+		Tools:       tools,
+	}
+
 	if req.ResponseSchema != nil {
-		schemaMap := schemaToMap(req.ResponseSchema)
-		outputConfig = anthropic.OutputConfigParam{
+		params.OutputConfig = anthropic.OutputConfigParam{
 			Format: anthropic.JSONOutputFormatParam{
-				Schema: schemaMap,
+				Schema: schemaToMap(req.ResponseSchema),
 			},
 		}
 		span.SetAttributes(attribute.Bool("ai.has_response_schema", true))
 	}
 
-	stream := c.Client.Messages.NewStreaming(ctx, anthropic.MessageNewParams{
-		MaxTokens:    1024, // TODO make variable
-		Messages:     messages,
-		Model:        anthropic.Model(c.model),
-		OutputConfig: outputConfig,
-		System:       system,
-		Temperature:  temperature,
-		Tools:        tools,
-	})
+	stream := c.Client.Messages.NewStreaming(ctx, params)
 
 	return gai.NewChatCompleteResponse(func(yield func(gai.Part, error) bool) {
 		defer span.End()
