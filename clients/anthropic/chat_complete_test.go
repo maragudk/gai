@@ -209,7 +209,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 
 		// Anthropic may provide explanatory text before tool calls
 		is.True(t, found, "tool not found")
-		is.Equal(t, `["readme.txt"]`, result.Content)
+		is.Equal(t, `["hello.pdf","logo.jpg","readme.txt"]`, result.Content)
 		is.NotError(t, result.Err)
 	})
 
