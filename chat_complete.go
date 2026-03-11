@@ -108,6 +108,8 @@ const (
 	MessageRoleModel MessageRole = "model"
 )
 
+// Part is a single piece of content, such as text, data, a tool call, or a tool result.
+// Used in both [Message] and [EmbedRequest].
 type Part struct {
 	Type       PartType
 	Data       io.Reader
@@ -117,6 +119,7 @@ type Part struct {
 	toolResult *ToolResult
 }
 
+// Text returns the text content. Panics if the part is not [PartTypeText].
 func (m Part) Text() string {
 	if m.Type != PartTypeText {
 		panic("not text type")
@@ -131,6 +134,7 @@ func (m Part) Text() string {
 	return string(text)
 }
 
+// ToolCall returns the tool call. Panics if the part is not [PartTypeToolCall].
 func (m Part) ToolCall() ToolCall {
 	if m.Type != PartTypeToolCall {
 		panic("not tool call type")
@@ -138,6 +142,7 @@ func (m Part) ToolCall() ToolCall {
 	return *m.toolCall
 }
 
+// ToolResult returns the tool result. Panics if the part is not [PartTypeToolResult].
 func (m Part) ToolResult() ToolResult {
 	if m.Type != PartTypeToolResult {
 		panic("not tool result type")
@@ -178,6 +183,7 @@ func TextMessagePart(text string) Part { return TextPart(text) }
 // Deprecated: Use [DataPart] instead.
 func DataMessagePart(mimeType string, data io.Reader) Part { return DataPart(mimeType, data) }
 
+// TextPart creates a text [Part].
 func TextPart(text string) Part {
 	return Part{
 		Type: PartTypeText,
@@ -185,7 +191,15 @@ func TextPart(text string) Part {
 	}
 }
 
+// DataPart creates a data [Part] with the given MIME type and content.
+// Panics if mimeType is empty or data is nil.
 func DataPart(mimeType string, data io.Reader) Part {
+	if mimeType == "" {
+		panic("MIME type must not be empty")
+	}
+	if data == nil {
+		panic("data must not be nil")
+	}
 	return Part{
 		Type:     PartTypeData,
 		Data:     data,
@@ -193,6 +207,7 @@ func DataPart(mimeType string, data io.Reader) Part {
 	}
 }
 
+// ToolCallPart creates a tool call [Part].
 func ToolCallPart(id, name string, args json.RawMessage) Part {
 	return Part{
 		Type: PartTypeToolCall,

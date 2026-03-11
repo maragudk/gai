@@ -2,12 +2,33 @@ package gai_test
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"maragu.dev/is"
 
 	"maragu.dev/gai"
 )
+
+func TestDataPart(t *testing.T) {
+	t.Run("panics with empty MIME type", func(t *testing.T) {
+		defer func() {
+			r := recover()
+			is.Equal(t, "MIME type must not be empty", r)
+		}()
+
+		gai.DataPart("", strings.NewReader("data"))
+	})
+
+	t.Run("panics with nil data", func(t *testing.T) {
+		defer func() {
+			r := recover()
+			is.Equal(t, "data must not be nil", r)
+		}()
+
+		gai.DataPart("image/jpeg", nil)
+	})
+}
 
 func TestGenerateSchema(t *testing.T) {
 	t.Run("simple string type", func(t *testing.T) {
