@@ -1,7 +1,6 @@
 package eval
 
 import (
-	"strings"
 	"testing"
 
 	"maragu.dev/is"
@@ -35,7 +34,7 @@ func TestSampleText(t *testing.T) {
 		}()
 
 		sampleText([]gai.Part{
-			gai.DataPart("image/jpeg", strings.NewReader("not real image data")),
+			gai.DataPart("image/jpeg", []byte("not real image data")),
 		})
 	})
 
@@ -47,7 +46,7 @@ func TestSampleText(t *testing.T) {
 
 		sampleText([]gai.Part{
 			gai.TextPart("before"),
-			gai.DataPart("image/jpeg", strings.NewReader("not real image data")),
+			gai.DataPart("image/jpeg", []byte("not real image data")),
 		})
 	})
 }

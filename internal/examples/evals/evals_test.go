@@ -1,7 +1,6 @@
 package evals_test
 
 import (
-	"bytes"
 	_ "embed"
 	"os"
 	"testing"
@@ -88,7 +87,7 @@ func TestEvalImageDescription(t *testing.T) {
 				{
 					Role: gai.MessageRoleUser,
 					Parts: []gai.Part{
-						gai.DataPart("image/jpeg", bytes.NewReader(logo)),
+						gai.DataPart("image/jpeg", logo),
 						gai.TextPart("Describe this image in one sentence."),
 					},
 				},
@@ -108,7 +107,7 @@ func TestEvalImageDescription(t *testing.T) {
 
 		// Create a multimodal sample: input is the image, output and expected are text descriptions.
 		sample := eval.Sample{
-			Input:    []gai.Part{gai.DataPart("image/jpeg", bytes.NewReader(logo))},
+			Input:    []gai.Part{gai.DataPart("image/jpeg", logo)},
 			Output:   []gai.Part{gai.TextPart(output)},
 			Expected: []gai.Part{gai.TextPart("A cute cartoon turquoise gopher character on a pink background.")},
 		}
