@@ -447,12 +447,6 @@ func ensureObjectSchemasDisallowAdditionalProperties(obj map[string]any) {
 
 	if items, ok := obj["items"].(map[string]any); ok {
 		ensureObjectSchemasDisallowAdditionalProperties(items)
-	} else if itemsArr, ok := obj["items"].([]any); ok {
-		for _, v := range itemsArr {
-			if child, ok := v.(map[string]any); ok {
-				ensureObjectSchemasDisallowAdditionalProperties(child)
-			}
-		}
 	}
 
 	if anyOf, ok := obj["anyOf"].([]any); ok {
