@@ -478,15 +478,11 @@ func TestEvalImageDescription(t *testing.T) {
 
 | GAI | Google GenAI | OpenAI | Anthropic |
 |---|---|---|---|
-| `[]Message` | `[]*Content` | `[]ChatCompletionMessageParamUnion` | `[]MessageParam` |
 | `Message` | `Content` | `ChatCompletionMessageParamUnion` | `MessageParam` |
 | `MessageRole` | `Role` | string | `MessageParamRole` |
-| `Parts` (field) | `Parts` | `Content` | `Content` |
 | `Part` | `*Part` | `ChatCompletionContentPartUnionParam` | `ContentBlockParamUnion` |
 | `Tool` | `FunctionDeclaration` | `ChatCompletionToolParam` | `ToolParam` |
 | `ToolCall` | `FunctionCall` | `ChatCompletionMessageFunctionToolCall` | `ToolUseBlock` |
 | `ToolResult` | `FunctionResponse` | `ChatCompletionToolMessageParam` | `ToolResultBlockParam` |
-| `[]Part` (embed input) | `[]*Content` | `EmbeddingNewParamsInputUnion` | N/A |
-| `[]T` (embed vector) | `[]float32` | `[]float64` | N/A |
 
 </details>
