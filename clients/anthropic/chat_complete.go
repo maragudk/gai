@@ -194,7 +194,6 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 		attribute.StringSlice("ai.tools", toolNames),
 	)
 
-	// TODO: Temperature ranges from 0 to 1, normalize
 	var temperature param.Opt[float64]
 	if req.Temperature != nil {
 		temperature = param.NewOpt(req.Temperature.Float64())
@@ -214,8 +213,14 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 		)
 	}
 
+	maxTokens := 16_384
+	if req.MaxCompletionTokens != nil {
+		maxTokens = *req.MaxCompletionTokens
+	}
+	span.SetAttributes(attribute.Int("ai.max_completion_tokens", maxTokens))
+
 	params := anthropic.MessageNewParams{
-		MaxTokens:   1024, // TODO make variable
+		MaxTokens:   int64(maxTokens),
 		Messages:    messages,
 		Model:       anthropic.Model(c.model),
 		System:      system,
@@ -284,7 +289,10 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 							}
 						}
 						if !found {
-							panic(fmt.Errorf("tool not found: %s", block.Name)) // TODO
+							span.RecordError(fmt.Errorf("tool not found: %s", block.Name))
+							span.SetStatus(codes.Error, "tool not found")
+							yield(gai.Part{}, fmt.Errorf("tool not found: %s", block.Name))
+							return
 						}
 					}
 				}
