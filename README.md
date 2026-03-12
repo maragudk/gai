@@ -470,3 +470,19 @@ func TestEvalImageDescription(t *testing.T) {
 ```
 
 </details>
+
+## Terminology
+
+<details>
+	<summary>How GAI concepts map to provider SDKs</summary>
+
+| GAI | Google GenAI | OpenAI | Anthropic |
+|---|---|---|---|
+| `Message` | `Content` | `ChatCompletionMessageParamUnion` | `MessageParam` |
+| `MessageRole` | `Role` | string | `MessageParamRole` |
+| `Part` | `*Part` | `ChatCompletionContentPartUnionParam` | `ContentBlockParamUnion` |
+| `Tool` | `FunctionDeclaration` | `ChatCompletionToolParam` | `ToolParam` |
+| `ToolCall` | `FunctionCall` | `ChatCompletionMessageFunctionToolCall` | `ToolUseBlock` |
+| `ToolResult` | `FunctionResponse` | `ChatCompletionToolMessageParam` | `ToolResultBlockParam` |
+
+</details>
