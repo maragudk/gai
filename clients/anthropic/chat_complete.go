@@ -22,14 +22,14 @@ import (
 type ChatCompleteModel string
 
 const (
-	ChatCompleteModelClaude4SonnetLatest   = ChatCompleteModel(anthropic.ModelClaudeSonnet4_0)
-	ChatCompleteModelClaude4OpusLatest     = ChatCompleteModel(anthropic.ModelClaudeOpus4_0)
-	ChatCompleteModelClaude4_1OpusLatest   = ChatCompleteModel(anthropic.ModelClaudeOpus4_1)
-	ChatCompleteModelClaude4_5HaikuLatest  = ChatCompleteModel(anthropic.ModelClaudeHaiku4_5)
-	ChatCompleteModelClaude4_5SonnetLatest = ChatCompleteModel(anthropic.ModelClaudeSonnet4_5)
-	ChatCompleteModelClaude4_5OpusLatest   = ChatCompleteModel(anthropic.ModelClaudeOpus4_5)
-	ChatCompleteModelClaude4_6SonnetLatest = ChatCompleteModel(anthropic.ModelClaudeSonnet4_6)
-	ChatCompleteModelClaude4_6OpusLatest   = ChatCompleteModel(anthropic.ModelClaudeOpus4_6)
+	ChatCompleteModelClaudeSonnet4Latest   = ChatCompleteModel(anthropic.ModelClaudeSonnet4_0)
+	ChatCompleteModelClaudeOpus4Latest     = ChatCompleteModel(anthropic.ModelClaudeOpus4_0)
+	ChatCompleteModelClaudeOpus4_1Latest   = ChatCompleteModel(anthropic.ModelClaudeOpus4_1)
+	ChatCompleteModelClaudeHaiku4_5Latest  = ChatCompleteModel(anthropic.ModelClaudeHaiku4_5)
+	ChatCompleteModelClaudeSonnet4_5Latest = ChatCompleteModel(anthropic.ModelClaudeSonnet4_5)
+	ChatCompleteModelClaudeOpus4_5Latest   = ChatCompleteModel(anthropic.ModelClaudeOpus4_5)
+	ChatCompleteModelClaudeSonnet4_6Latest = ChatCompleteModel(anthropic.ModelClaudeSonnet4_6)
+	ChatCompleteModelClaudeOpus4_6Latest   = ChatCompleteModel(anthropic.ModelClaudeOpus4_6)
 )
 
 type ChatCompleter struct {
