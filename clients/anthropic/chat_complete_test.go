@@ -404,7 +404,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 func newChatCompleter(t *testing.T) *anthropic.ChatCompleter {
 	c := newClient(t)
 	cc := c.NewChatCompleter(anthropic.NewChatCompleterOptions{
-		Model: anthropic.ChatCompleteModelClaude4_5HaikuLatest,
+		Model: anthropic.ChatCompleteModelClaudeHaiku4_5Latest,
 	})
 	return cc
 }
