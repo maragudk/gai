@@ -11,8 +11,8 @@ import (
 type Backend string
 
 const (
-	// BackendGeminiAPI is the Google Gemini API backend.
-	BackendGeminiAPI Backend = "gemini"
+	// BackendGemini is the Google Gemini API backend.
+	BackendGemini Backend = "gemini"
 	// BackendVertexAI is the Google Vertex AI backend.
 	BackendVertexAI Backend = "vertexai"
 )
