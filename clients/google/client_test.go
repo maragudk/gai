@@ -17,6 +17,42 @@ func TestNewClient(t *testing.T) {
 	})
 }
 
+func TestBackend(t *testing.T) {
+	t.Run("has Gemini API and Vertex AI values", func(t *testing.T) {
+		is.Equal(t, google.Backend("gemini"), google.BackendGeminiAPI)
+		is.Equal(t, google.Backend("vertexai"), google.BackendVertexAI)
+	})
+}
+
+func TestNewClientWithVertexAI(t *testing.T) {
+	t.Run("can create a new client with the Vertex AI backend", func(t *testing.T) {
+		_ = env.Load("../../.env.test.local")
+
+		log := slog.New(slog.NewTextHandler(&tWriter{t}, &slog.HandlerOptions{Level: slog.LevelDebug}))
+
+		client := google.NewClient(google.NewClientOptions{
+			Backend: google.BackendVertexAI,
+			Key:     env.GetStringOrDefault("GOOGLE_VERTEX_KEY", ""),
+			Log:     log,
+		})
+		is.NotNil(t, client)
+	})
+}
+
+func newVertexAIClient(t *testing.T) *google.Client {
+	t.Helper()
+
+	_ = env.Load("../../.env.test.local")
+
+	log := slog.New(slog.NewTextHandler(&tWriter{t}, &slog.HandlerOptions{Level: slog.LevelDebug}))
+
+	return google.NewClient(google.NewClientOptions{
+		Backend: google.BackendVertexAI,
+		Key:     env.GetStringOrDefault("GOOGLE_VERTEX_KEY", ""),
+		Log:     log,
+	})
+}
+
 func newClient(t *testing.T) *google.Client {
 	t.Helper()
 

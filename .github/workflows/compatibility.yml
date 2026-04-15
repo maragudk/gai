@@ -41,4 +41,5 @@ jobs:
         env:
           ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_KEY }}
           GOOGLE_KEY: ${{ secrets.GOOGLE_KEY }}
+          GOOGLE_VERTEX_KEY: ${{ secrets.GOOGLE_VERTEX_KEY }}
           OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
