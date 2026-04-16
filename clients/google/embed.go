@@ -18,8 +18,8 @@ import (
 type EmbedModel string
 
 const (
-	EmbedModelGeminiEmbedding001      = EmbedModel("models/gemini-embedding-001")
-	EmbedModelGeminiEmbedding2Preview = EmbedModel("models/gemini-embedding-2-preview")
+	EmbedModelGeminiEmbedding001      = EmbedModel("gemini-embedding-001")
+	EmbedModelGeminiEmbedding2Preview = EmbedModel("gemini-embedding-2-preview")
 )
 
 // Embedder satisfies [gai.Embedder] for Google Gemini models.
