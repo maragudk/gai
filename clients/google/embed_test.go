@@ -112,6 +112,20 @@ func TestEmbedder_Embed(t *testing.T) {
 		is.Equal(t, 768, len(res.Embedding))
 	})
 
+	t.Run("can embed a text with Vertex AI backend", func(t *testing.T) {
+		c := newVertexAIClient(t)
+
+		e := c.NewEmbedder(google.NewEmbedderOptions{
+			Model:      google.EmbedModelGeminiEmbedding001,
+			Dimensions: 768,
+		})
+
+		res, err := e.Embed(t.Context(), gai.NewTextEmbedRequest("Embed this, please."))
+		is.NotError(t, err)
+
+		is.Equal(t, 768, len(res.Embedding))
+	})
+
 	t.Run("can embed a mixture of text, image, audio, and video", func(t *testing.T) {
 		c := newClient(t)
 
