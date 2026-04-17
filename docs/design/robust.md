@@ -37,11 +37,13 @@ Subpackage `maragu.dev/gai/robust`:
 type Action int
 
 const (
-    ActionNone     Action = iota // zero value; used internally to mark success
-    ActionRetry
+    ActionRetry Action = iota + 1
     ActionFallback
     ActionFail
 )
+
+// The zero value of Action is an unexported internal sentinel; classifiers must return one
+// of the three constants above. Any other value causes the retry switch to panic.
 
 type ErrorClassifierFunc func(error) Action
 ```
@@ -99,7 +101,7 @@ Both wrappers follow the same cascading retry-then-fallback pattern:
    - `ActionFail` → return the error to the caller, abort everything.
    - `ActionFallback` → stop retrying this implementation, move to the next.
    - `ActionRetry` → sleep with full jitter, retry if attempts remain; otherwise move to the next.
-   - Any other (unknown) value → panic. Classifiers must not return `ActionNone`.
+   - Any other value, including the unexported zero sentinel → panic. Classifiers must return one of the three exported `Action` constants.
 5. On success for `Embedder`: return the response immediately. For `ChatCompleter`: peek the first streamed part (see streaming below).
 6. When all implementations are exhausted, return the final error.
 

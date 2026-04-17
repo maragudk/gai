@@ -281,7 +281,7 @@ func TestEmbedder_Embed(t *testing.T) {
 	t.Run("panics when Embedders is empty", func(t *testing.T) {
 		defer func() {
 			r := recover()
-			is.Equal(t, "robust: Embedders must not be empty", r)
+			is.Equal(t, "Embedders must not be empty", r)
 		}()
 
 		robust.NewEmbedder[float32](robust.NewEmbedderOptions[float32]{})
@@ -290,7 +290,7 @@ func TestEmbedder_Embed(t *testing.T) {
 	t.Run("panics when MaxAttempts is negative", func(t *testing.T) {
 		defer func() {
 			r := recover()
-			is.Equal(t, "robust: MaxAttempts must not be negative", r)
+			is.Equal(t, "MaxAttempts must not be negative", r)
 		}()
 
 		robust.NewEmbedder[float32](robust.NewEmbedderOptions[float32]{
@@ -302,7 +302,7 @@ func TestEmbedder_Embed(t *testing.T) {
 	t.Run("panics when BaseDelay exceeds MaxDelay", func(t *testing.T) {
 		defer func() {
 			r := recover()
-			is.Equal(t, "robust: BaseDelay must not exceed MaxDelay", r)
+			is.Equal(t, "BaseDelay must not exceed MaxDelay", r)
 		}()
 
 		robust.NewEmbedder[float32](robust.NewEmbedderOptions[float32]{

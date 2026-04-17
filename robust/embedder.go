@@ -50,31 +50,31 @@ type NewEmbedderOptions[T gai.VectorComponent] struct {
 //   - BaseDelay exceeds MaxDelay.
 func NewEmbedder[T gai.VectorComponent](opts NewEmbedderOptions[T]) *Embedder[T] {
 	if len(opts.Embedders) == 0 {
-		panic("robust: Embedders must not be empty")
+		panic("Embedders must not be empty")
 	}
 	if opts.MaxAttempts < 0 {
-		panic("robust: MaxAttempts must not be negative")
+		panic("MaxAttempts must not be negative")
 	}
 	if opts.MaxAttempts == 0 {
 		opts.MaxAttempts = 3
 	}
 	if opts.BaseDelay < 0 {
-		panic("robust: BaseDelay must not be negative")
+		panic("BaseDelay must not be negative")
 	}
 	if opts.BaseDelay == 0 {
 		opts.BaseDelay = 100 * time.Millisecond
 	}
 	if opts.MaxDelay < 0 {
-		panic("robust: MaxDelay must not be negative")
+		panic("MaxDelay must not be negative")
 	}
 	if opts.MaxDelay == 0 {
 		opts.MaxDelay = 5 * time.Second
 	}
 	if opts.MaxDelay == time.Duration(math.MaxInt64) {
-		panic("robust: MaxDelay must be less than math.MaxInt64")
+		panic("MaxDelay must be less than math.MaxInt64")
 	}
 	if opts.BaseDelay > opts.MaxDelay {
-		panic("robust: BaseDelay must not exceed MaxDelay")
+		panic("BaseDelay must not exceed MaxDelay")
 	}
 	if opts.ErrorClassifier == nil {
 		opts.ErrorClassifier = defaultErrorClassifier
@@ -126,12 +126,12 @@ func (e *Embedder[T]) Embed(ctx context.Context, req gai.EmbedRequest) (gai.Embe
 				if attempt < e.maxAttempts {
 					if sleepErr := sleep(ctx, e.baseDelay, e.maxDelay, attempt); sleepErr != nil {
 						rootSpan.RecordError(sleepErr)
-						rootSpan.SetStatus(codes.Error, "context cancelled during backoff")
+						rootSpan.SetStatus(codes.Error, "backoff interrupted: "+sleepErr.Error())
 						return gai.EmbedResponse[T]{}, sleepErr
 					}
 				}
 			default:
-				panic(fmt.Sprintf("robust: classifier returned unknown Action %d", act))
+				panic(fmt.Sprintf("classifier returned unknown Action %d", act))
 			}
 		}
 		if embedderIdx < len(e.embedders)-1 {
@@ -146,7 +146,7 @@ func (e *Embedder[T]) Embed(ctx context.Context, req gai.EmbedRequest) (gai.Embe
 	return gai.EmbedResponse[T]{}, lastErr
 }
 
-// tryOnce runs a single Embed attempt against one embedder. Returns (res, ActionNone, nil) on
+// tryOnce runs a single Embed attempt against one embedder. Returns (res, actionNone, nil) on
 // success; (zero, classifiedAction, err) on failure. Ends the attempt span before returning.
 func (e *Embedder[T]) tryOnce(ctx context.Context, embedder gai.Embedder[T], req gai.EmbedRequest, embedderIdx, attempt int) (gai.EmbedResponse[T], Action, error) {
 	ctx, attemptSpan := e.tracer.Start(ctx, "robust.embed_attempt",
@@ -160,7 +160,7 @@ func (e *Embedder[T]) tryOnce(ctx context.Context, embedder gai.Embedder[T], req
 	res, err := embedder.Embed(ctx, req)
 	if err == nil {
 		attemptSpan.SetAttributes(attribute.String("ai.robust.action", "success"))
-		return res, ActionNone, nil
+		return res, actionNone, nil
 	}
 
 	act := e.classifier(err)
@@ -170,7 +170,4 @@ func (e *Embedder[T]) tryOnce(ctx context.Context, embedder gai.Embedder[T], req
 	return gai.EmbedResponse[T]{}, act, err
 }
 
-var (
-	_ gai.Embedder[float32] = (*Embedder[float32])(nil)
-	_ gai.Embedder[float64] = (*Embedder[float64])(nil)
-)
+var _ gai.Embedder[float64] = (*Embedder[float64])(nil)

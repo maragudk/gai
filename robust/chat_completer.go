@@ -23,9 +23,10 @@ import (
 type Action int
 
 const (
-	// ActionNone is the zero value; it indicates no classification has been made.
-	// Classifiers should not return this; it is used internally to mark success.
-	ActionNone Action = iota
+	// actionNone is the zero value; it indicates no classification has been made.
+	// Used internally by tryOnce to mark success. Not exported — the switch on
+	// Action panics on this value, same as any other unknown value.
+	actionNone Action = iota
 	// ActionRetry retries the same completer after exponential backoff.
 	ActionRetry
 	// ActionFallback moves to the next completer in the priority list.
@@ -37,7 +38,7 @@ const (
 // String satisfies [fmt.Stringer].
 func (a Action) String() string {
 	switch a {
-	case ActionNone:
+	case actionNone:
 		return "none"
 	case ActionRetry:
 		return "retry"
@@ -89,31 +90,31 @@ type NewChatCompleterOptions struct {
 //   - BaseDelay exceeds MaxDelay.
 func NewChatCompleter(opts NewChatCompleterOptions) *ChatCompleter {
 	if len(opts.Completers) == 0 {
-		panic("robust: Completers must not be empty")
+		panic("Completers must not be empty")
 	}
 	if opts.MaxAttempts < 0 {
-		panic("robust: MaxAttempts must not be negative")
+		panic("MaxAttempts must not be negative")
 	}
 	if opts.MaxAttempts == 0 {
 		opts.MaxAttempts = 3
 	}
 	if opts.BaseDelay < 0 {
-		panic("robust: BaseDelay must not be negative")
+		panic("BaseDelay must not be negative")
 	}
 	if opts.BaseDelay == 0 {
 		opts.BaseDelay = 500 * time.Millisecond
 	}
 	if opts.MaxDelay < 0 {
-		panic("robust: MaxDelay must not be negative")
+		panic("MaxDelay must not be negative")
 	}
 	if opts.MaxDelay == 0 {
 		opts.MaxDelay = 30 * time.Second
 	}
 	if opts.MaxDelay == time.Duration(math.MaxInt64) {
-		panic("robust: MaxDelay must be less than math.MaxInt64")
+		panic("MaxDelay must be less than math.MaxInt64")
 	}
 	if opts.BaseDelay > opts.MaxDelay {
-		panic("robust: BaseDelay must not exceed MaxDelay")
+		panic("BaseDelay must not exceed MaxDelay")
 	}
 	if opts.ErrorClassifier == nil {
 		opts.ErrorClassifier = defaultErrorClassifier
@@ -169,13 +170,13 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 				if attempt < c.maxAttempts {
 					if sleepErr := sleep(ctx, c.baseDelay, c.maxDelay, attempt); sleepErr != nil {
 						rootSpan.RecordError(sleepErr)
-						rootSpan.SetStatus(codes.Error, "context cancelled during backoff")
+						rootSpan.SetStatus(codes.Error, "backoff interrupted: "+sleepErr.Error())
 						rootSpan.End()
 						return gai.ChatCompleteResponse{}, sleepErr
 					}
 				}
 			default:
-				panic(fmt.Sprintf("robust: classifier returned unknown Action %d", act))
+				panic(fmt.Sprintf("classifier returned unknown Action %d", act))
 			}
 		}
 		if completerIdx < len(c.completers)-1 {
@@ -192,7 +193,7 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 }
 
 // tryOnce runs a single attempt against one completer, including first-part peek.
-// On success returns (committed, [ActionNone], nil); the attempt span is ended when the
+// On success returns (committed, actionNone, nil); the attempt span is ended when the
 // wrapped iterator terminates. On failure returns (zero, classifiedAction, err) and ends
 // the attempt span before returning.
 func (c *ChatCompleter) tryOnce(ctx context.Context, completer gai.ChatCompleter, req gai.ChatCompleteRequest, completerIdx, attempt int, rootSpan trace.Span) (gai.ChatCompleteResponse, Action, error) {
@@ -208,7 +209,7 @@ func (c *ChatCompleter) tryOnce(ctx context.Context, completer gai.ChatCompleter
 		committed, peekErr := commitOnFirstPart(res, attemptSpan, rootSpan)
 		if peekErr == nil {
 			attemptSpan.SetAttributes(attribute.String("ai.robust.action", "success"))
-			return committed, ActionNone, nil
+			return committed, actionNone, nil
 		}
 		err = peekErr
 	}

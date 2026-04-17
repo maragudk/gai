@@ -216,7 +216,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 	t.Run("panics when Completers is empty", func(t *testing.T) {
 		defer func() {
 			r := recover()
-			is.Equal(t, "robust: Completers must not be empty", r)
+			is.Equal(t, "Completers must not be empty", r)
 		}()
 
 		robust.NewChatCompleter(robust.NewChatCompleterOptions{})
@@ -303,7 +303,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 	t.Run("panics when MaxAttempts is negative", func(t *testing.T) {
 		defer func() {
 			r := recover()
-			is.Equal(t, "robust: MaxAttempts must not be negative", r)
+			is.Equal(t, "MaxAttempts must not be negative", r)
 		}()
 
 		robust.NewChatCompleter(robust.NewChatCompleterOptions{
@@ -315,7 +315,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 	t.Run("panics when BaseDelay exceeds MaxDelay", func(t *testing.T) {
 		defer func() {
 			r := recover()
-			is.Equal(t, "robust: BaseDelay must not exceed MaxDelay", r)
+			is.Equal(t, "BaseDelay must not exceed MaxDelay", r)
 		}()
 
 		robust.NewChatCompleter(robust.NewChatCompleterOptions{
