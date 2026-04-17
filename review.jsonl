@@ -1,4 +1,3 @@
-{"base":"36d89652e41c3594b5a456032d5c519b0f1da1da","comment":"Just “Defaults to 3”\n\nAlso note that MaxAttempts = 1 disables retrying","compare":"7addeef9289164d9a887630c3b5134865e8d82fe","endLine":65,"file":"robust/chat_completer.go","startLine":65}
 {"base":"36d89652e41c3594b5a456032d5c519b0f1da1da","comment":"Same","compare":"7addeef9289164d9a887630c3b5134865e8d82fe","endLine":67,"file":"robust/chat_completer.go","startLine":67}
 {"base":"36d89652e41c3594b5a456032d5c519b0f1da1da","comment":"Same","compare":"7addeef9289164d9a887630c3b5134865e8d82fe","endLine":69,"file":"robust/chat_completer.go","startLine":69}
 {"base":"36d89652e41c3594b5a456032d5c519b0f1da1da","comment":"Same","compare":"7addeef9289164d9a887630c3b5134865e8d82fe","endLine":71,"file":"robust/chat_completer.go","startLine":71}

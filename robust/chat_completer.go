@@ -63,7 +63,7 @@ type ChatCompleter struct {
 type NewChatCompleterOptions struct {
 	// Completers is the prioritized list of underlying completers. Must be non-empty.
 	Completers []gai.ChatCompleter
-	// MaxAttempts per completer. Zero defaults to 3.
+	// MaxAttempts per completer. Defaults to 3. Set to 1 to disable retrying.
 	MaxAttempts int
 	// BaseDelay is the initial exponential-backoff delay. Zero defaults to 500ms.
 	BaseDelay time.Duration
