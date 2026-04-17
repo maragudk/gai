@@ -8,17 +8,7 @@ import (
 	"time"
 
 	"maragu.dev/is"
-
-	"maragu.dev/gai"
 )
-
-// stubCompleter is an inert completer used only to satisfy NewChatCompleter for helper tests
-// that don't actually call ChatComplete.
-type stubCompleter struct{}
-
-func (stubCompleter) ChatComplete(context.Context, gai.ChatCompleteRequest) (gai.ChatCompleteResponse, error) {
-	return gai.ChatCompleteResponse{}, nil
-}
 
 func TestDefaultErrorClassifier(t *testing.T) {
 	tests := []struct {
@@ -81,37 +71,31 @@ func TestFindStatusCode(t *testing.T) {
 	}
 }
 
-func TestChatCompleter_nextDelay(t *testing.T) {
-	t.Run("stays within [0, min(MaxDelay, BaseDelay<<(n-1))] across retries", func(t *testing.T) {
-		c := NewChatCompleter(NewChatCompleterOptions{
-			Completers: []gai.ChatCompleter{stubCompleter{}},
-			BaseDelay:  100 * time.Millisecond,
-			MaxDelay:   10 * time.Second,
-		})
+func TestNextDelay(t *testing.T) {
+	t.Run("stays within [0, min(maxDelay, baseDelay<<(n-1))] across retries", func(t *testing.T) {
+		baseDelay := 100 * time.Millisecond
+		maxDelay := 10 * time.Second
 
 		for retry := 1; retry <= 10; retry++ {
 			shift := retry - 1
-			want := c.baseDelay << shift
-			if want <= 0 || want > c.maxDelay {
-				want = c.maxDelay
+			want := baseDelay << shift
+			if want <= 0 || want > maxDelay {
+				want = maxDelay
 			}
 			for range 50 {
-				d := c.nextDelay(retry)
+				d := nextDelay(baseDelay, maxDelay, retry)
 				is.True(t, d >= 0, "delay must not be negative")
 				is.True(t, d <= want, fmt.Sprintf("retry %d: delay %v exceeds cap %v", retry, d, want))
 			}
 		}
 	})
 
-	t.Run("first retry caps at BaseDelay, not 2*BaseDelay", func(t *testing.T) {
-		c := NewChatCompleter(NewChatCompleterOptions{
-			Completers: []gai.ChatCompleter{stubCompleter{}},
-			BaseDelay:  50 * time.Millisecond,
-			MaxDelay:   10 * time.Second,
-		})
+	t.Run("first retry caps at baseDelay, not 2*baseDelay", func(t *testing.T) {
+		baseDelay := 50 * time.Millisecond
+		maxDelay := 10 * time.Second
 		for range 100 {
-			d := c.nextDelay(1)
-			is.True(t, d <= 50*time.Millisecond, fmt.Sprintf("first retry delay %v exceeds BaseDelay", d))
+			d := nextDelay(baseDelay, maxDelay, 1)
+			is.True(t, d <= baseDelay, fmt.Sprintf("first retry delay %v exceeds baseDelay", d))
 		}
 	})
 }

@@ -9,7 +9,6 @@ import (
 	"iter"
 	"log/slog"
 	"math"
-	"math/rand/v2"
 	"time"
 
 	"go.opentelemetry.io/otel"
@@ -167,7 +166,7 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 				fallback = true
 			case ActionRetry:
 				if attempt < c.maxAttempts {
-					if sleepErr := c.sleep(ctx, attempt); sleepErr != nil {
+					if sleepErr := sleep(ctx, c.baseDelay, c.maxDelay, attempt); sleepErr != nil {
 						rootSpan.RecordError(sleepErr)
 						rootSpan.SetStatus(codes.Error, "context cancelled during backoff")
 						rootSpan.End()
@@ -268,29 +267,6 @@ func commitOnFirstPart(res gai.ChatCompleteResponse, attemptSpan, rootSpan trace
 	})
 	wrapped.Meta = res.Meta
 	return wrapped, nil
-}
-
-// sleep waits for the full-jitter backoff duration for the given retry number (1-indexed),
-// or returns the context error if the context is cancelled first.
-func (c *ChatCompleter) sleep(ctx context.Context, retryNumber int) error {
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case <-time.After(c.nextDelay(retryNumber)):
-		return nil
-	}
-}
-
-// nextDelay returns a full-jitter backoff duration for the given retry number (1-indexed).
-// The ceiling at retry n is min(MaxDelay, BaseDelay*2^(n-1)), so the first retry draws
-// from [0, BaseDelay].
-func (c *ChatCompleter) nextDelay(retryNumber int) time.Duration {
-	shift := retryNumber - 1
-	exp := c.baseDelay << shift
-	if exp <= 0 || exp > c.maxDelay {
-		exp = c.maxDelay
-	}
-	return time.Duration(rand.Int64N(int64(exp) + 1))
 }
 
 var (
