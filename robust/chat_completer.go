@@ -65,13 +65,13 @@ type NewChatCompleterOptions struct {
 	Completers []gai.ChatCompleter
 	// MaxAttempts per completer. Defaults to 3. Set to 1 to disable retrying.
 	MaxAttempts int
-	// BaseDelay is the initial exponential-backoff delay. Zero defaults to 500ms.
+	// BaseDelay is the initial exponential-backoff delay. Defaults to 500ms.
 	BaseDelay time.Duration
-	// MaxDelay caps the backoff sleep. Zero defaults to 30s.
+	// MaxDelay caps the backoff sleep. Defaults to 30s.
 	MaxDelay time.Duration
-	// Classifier decides how to handle errors. Nil defaults to [DefaultErrorClassifier].
+	// Classifier decides how to handle errors. Defaults to [DefaultErrorClassifier].
 	Classifier ErrorClassifierFunc
-	// Log receives debug messages on failover and final exhaustion. Nil discards output.
+	// Log receives debug messages on failover and final exhaustion. Defaults to discarding output.
 	Log *slog.Logger
 }
 

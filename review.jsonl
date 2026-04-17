@@ -1,7 +1,3 @@
-{"base":"36d89652e41c3594b5a456032d5c519b0f1da1da","comment":"Same","compare":"7addeef9289164d9a887630c3b5134865e8d82fe","endLine":67,"file":"robust/chat_completer.go","startLine":67}
-{"base":"36d89652e41c3594b5a456032d5c519b0f1da1da","comment":"Same","compare":"7addeef9289164d9a887630c3b5134865e8d82fe","endLine":69,"file":"robust/chat_completer.go","startLine":69}
-{"base":"36d89652e41c3594b5a456032d5c519b0f1da1da","comment":"Same","compare":"7addeef9289164d9a887630c3b5134865e8d82fe","endLine":71,"file":"robust/chat_completer.go","startLine":71}
-{"base":"36d89652e41c3594b5a456032d5c519b0f1da1da","comment":"Same","compare":"7addeef9289164d9a887630c3b5134865e8d82fe","endLine":73,"file":"robust/chat_completer.go","startLine":73}
 {"base":"36d89652e41c3594b5a456032d5c519b0f1da1da","comment":"Call this “ErrorClassifier” to be explicit","compare":"7addeef9289164d9a887630c3b5134865e8d82fe","endLine":72,"file":"robust/chat_completer.go","startLine":72}
 {"base":"36d89652e41c3594b5a456032d5c519b0f1da1da","comment":"This is arguably internal. The underlying completers are clients","compare":"7addeef9289164d9a887630c3b5134865e8d82fe","endLine":111,"file":"robust/chat_completer.go","startLine":111}
 {"base":"36d89652e41c3594b5a456032d5c519b0f1da1da","comment":"Instead of panic, pass testing.T to the fakeChatCompleter and fail the test.","compare":"7addeef9289164d9a887630c3b5134865e8d82fe","endLine":34,"file":"robust/chat_completer_test.go","startLine":34}
