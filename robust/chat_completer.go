@@ -4,6 +4,7 @@ package robust
 
 import (
 	"context"
+	"fmt"
 	"iter"
 	"log/slog"
 	"math/rand/v2"
@@ -238,4 +239,7 @@ func (c *ChatCompleter) sleep(ctx context.Context, retryNumber int) error {
 	}
 }
 
-var _ gai.ChatCompleter = (*ChatCompleter)(nil)
+var (
+	_ gai.ChatCompleter = (*ChatCompleter)(nil)
+	_ fmt.Stringer      = Action(0)
+)
