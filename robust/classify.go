@@ -3,6 +3,7 @@ package robust
 import (
 	"context"
 	"errors"
+	"net/http"
 	"regexp"
 	"strconv"
 )
@@ -45,11 +46,11 @@ var DefaultErrorClassifier ErrorClassifierFunc = func(err error) Action {
 // 429 and 5xx retry; other 4xx fall back; anything else retries optimistically.
 func classifyStatus(code int) Action {
 	switch {
-	case code == 429:
+	case code == http.StatusTooManyRequests:
 		return ActionRetry
-	case code >= 500 && code < 600:
+	case code >= http.StatusInternalServerError && code < 600:
 		return ActionRetry
-	case code >= 400 && code < 500:
+	case code >= http.StatusBadRequest && code < http.StatusInternalServerError:
 		return ActionFallback
 	default:
 		return ActionRetry
