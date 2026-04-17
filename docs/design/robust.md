@@ -141,10 +141,9 @@ String inspection is best-effort. Callers with provider-specific needs should su
 
 Tracer: `otel.Tracer("maragu.dev/gai/robust")`. Child spans automatically parent under any caller span on the incoming context.
 
-- `ChatCompleter` spans: root `robust.chat_complete`, child `robust.attempt`.
-- `Embedder` spans: root `robust.embed`, child `robust.embed_attempt`.
-- Both set root-span attributes: `ai.robust.completer_count`, `ai.robust.max_attempts`, `ai.robust.base_delay_ms`, `ai.robust.max_delay_ms`.
-- Both set per-attempt attributes: `ai.robust.completer_index`, `ai.robust.attempt_number`, `ai.robust.action` (`"success"` on the successful attempt, or the classified action on failures).
+- `ChatCompleter` spans: root `robust.chat_complete`, child `robust.chat_complete_attempt`. Root attributes: `ai.robust.completer_count`, `ai.robust.max_attempts`, `ai.robust.base_delay_ms`, `ai.robust.max_delay_ms`. Per-attempt attributes: `ai.robust.completer_index`, `ai.robust.attempt_number`, `ai.robust.action`.
+- `Embedder` spans: root `robust.embed`, child `robust.embed_attempt`. Root attributes: `ai.robust.embedder_count`, `ai.robust.max_attempts`, `ai.robust.base_delay_ms`, `ai.robust.max_delay_ms`. Per-attempt attributes: `ai.robust.embedder_index`, `ai.robust.attempt_number`, `ai.robust.action`.
+- `ai.robust.action` is `"success"` on the successful attempt, or the classified action on failures.
 - Errors recorded on attempt spans via `RecordError` and `SetStatus(codes.Error, ...)`.
 - For `ChatCompleter` on the committed path, both the attempt span and the root span stay open until the wrapped iterator terminates. For `Embedder` the spans close at `Embed` return.
 
@@ -160,4 +159,3 @@ Internal tests cover the unexported `defaultErrorClassifier`, `findStatusCode` r
 
 - Whether to add a `TestEval`-style evaluation comparing robust vs. single-implementation success rates under simulated flakiness. Deferred.
 - A proper fix for the `iter.Pull2` goroutine leak when callers drop the `ChatComplete` response without iterating. Tracked in issue #211.
-- Mixed-component-type embedder fallback (e.g. OpenAI `float64` + Google `float32`) would require a conversion layer or a runtime type-erasure hack. Punted; not needed for current use cases.

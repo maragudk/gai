@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"maragu.dev/is"
@@ -96,25 +97,31 @@ func TestEmbedder_Embed(t *testing.T) {
 		is.Equal(t, 0, secondary.calls)
 	})
 
-	t.Run("interrupts the backoff sleep when the caller cancels the context", func(t *testing.T) {
-		primary := newFakeEmbedder(t, "primary", []fakeEmbedResponse[float32]{
-			{err: errors.New("first fails")},
-			{err: errors.New("should not be called")},
+	t.Run("interrupts the backoff sleep when the caller cancels the context mid-sleep", func(t *testing.T) {
+		synctest.Test(t, func(t *testing.T) {
+			primary := newFakeEmbedder(t, "primary", []fakeEmbedResponse[float32]{
+				{err: errors.New("first fails")},
+				{err: errors.New("should not be called")},
+			})
+
+			ctx, cancel := context.WithCancel(t.Context())
+
+			e := robust.NewEmbedder[float32](robust.NewEmbedderOptions[float32]{
+				Embedders:   []gai.Embedder[float32]{primary},
+				MaxAttempts: 3,
+				BaseDelay:   time.Hour,
+				MaxDelay:    time.Hour,
+			})
+
+			go func() {
+				time.Sleep(10 * time.Millisecond)
+				cancel()
+			}()
+
+			_, err := e.Embed(ctx, gai.EmbedRequest{})
+			is.Error(t, context.Canceled, err)
+			is.Equal(t, 1, primary.calls)
 		})
-
-		ctx, cancel := context.WithCancel(t.Context())
-		cancel()
-
-		e := robust.NewEmbedder[float32](robust.NewEmbedderOptions[float32]{
-			Embedders:   []gai.Embedder[float32]{primary},
-			MaxAttempts: 3,
-			BaseDelay:   time.Hour,
-			MaxDelay:    time.Hour,
-		})
-
-		_, err := e.Embed(ctx, gai.EmbedRequest{})
-		is.Error(t, context.Canceled, err)
-		is.Equal(t, 1, primary.calls)
 	})
 
 	t.Run("skips remaining retries and falls back when classifier returns ActionFallback", func(t *testing.T) {

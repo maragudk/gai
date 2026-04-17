@@ -5,6 +5,7 @@ import (
 	"errors"
 	"iter"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"maragu.dev/is"
@@ -141,25 +142,31 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 		is.Equal(t, 0, secondary.calls)
 	})
 
-	t.Run("interrupts the backoff sleep when the caller cancels the context", func(t *testing.T) {
-		primary := newFakeChatCompleter(t, "primary", []fakeResponse{
-			{preStreamErr: errors.New("first fails")},
-			{preStreamErr: errors.New("should not be called")},
+	t.Run("interrupts the backoff sleep when the caller cancels the context mid-sleep", func(t *testing.T) {
+		synctest.Test(t, func(t *testing.T) {
+			primary := newFakeChatCompleter(t, "primary", []fakeResponse{
+				{preStreamErr: errors.New("first fails")},
+				{preStreamErr: errors.New("should not be called")},
+			})
+
+			ctx, cancel := context.WithCancel(t.Context())
+
+			cc := robust.NewChatCompleter(robust.NewChatCompleterOptions{
+				Completers:  []gai.ChatCompleter{primary},
+				MaxAttempts: 3,
+				BaseDelay:   time.Hour,
+				MaxDelay:    time.Hour,
+			})
+
+			go func() {
+				time.Sleep(10 * time.Millisecond)
+				cancel()
+			}()
+
+			_, err := cc.ChatComplete(ctx, gai.ChatCompleteRequest{})
+			is.Error(t, context.Canceled, err)
+			is.Equal(t, 1, primary.calls)
 		})
-
-		ctx, cancel := context.WithCancel(t.Context())
-		cancel()
-
-		cc := robust.NewChatCompleter(robust.NewChatCompleterOptions{
-			Completers:  []gai.ChatCompleter{primary},
-			MaxAttempts: 3,
-			BaseDelay:   time.Hour,
-			MaxDelay:    time.Hour,
-		})
-
-		_, err := cc.ChatComplete(ctx, gai.ChatCompleteRequest{})
-		is.Error(t, context.Canceled, err)
-		is.Equal(t, 1, primary.calls)
 	})
 
 	t.Run("returns the final error when all completers are exhausted", func(t *testing.T) {

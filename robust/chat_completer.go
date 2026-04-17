@@ -50,7 +50,8 @@ func (a Action) String() string {
 	}
 }
 
-// ErrorClassifierFunc inspects an error and returns the [Action] the [ChatCompleter] should take.
+// ErrorClassifierFunc inspects an error and returns the [Action] a robust wrapper should take.
+// It is used by both [ChatCompleter] and [Embedder].
 type ErrorClassifierFunc func(error) Action
 
 // ChatCompleter wraps a prioritized list of [gai.ChatCompleter]s with retries and fallbacks.
@@ -195,7 +196,7 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 // wrapped iterator terminates. On failure returns (zero, classifiedAction, err) and ends
 // the attempt span before returning.
 func (c *ChatCompleter) tryOnce(ctx context.Context, completer gai.ChatCompleter, req gai.ChatCompleteRequest, completerIdx, attempt int, rootSpan trace.Span) (gai.ChatCompleteResponse, Action, error) {
-	ctx, attemptSpan := c.tracer.Start(ctx, "robust.attempt",
+	ctx, attemptSpan := c.tracer.Start(ctx, "robust.chat_complete_attempt",
 		trace.WithAttributes(
 			attribute.Int("ai.robust.completer_index", completerIdx),
 			attribute.Int("ai.robust.attempt_number", attempt),

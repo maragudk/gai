@@ -2,7 +2,6 @@ package robust
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"math"
@@ -98,7 +97,7 @@ func NewEmbedder[T gai.VectorComponent](opts NewEmbedderOptions[T]) *Embedder[T]
 func (e *Embedder[T]) Embed(ctx context.Context, req gai.EmbedRequest) (gai.EmbedResponse[T], error) {
 	ctx, rootSpan := e.tracer.Start(ctx, "robust.embed",
 		trace.WithAttributes(
-			attribute.Int("ai.robust.completer_count", len(e.embedders)),
+			attribute.Int("ai.robust.embedder_count", len(e.embedders)),
 			attribute.Int("ai.robust.max_attempts", e.maxAttempts),
 			attribute.Int64("ai.robust.base_delay_ms", e.baseDelay.Milliseconds()),
 			attribute.Int64("ai.robust.max_delay_ms", e.maxDelay.Milliseconds()),
@@ -144,9 +143,6 @@ func (e *Embedder[T]) Embed(ctx context.Context, req gai.EmbedRequest) (gai.Embe
 	e.log.Debug("robust: all embedders exhausted", "final_error", lastErr)
 	rootSpan.RecordError(lastErr)
 	rootSpan.SetStatus(codes.Error, "all embedders exhausted")
-	if lastErr == nil {
-		lastErr = errors.New("robust: no embedders attempted")
-	}
 	return gai.EmbedResponse[T]{}, lastErr
 }
 
@@ -155,7 +151,7 @@ func (e *Embedder[T]) Embed(ctx context.Context, req gai.EmbedRequest) (gai.Embe
 func (e *Embedder[T]) tryOnce(ctx context.Context, embedder gai.Embedder[T], req gai.EmbedRequest, embedderIdx, attempt int) (gai.EmbedResponse[T], Action, error) {
 	ctx, attemptSpan := e.tracer.Start(ctx, "robust.embed_attempt",
 		trace.WithAttributes(
-			attribute.Int("ai.robust.completer_index", embedderIdx),
+			attribute.Int("ai.robust.embedder_index", embedderIdx),
 			attribute.Int("ai.robust.attempt_number", attempt),
 		),
 	)
@@ -174,4 +170,7 @@ func (e *Embedder[T]) tryOnce(ctx context.Context, embedder gai.Embedder[T], req
 	return gai.EmbedResponse[T]{}, act, err
 }
 
-var _ gai.Embedder[float64] = (*Embedder[float64])(nil)
+var (
+	_ gai.Embedder[float32] = (*Embedder[float32])(nil)
+	_ gai.Embedder[float64] = (*Embedder[float64])(nil)
+)
