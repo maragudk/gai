@@ -1,5 +1,5 @@
 // Package robust provides a [gai.ChatCompleter] that wraps a prioritized list of
-// underlying completers with exponential-backoff retries and cascading fallbacks.
+// underlying completers with jittered exponential-backoff retries and cascading fallbacks.
 package robust
 
 import (
