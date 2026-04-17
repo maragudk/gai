@@ -1,2 +1,1 @@
-{"base":"36d89652e41c3594b5a456032d5c519b0f1da1da","comment":"Instead of panic, pass testing.T to the fakeChatCompleter and fail the test.","compare":"7addeef9289164d9a887630c3b5134865e8d82fe","endLine":34,"file":"robust/chat_completer_test.go","startLine":34}
 {"base":"36d89652e41c3594b5a456032d5c519b0f1da1da","comment":"Use constants from stdlib http instead of magic numbers","compare":"7addeef9289164d9a887630c3b5134865e8d82fe","endLine":48,"file":"robust/classify.go","startLine":48}

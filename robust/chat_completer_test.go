@@ -15,8 +15,9 @@ import (
 )
 
 // fakeChatCompleter drives scenarios by consuming queued responses on each call.
-// Each call pops the next fakeResponse from the queue; running out is a test bug.
+// Each call pops the next fakeResponse from the queue; running out fails the test.
 type fakeChatCompleter struct {
+	t         *testing.T
 	name      string
 	responses []fakeResponse
 	calls     int
@@ -29,9 +30,16 @@ type fakeResponse struct {
 	meta         *gai.ChatCompleteResponseMetadata
 }
 
+// newFakeChatCompleter constructs a fakeChatCompleter bound to t.
+func newFakeChatCompleter(t *testing.T, name string, responses []fakeResponse) *fakeChatCompleter {
+	t.Helper()
+	return &fakeChatCompleter{t: t, name: name, responses: responses}
+}
+
 func (f *fakeChatCompleter) ChatComplete(_ context.Context, _ gai.ChatCompleteRequest) (gai.ChatCompleteResponse, error) {
+	f.t.Helper()
 	if f.calls >= len(f.responses) {
-		panic("fakeChatCompleter " + f.name + ": no more queued responses")
+		f.t.Fatalf("fakeChatCompleter %s: no more queued responses", f.name)
 	}
 	r := f.responses[f.calls]
 	f.calls++
@@ -113,12 +121,9 @@ func TestDefaultErrorClassifier(t *testing.T) {
 
 func TestChatCompleter_ChatComplete(t *testing.T) {
 	t.Run("succeeds on first try when primary completer returns no errors", func(t *testing.T) {
-		primary := &fakeChatCompleter{
-			name: "primary",
-			responses: []fakeResponse{{
-				parts: []gai.Part{gai.TextPart("hello, markus")},
-			}},
-		}
+		primary := newFakeChatCompleter(t, "primary", []fakeResponse{{
+			parts: []gai.Part{gai.TextPart("hello, markus")},
+		}})
 
 		cc := robust.NewChatCompleter(robust.NewChatCompleterOptions{
 			Completers: []gai.ChatCompleter{primary},
@@ -137,13 +142,10 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 	})
 
 	t.Run("retries a pre-stream error and succeeds on the second attempt", func(t *testing.T) {
-		primary := &fakeChatCompleter{
-			name: "primary",
-			responses: []fakeResponse{
-				{preStreamErr: errors.New("transient glitter storm")},
-				{parts: []gai.Part{gai.TextPart("ok")}},
-			},
-		}
+		primary := newFakeChatCompleter(t, "primary", []fakeResponse{
+			{preStreamErr: errors.New("transient glitter storm")},
+			{parts: []gai.Part{gai.TextPart("ok")}},
+		})
 
 		cc := robust.NewChatCompleter(robust.NewChatCompleterOptions{
 			Completers: []gai.ChatCompleter{primary},
@@ -162,14 +164,8 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 	})
 
 	t.Run("bubbles up context.Canceled immediately without falling back", func(t *testing.T) {
-		primary := &fakeChatCompleter{
-			name:      "primary",
-			responses: []fakeResponse{{preStreamErr: context.Canceled}},
-		}
-		secondary := &fakeChatCompleter{
-			name:      "secondary",
-			responses: []fakeResponse{{parts: []gai.Part{gai.TextPart("should not happen")}}},
-		}
+		primary := newFakeChatCompleter(t, "primary", []fakeResponse{{preStreamErr: context.Canceled}})
+		secondary := newFakeChatCompleter(t, "secondary", []fakeResponse{{parts: []gai.Part{gai.TextPart("should not happen")}}})
 
 		cc := robust.NewChatCompleter(robust.NewChatCompleterOptions{
 			Completers: []gai.ChatCompleter{primary, secondary},
@@ -184,13 +180,10 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 	})
 
 	t.Run("interrupts the backoff sleep when the caller cancels the context", func(t *testing.T) {
-		primary := &fakeChatCompleter{
-			name: "primary",
-			responses: []fakeResponse{
-				{preStreamErr: errors.New("first fails")},
-				{preStreamErr: errors.New("should not be called")},
-			},
-		}
+		primary := newFakeChatCompleter(t, "primary", []fakeResponse{
+			{preStreamErr: errors.New("first fails")},
+			{preStreamErr: errors.New("should not be called")},
+		})
 
 		ctx, cancel := context.WithCancel(t.Context())
 		cancel()
@@ -209,20 +202,14 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 
 	t.Run("returns the final error when all completers are exhausted", func(t *testing.T) {
 		finalErr := errors.New("final failure")
-		primary := &fakeChatCompleter{
-			name: "primary",
-			responses: []fakeResponse{
-				{preStreamErr: errors.New("p1")},
-				{preStreamErr: errors.New("p2")},
-			},
-		}
-		secondary := &fakeChatCompleter{
-			name: "secondary",
-			responses: []fakeResponse{
-				{preStreamErr: errors.New("s1")},
-				{preStreamErr: finalErr},
-			},
-		}
+		primary := newFakeChatCompleter(t, "primary", []fakeResponse{
+			{preStreamErr: errors.New("p1")},
+			{preStreamErr: errors.New("p2")},
+		})
+		secondary := newFakeChatCompleter(t, "secondary", []fakeResponse{
+			{preStreamErr: errors.New("s1")},
+			{preStreamErr: finalErr},
+		})
 
 		cc := robust.NewChatCompleter(robust.NewChatCompleterOptions{
 			Completers:  []gai.ChatCompleter{primary, secondary},
@@ -238,18 +225,12 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 	})
 
 	t.Run("defaults MaxAttempts to 3 when zero", func(t *testing.T) {
-		primary := &fakeChatCompleter{
-			name: "primary",
-			responses: []fakeResponse{
-				{preStreamErr: errors.New("a")},
-				{preStreamErr: errors.New("b")},
-				{preStreamErr: errors.New("c")},
-			},
-		}
-		secondary := &fakeChatCompleter{
-			name:      "secondary",
-			responses: []fakeResponse{{parts: []gai.Part{gai.TextPart("saved")}}},
-		}
+		primary := newFakeChatCompleter(t, "primary", []fakeResponse{
+			{preStreamErr: errors.New("a")},
+			{preStreamErr: errors.New("b")},
+			{preStreamErr: errors.New("c")},
+		})
+		secondary := newFakeChatCompleter(t, "secondary", []fakeResponse{{parts: []gai.Part{gai.TextPart("saved")}}})
 
 		cc := robust.NewChatCompleter(robust.NewChatCompleterOptions{
 			Completers: []gai.ChatCompleter{primary, secondary},
@@ -274,10 +255,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 
 	t.Run("uses the default classifier when none is provided", func(t *testing.T) {
 		// context.Canceled should bubble up via DefaultErrorClassifier.
-		primary := &fakeChatCompleter{
-			name:      "primary",
-			responses: []fakeResponse{{preStreamErr: context.DeadlineExceeded}},
-		}
+		primary := newFakeChatCompleter(t, "primary", []fakeResponse{{preStreamErr: context.DeadlineExceeded}})
 		cc := robust.NewChatCompleter(robust.NewChatCompleterOptions{
 			Completers: []gai.ChatCompleter{primary},
 			BaseDelay:  time.Nanosecond,
@@ -295,13 +273,10 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			Usage:        gai.ChatCompleteResponseUsage{PromptTokens: 42},
 			FinishReason: &finishReason,
 		}
-		primary := &fakeChatCompleter{
-			name: "primary",
-			responses: []fakeResponse{{
-				parts: []gai.Part{gai.TextPart("ok")},
-				meta:  meta,
-			}},
-		}
+		primary := newFakeChatCompleter(t, "primary", []fakeResponse{{
+			parts: []gai.Part{gai.TextPart("ok")},
+			meta:  meta,
+		}})
 
 		cc := robust.NewChatCompleter(robust.NewChatCompleterOptions{
 			Completers: []gai.ChatCompleter{primary},
@@ -314,17 +289,11 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 	})
 
 	t.Run("exhausts MaxAttempts retries then falls back to the next completer", func(t *testing.T) {
-		primary := &fakeChatCompleter{
-			name: "primary",
-			responses: []fakeResponse{
-				{preStreamErr: errors.New("flake 1")},
-				{preStreamErr: errors.New("flake 2")},
-			},
-		}
-		secondary := &fakeChatCompleter{
-			name:      "secondary",
-			responses: []fakeResponse{{parts: []gai.Part{gai.TextPart("saved")}}},
-		}
+		primary := newFakeChatCompleter(t, "primary", []fakeResponse{
+			{preStreamErr: errors.New("flake 1")},
+			{preStreamErr: errors.New("flake 2")},
+		})
+		secondary := newFakeChatCompleter(t, "secondary", []fakeResponse{{parts: []gai.Part{gai.TextPart("saved")}}})
 
 		cc := robust.NewChatCompleter(robust.NewChatCompleterOptions{
 			Completers:  []gai.ChatCompleter{primary, secondary},
@@ -345,14 +314,8 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 
 	t.Run("skips remaining retries and falls back when classifier returns ActionFallback", func(t *testing.T) {
 		fallbackErr := errors.New("permanent disco failure")
-		primary := &fakeChatCompleter{
-			name:      "primary",
-			responses: []fakeResponse{{preStreamErr: fallbackErr}},
-		}
-		secondary := &fakeChatCompleter{
-			name:      "secondary",
-			responses: []fakeResponse{{parts: []gai.Part{gai.TextPart("from secondary")}}},
-		}
+		primary := newFakeChatCompleter(t, "primary", []fakeResponse{{preStreamErr: fallbackErr}})
+		secondary := newFakeChatCompleter(t, "secondary", []fakeResponse{{parts: []gai.Part{gai.TextPart("from secondary")}}})
 
 		cc := robust.NewChatCompleter(robust.NewChatCompleterOptions{
 			Completers: []gai.ChatCompleter{primary, secondary},
@@ -378,13 +341,10 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 
 	t.Run("passes a mid-stream error through to the caller without retrying", func(t *testing.T) {
 		midStreamErr := errors.New("glitter ran out mid-sentence")
-		primary := &fakeChatCompleter{
-			name: "primary",
-			responses: []fakeResponse{{
-				parts:   []gai.Part{gai.TextPart("hello, ")},
-				iterErr: midStreamErr,
-			}},
-		}
+		primary := newFakeChatCompleter(t, "primary", []fakeResponse{{
+			parts:   []gai.Part{gai.TextPart("hello, ")},
+			iterErr: midStreamErr,
+		}})
 
 		cc := robust.NewChatCompleter(robust.NewChatCompleterOptions{
 			Completers: []gai.ChatCompleter{primary},
@@ -403,13 +363,10 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 	})
 
 	t.Run("retries when the iterator yields an error before the first part is emitted", func(t *testing.T) {
-		primary := &fakeChatCompleter{
-			name: "primary",
-			responses: []fakeResponse{
-				{iterErr: errors.New("early stream failure")},
-				{parts: []gai.Part{gai.TextPart("recovered")}},
-			},
-		}
+		primary := newFakeChatCompleter(t, "primary", []fakeResponse{
+			{iterErr: errors.New("early stream failure")},
+			{parts: []gai.Part{gai.TextPart("recovered")}},
+		})
 
 		cc := robust.NewChatCompleter(robust.NewChatCompleterOptions{
 			Completers: []gai.ChatCompleter{primary},
