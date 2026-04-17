@@ -69,8 +69,8 @@ type NewChatCompleterOptions struct {
 	BaseDelay time.Duration
 	// MaxDelay caps the backoff sleep. Defaults to 30s.
 	MaxDelay time.Duration
-	// Classifier decides how to handle errors. Defaults to [DefaultErrorClassifier].
-	Classifier ErrorClassifierFunc
+	// ErrorClassifier decides how to handle errors. Defaults to [DefaultErrorClassifier].
+	ErrorClassifier ErrorClassifierFunc
 	// Log receives debug messages on failover and final exhaustion. Defaults to discarding output.
 	Log *slog.Logger
 }
@@ -89,8 +89,8 @@ func NewChatCompleter(opts NewChatCompleterOptions) *ChatCompleter {
 	if opts.MaxDelay == 0 {
 		opts.MaxDelay = 30 * time.Second
 	}
-	if opts.Classifier == nil {
-		opts.Classifier = DefaultErrorClassifier
+	if opts.ErrorClassifier == nil {
+		opts.ErrorClassifier = DefaultErrorClassifier
 	}
 	if opts.Log == nil {
 		opts.Log = slog.New(slog.DiscardHandler)
@@ -100,7 +100,7 @@ func NewChatCompleter(opts NewChatCompleterOptions) *ChatCompleter {
 		maxAttempts: opts.MaxAttempts,
 		baseDelay:   opts.BaseDelay,
 		maxDelay:    opts.MaxDelay,
-		classifier:  opts.Classifier,
+		classifier:  opts.ErrorClassifier,
 		log:         opts.Log,
 		tracer:      otel.Tracer("maragu.dev/gai/robust"),
 	}

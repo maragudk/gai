@@ -16,7 +16,7 @@ type statusCoder interface {
 	StatusCode() int
 }
 
-// DefaultErrorClassifier is the classifier used when [NewChatCompleterOptions.Classifier] is nil.
+// DefaultErrorClassifier is the classifier used when [NewChatCompleterOptions.ErrorClassifier] is nil.
 // It applies the following rules in order:
 //  1. [context.Canceled] and [context.DeadlineExceeded] → [ActionFail].
 //  2. Any error in the tree that implements StatusCode() int is classified by status.

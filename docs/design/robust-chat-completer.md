@@ -48,7 +48,7 @@ type NewChatCompleterOptions struct {
     MaxAttempts int                 // 0 → default 3
     BaseDelay   time.Duration       // 0 → default 500ms
     MaxDelay    time.Duration       // 0 → default 30s
-    Classifier  ErrorClassifierFunc // nil → DefaultErrorClassifier
+    ErrorClassifier ErrorClassifierFunc // nil → DefaultErrorClassifier
     Log         *slog.Logger        // nil → discard
 }
 

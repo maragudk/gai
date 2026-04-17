@@ -358,7 +358,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			Completers: []gai.ChatCompleter{primary, secondary},
 			BaseDelay:  time.Nanosecond,
 			MaxDelay:   time.Nanosecond,
-			Classifier: func(err error) robust.Action {
+			ErrorClassifier: func(err error) robust.Action {
 				if errors.Is(err, fallbackErr) {
 					return robust.ActionFallback
 				}
