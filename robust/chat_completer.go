@@ -109,7 +109,6 @@ func NewChatCompleter(opts NewChatCompleterOptions) *ChatCompleter {
 // ChatComplete satisfies [gai.ChatCompleter].
 func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRequest) (gai.ChatCompleteResponse, error) {
 	ctx, rootSpan := c.tracer.Start(ctx, "robust.chat_complete",
-		trace.WithSpanKind(trace.SpanKindClient),
 		trace.WithAttributes(
 			attribute.Int("ai.robust.completer_count", len(c.completers)),
 			attribute.Int("ai.robust.max_attempts", c.maxAttempts),
