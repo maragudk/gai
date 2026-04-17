@@ -3,7 +3,6 @@ package robust_test
 import (
 	"context"
 	"errors"
-	"fmt"
 	"iter"
 	"testing"
 	"time"
@@ -80,43 +79,6 @@ func collectParts(t *testing.T, res gai.ChatCompleteResponse) ([]gai.Part, error
 		parts = append(parts, p)
 	}
 	return parts, nil
-}
-
-type statusErr struct {
-	status int
-	msg    string
-}
-
-func (e *statusErr) Error() string   { return e.msg }
-func (e *statusErr) StatusCode() int { return e.status }
-
-func TestDefaultErrorClassifier(t *testing.T) {
-	tests := []struct {
-		name     string
-		err      error
-		expected robust.Action
-	}{
-		{"context.Canceled fails", context.Canceled, robust.ActionFail},
-		{"context.DeadlineExceeded fails", context.DeadlineExceeded, robust.ActionFail},
-		{"wrapped context.Canceled fails", fmt.Errorf("outer: %w", context.Canceled), robust.ActionFail},
-		{"StatusCode 429 retries", &statusErr{status: 429, msg: "rate limited"}, robust.ActionRetry},
-		{"StatusCode 500 retries", &statusErr{status: 500, msg: "server boom"}, robust.ActionRetry},
-		{"StatusCode 503 retries", &statusErr{status: 503, msg: "unavailable"}, robust.ActionRetry},
-		{"StatusCode 400 falls back", &statusErr{status: 400, msg: "bad request"}, robust.ActionFallback},
-		{"StatusCode 401 falls back", &statusErr{status: 401, msg: "unauthorized"}, robust.ActionFallback},
-		{"StatusCode 403 falls back", &statusErr{status: 403, msg: "forbidden"}, robust.ActionFallback},
-		{"wrapped StatusCode error still matches", fmt.Errorf("calling api: %w", &statusErr{status: 429, msg: "rate limited"}), robust.ActionRetry},
-		{"string with 429 retries", errors.New("got HTTP 429 from provider"), robust.ActionRetry},
-		{"string with 503 retries", errors.New("status 503 service unavailable"), robust.ActionRetry},
-		{"string with 401 falls back", errors.New("401 unauthorized: bad key"), robust.ActionFallback},
-		{"unknown error retries optimistically", errors.New("mystery disco glitch"), robust.ActionRetry},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			is.Equal(t, test.expected, robust.DefaultErrorClassifier(test.err))
-		})
-	}
 }
 
 func TestChatCompleter_ChatComplete(t *testing.T) {
@@ -254,7 +216,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 	})
 
 	t.Run("uses the default classifier when none is provided", func(t *testing.T) {
-		// context.Canceled should bubble up via DefaultErrorClassifier.
+		// context.Canceled should bubble up via the default classifier.
 		primary := newFakeChatCompleter(t, "primary", []fakeResponse{{preStreamErr: context.DeadlineExceeded}})
 		cc := robust.NewChatCompleter(robust.NewChatCompleterOptions{
 			Completers: []gai.ChatCompleter{primary},
@@ -265,6 +227,95 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 		_, err := cc.ChatComplete(t.Context(), gai.ChatCompleteRequest{})
 		is.Error(t, context.DeadlineExceeded, err)
 		is.Equal(t, 1, primary.calls)
+	})
+
+	t.Run("does not retry when MaxAttempts is 1", func(t *testing.T) {
+		primary := newFakeChatCompleter(t, "primary", []fakeResponse{
+			{preStreamErr: errors.New("one and done")},
+		})
+		secondary := newFakeChatCompleter(t, "secondary", []fakeResponse{{parts: []gai.Part{gai.TextPart("saved")}}})
+
+		cc := robust.NewChatCompleter(robust.NewChatCompleterOptions{
+			Completers:  []gai.ChatCompleter{primary, secondary},
+			MaxAttempts: 1,
+			BaseDelay:   time.Nanosecond,
+			MaxDelay:    time.Nanosecond,
+		})
+
+		res, err := cc.ChatComplete(t.Context(), gai.ChatCompleteRequest{})
+		is.NotError(t, err)
+		_, err = collectParts(t, res)
+		is.NotError(t, err)
+		is.Equal(t, 1, primary.calls)
+		is.Equal(t, 1, secondary.calls)
+	})
+
+	t.Run("retries when the underlying completer yields an empty stream", func(t *testing.T) {
+		primary := newFakeChatCompleter(t, "primary", []fakeResponse{
+			{}, // empty: no parts, no error
+			{parts: []gai.Part{gai.TextPart("recovered")}},
+		})
+
+		cc := robust.NewChatCompleter(robust.NewChatCompleterOptions{
+			Completers: []gai.ChatCompleter{primary},
+			BaseDelay:  time.Nanosecond,
+			MaxDelay:   time.Nanosecond,
+		})
+
+		res, err := cc.ChatComplete(t.Context(), gai.ChatCompleteRequest{})
+		is.NotError(t, err)
+		parts, err := collectParts(t, res)
+		is.NotError(t, err)
+		is.Equal(t, 1, len(parts))
+		is.Equal(t, "recovered", parts[0].Text())
+		is.Equal(t, 2, primary.calls)
+	})
+
+	t.Run("panics when the classifier returns an unknown Action", func(t *testing.T) {
+		primary := newFakeChatCompleter(t, "primary", []fakeResponse{
+			{preStreamErr: errors.New("anything")},
+		})
+
+		cc := robust.NewChatCompleter(robust.NewChatCompleterOptions{
+			Completers: []gai.ChatCompleter{primary},
+			BaseDelay:  time.Nanosecond,
+			MaxDelay:   time.Nanosecond,
+			ErrorClassifier: func(error) robust.Action {
+				return robust.Action(999)
+			},
+		})
+
+		defer func() {
+			r := recover()
+			is.True(t, r != nil, "expected panic from unknown Action")
+		}()
+
+		_, _ = cc.ChatComplete(t.Context(), gai.ChatCompleteRequest{})
+	})
+
+	t.Run("panics when MaxAttempts is negative", func(t *testing.T) {
+		defer func() {
+			r := recover()
+			is.Equal(t, "robust: MaxAttempts must not be negative", r)
+		}()
+
+		robust.NewChatCompleter(robust.NewChatCompleterOptions{
+			Completers:  []gai.ChatCompleter{newFakeChatCompleter(t, "p", nil)},
+			MaxAttempts: -1,
+		})
+	})
+
+	t.Run("panics when BaseDelay exceeds MaxDelay", func(t *testing.T) {
+		defer func() {
+			r := recover()
+			is.Equal(t, "robust: BaseDelay must not exceed MaxDelay", r)
+		}()
+
+		robust.NewChatCompleter(robust.NewChatCompleterOptions{
+			Completers: []gai.ChatCompleter{newFakeChatCompleter(t, "p", nil)},
+			BaseDelay:  10 * time.Second,
+			MaxDelay:   time.Second,
+		})
 	})
 
 	t.Run("forwards the Meta pointer from the succeeding completer", func(t *testing.T) {

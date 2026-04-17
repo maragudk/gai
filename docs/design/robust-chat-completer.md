@@ -16,15 +16,16 @@
 - Honoring `Retry-After` headers. gai does not currently surface these; revisit when it does.
 - Per-completer retry configuration. Global settings cover the common case; revisit if needed.
 - Circuit-breaker state across calls. Each `ChatComplete` call is independent.
-- Automatic classification of arbitrary user completers. The default classifier only recognizes the three built-in SDK error types; users supply a custom classifier for anything else.
+- SDK-specific error classification. The default classifier stays provider-agnostic; see issue #210 for the planned gai-native error type that will replace regex-based string inspection.
 
 ## Package and layout
 
 New subpackage `maragu.dev/gai/robust`:
 
 - `chat_completer.go` — types, constructor, `ChatComplete` implementation.
-- `classify.go` — `DefaultErrorClassifier` and private status-code helper.
-- `chat_completer_test.go` — all tests, in external package `robust_test`.
+- `classify.go` — private `defaultErrorClassifier` and status-code helper.
+- `chat_completer_test.go` — external (`package robust_test`) tests against the public API.
+- `classify_test.go` — internal (`package robust`) tests for unexported helpers.
 
 ## API
 
@@ -34,22 +35,21 @@ package robust
 type Action int
 
 const (
-    ActionRetry    Action = iota // retry same completer after exponential backoff
-    ActionFallback                // move to next completer in priority list
-    ActionFail                    // bubble up error immediately
+    ActionNone     Action = iota // zero value; used internally to mark success
+    ActionRetry
+    ActionFallback
+    ActionFail
 )
 
 type ErrorClassifierFunc func(error) Action
 
-var DefaultErrorClassifier ErrorClassifierFunc
-
 type NewChatCompleterOptions struct {
-    Completers  []gai.ChatCompleter // priority order; panics if empty
-    MaxAttempts int                 // 0 → default 3
-    BaseDelay   time.Duration       // 0 → default 500ms
-    MaxDelay    time.Duration       // 0 → default 30s
-    ErrorClassifier ErrorClassifierFunc // nil → DefaultErrorClassifier
-    Log         *slog.Logger        // nil → discard
+    Completers      []gai.ChatCompleter // priority order; non-empty
+    MaxAttempts     int                 // 0 → default 3; 1 disables retry
+    BaseDelay       time.Duration       // 0 → default 500ms
+    MaxDelay        time.Duration       // 0 → default 30s
+    ErrorClassifier ErrorClassifierFunc // nil → default classifier
+    Log             *slog.Logger        // nil → discard
 }
 
 type ChatCompleter struct { /* unexported */ }
@@ -59,6 +59,8 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 
 var _ gai.ChatCompleter = (*ChatCompleter)(nil)
 ```
+
+`NewChatCompleter` panics on invalid inputs: empty `Completers`, negative `MaxAttempts`/`BaseDelay`/`MaxDelay`, `MaxDelay == math.MaxInt64`, or `BaseDelay > MaxDelay`.
 
 ## Behavior
 
@@ -71,6 +73,7 @@ var _ gai.ChatCompleter = (*ChatCompleter)(nil)
    - `ActionFail` → return the error to the caller, abort everything.
    - `ActionFallback` → stop retrying this completer, move to the next.
    - `ActionRetry` → sleep with full jitter, retry if attempts remain; otherwise move to the next completer.
+   - Any other (unknown) value → panic. Classifiers must not return `ActionNone`.
 5. On success, peek the first streamed part (see streaming below).
 6. When all completers are exhausted, return the final error.
 
@@ -79,51 +82,43 @@ var _ gai.ChatCompleter = (*ChatCompleter)(nil)
 A `ChatCompleteResponse` can fail either before any part is emitted (the `ChatComplete` call returns an error) or mid-stream (the iterator yields an error). The design treats these symmetrically up to the commit point:
 
 - Inside `ChatComplete`, after a successful underlying call, pull the first part from the iterator eagerly (still inside `ChatComplete`, before returning).
-- If the iterator yields an error before yielding any part, treat it as a pre-stream error and run the classifier.
+- If the iterator yields an error before yielding any part, treat it as a pre-stream error and run the classifier. If the iterator yields no parts at all, surface an anonymous "empty stream" error so the classifier can retry.
 - As soon as one part has been yielded, commit: return a `ChatCompleteResponse` whose `Meta` pointer is the underlying one and whose iterator yields the buffered first part followed by the underlying iterator's remaining yields. No further retry or fallback happens after commit, even if the stream later errors.
 
-This keeps the caller from ever seeing duplicated partial output while still catching "provider accepted the request and immediately failed" cases.
+Callers **must** drain `Parts()` on the returned response (even if they only read the first part), otherwise the `iter.Pull2` goroutine and the still-open OTel spans leak. See issue #211 for a planned proper fix.
 
 ### Backoff
 
-Full jitter per retry:
+Full jitter per retry, with a 1-indexed `retryNumber`:
 
 ```
-delay = rand[0, min(MaxDelay, BaseDelay << retryNumber)]
+delay = rand[0, min(MaxDelay, BaseDelay * 2^(retryNumber-1))]
 ```
 
-Sleep is interruptible:
+So the first retry draws from `[0, BaseDelay]`, the second from `[0, 2*BaseDelay]`, etc., capped at `MaxDelay`. Backoff state resets when moving to the next completer.
 
-```go
-select {
-case <-ctx.Done():
-    return gai.ChatCompleteResponse{}, ctx.Err()
-case <-time.After(c.nextDelay(retry)):
-}
-```
-
-Backoff state resets when moving to the next completer.
+Sleep is context-interruptible.
 
 ### Default classifier
 
-The package must not import any provider SDK — that would force every caller to pull in all three dependencies even if they only use one. Instead, `DefaultErrorClassifier` is SDK-agnostic and applies these rules in order:
+The package must not import any provider SDK — that would force every caller to pull in all three dependencies even if they only use one. The default classifier is SDK-agnostic and applies these rules in order:
 
 1. `context.Canceled` / `context.DeadlineExceeded` → `ActionFail` (via `errors.Is`).
-2. Any error in the tree that satisfies a private `interface { error; StatusCode() int }` is classified by the returned status. None of the current SDKs expose this method, but the hook is cheap and catches caller-wrapped errors or future SDK changes.
-3. A regex scans the error string for a bare 4xx/5xx number and classifies by that status.
-4. Anything else → `ActionRetry` (optimistic default).
+2. A 4xx/5xx HTTP status code found in the error string (via a targeted regex that rejects matches adjacent to `:`, `.`, `/`, or digits to avoid false positives on ports, IPs, path segments, and longer numbers) classifies by status.
+3. Anything else → `ActionRetry` (optimistic default).
 
 Status-to-action mapping: 429 and 5xx retry; other 4xx fall back; anything else retries.
 
-String inspection is best-effort. Callers with provider-specific needs should supply their own `ErrorClassifierFunc`.
+String inspection is best-effort. Callers with provider-specific needs should supply their own `ErrorClassifierFunc`. The planned gai-native error type (issue #210) will allow precise interface-based classification in the future.
 
 ### Observability
 
 Tracer: `otel.Tracer("maragu.dev/gai/robust")`. Child spans automatically parent under any caller span on the incoming context.
 
 - Root span `robust.chat_complete` with attributes: `ai.robust.completer_count`, `ai.robust.max_attempts`, `ai.robust.base_delay_ms`, `ai.robust.max_delay_ms`.
-- Child span `robust.attempt` per attempt with attributes: `ai.robust.completer_index`, `ai.robust.attempt_number`, `ai.robust.action` (set after classification).
+- Child span `robust.attempt` per attempt with attributes: `ai.robust.completer_index`, `ai.robust.attempt_number`, and `ai.robust.action` (`"success"` on the successful attempt, or the classified action on failures).
 - Errors recorded on attempt spans via `RecordError` and `SetStatus(codes.Error, ...)`.
+- On the committed path, both the attempt span and the root span stay open until the wrapped iterator terminates, so traces show the real streaming duration.
 
 Logging: `slog.Debug` only, on failover to next completer and on final exhaustion. Silent in production by default.
 
@@ -131,26 +126,11 @@ Logging: `slog.Debug` only, on failover to next completer and on final exhaustio
 
 Red/green TDD. The streaming commit-point logic, context-cancellation edges, and `Meta` pointer forwarding have enough corner cases that writing the failing test first for each one is worth the discipline.
 
-All tests live in `chat_completer_test.go`, in external package `robust_test`, using `maragu.dev/is` assertions and subtests with sentence-style names. A package-private `fakeChatCompleter` drives scenarios:
+External tests (`chat_completer_test.go`, `package robust_test`) cover end-to-end behavior via a `fakeChatCompleter` driving scenarios: happy path, retries, streaming commit, fallback, exhaustion, context cancellation, constructor panics, classifier behavior, Meta forwarding, `MaxAttempts=1`, empty-stream retry, unknown-Action panic.
 
-- succeeds on first try
-- retries pre-stream error then succeeds
-- retries error before first part then succeeds
-- passes through mid-stream error after first part is emitted
-- falls back when classifier says fallback
-- exhausts retries then falls back to next completer
-- bubbles up context canceled immediately
-- returns final error when all completers exhausted
-- respects context cancellation during backoff sleep
-- applies defaults when options are zero
-- panics on empty completers
-- uses custom classifier when provided
-- forwards meta pointer from succeeding completer
-- full jitter delay stays within bounds
-
-Separate subtests cover `DefaultErrorClassifier` against real instances of each provider's error types.
+Internal tests (`classify_test.go`, `package robust`) cover the unexported `defaultErrorClassifier`, `findStatusCode` regex (table-driven with positive and negative cases), and `nextDelay` jitter bounds.
 
 ## Open questions
 
-- Exact identifiers for provider SDK error types (resolved at implementation time via `go doc` and test feedback).
 - Whether to add a `TestEval`-style evaluation comparing robust vs. single-completer success rates under simulated flakiness. Deferred.
+- A proper fix for the `iter.Pull2` goroutine leak when callers drop the response without iterating. Tracked in issue #211.
