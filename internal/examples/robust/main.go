@@ -1,3 +1,8 @@
+// Example of using robust.ChatCompleter with OpenAI (primary) + Anthropic (fallback).
+//
+// Running this example hits the APIs with empty keys on purpose — it exercises the
+// 401 → retry → fallback → exhaustion path end to end so it's a useful smoke test
+// of the failover behavior without any setup.
 package main
 
 import (
@@ -17,17 +22,15 @@ func main() {
 	ctx := context.Background()
 	log := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
-	// Primary: OpenAI. Fallback: Anthropic. If the primary rate-limits or 5xx's,
-	// retry up to MaxAttempts times with jittered backoff, then fall over to the secondary.
+	// Key intentionally empty — see top-of-file comment.
 	primary := openai.NewClient(openai.NewClientOptions{
-		Key: os.Getenv("OPENAI_API_KEY"),
 		Log: log,
 	}).NewChatCompleter(openai.NewChatCompleterOptions{
 		Model: openai.ChatCompleteModelGPT5_1Mini,
 	})
 
+	// Key intentionally empty — see top-of-file comment.
 	secondary := anthropic.NewClient(anthropic.NewClientOptions{
-		Key: os.Getenv("ANTHROPIC_KEY"),
 		Log: log,
 	}).NewChatCompleter(anthropic.NewChatCompleterOptions{
 		Model: anthropic.ChatCompleteModelClaudeSonnet4_6Latest,
@@ -39,8 +42,6 @@ func main() {
 		BaseDelay:   500 * time.Millisecond,
 		MaxDelay:    5 * time.Second,
 		Log:         log,
-		// ErrorClassifier left nil to use the built-in default:
-		// context errors fail, 429/5xx retry, other 4xx fall back, rest retry.
 	})
 
 	res, err := cc.ChatComplete(ctx, gai.ChatCompleteRequest{

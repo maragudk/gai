@@ -8,7 +8,8 @@ import (
 	"strconv"
 )
 
-// defaultErrorClassifier is used when [NewChatCompleterOptions.ErrorClassifier] is nil.
+// defaultErrorClassifier is used when [NewChatCompleterOptions.ErrorClassifier] or
+// [NewEmbedderOptions.ErrorClassifier] is nil.
 // It applies these rules in order:
 //  1. [context.Canceled] and [context.DeadlineExceeded] → [ActionFail].
 //  2. A 4xx/5xx HTTP status code found in the error string classifies by status.
