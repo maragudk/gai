@@ -135,6 +135,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			{Role: gai.MessageRoleModel, Parts: parts},
 			gai.NewUserToolResultMessage(result),
 		}
+		req.System = gai.Ptr("Answer the user's question in a single sentence using the tool result. Do not call any more tools.")
 
 		res, err = cc.ChatComplete(t.Context(), req)
 		is.NotError(t, err)
