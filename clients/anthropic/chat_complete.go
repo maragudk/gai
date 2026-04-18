@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/anthropics/anthropic-sdk-go/packages/param"
@@ -239,6 +240,16 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 
 	stream := c.Client.Messages.NewStreaming(ctx, params)
 
+	streamStart := time.Now()
+	var firstTokenRecorded bool
+	recordFirstToken := func() {
+		if firstTokenRecorded {
+			return
+		}
+		firstTokenRecorded = true
+		span.SetAttributes(attribute.Int64("ai.time_to_first_token_ms", time.Since(streamStart).Milliseconds()))
+	}
+
 	return gai.NewChatCompleteResponse(func(yield func(gai.Part, error) bool) {
 		defer span.End()
 
@@ -268,6 +279,7 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 			case anthropic.ContentBlockDeltaEvent:
 				switch delta := event.Delta.AsAny().(type) {
 				case anthropic.TextDelta:
+					recordFirstToken()
 					if !yield(gai.TextPart(delta.Text), nil) {
 						return
 					}
@@ -283,6 +295,7 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 						for _, tool := range req.Tools {
 							if tool.Name == block.Name {
 								found = true
+								recordFirstToken()
 								if !yield(gai.ToolCallPart(block.ID, block.Name, block.Input), nil) {
 									return
 								}
@@ -296,9 +309,19 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 						}
 					}
 				}
-				message = anthropic.Message{}
+				// Clear only content to avoid re-yielding tool_use blocks on the next
+				// ContentBlockStopEvent; preserve message.Usage which is populated by
+				// MessageStartEvent and updated by MessageDeltaEvent.
+				message.Content = nil
 			}
 		}
+
+		span.SetAttributes(
+			attribute.Int("ai.prompt_tokens", int(message.Usage.InputTokens)),
+			attribute.Int("ai.completion_tokens", int(message.Usage.OutputTokens)),
+			attribute.Int("ai.cache_read_tokens", int(message.Usage.CacheReadInputTokens)),
+			attribute.Int("ai.cache_creation_tokens", int(message.Usage.CacheCreationInputTokens)),
+		)
 
 		if stream.Err() != nil {
 			span.RecordError(stream.Err())

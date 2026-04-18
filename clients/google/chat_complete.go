@@ -206,6 +206,15 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 	}
 
 	meta := &gai.ChatCompleteResponseMetadata{}
+	streamStart := time.Now()
+	var firstTokenRecorded bool
+	recordFirstToken := func() {
+		if firstTokenRecorded {
+			return
+		}
+		firstTokenRecorded = true
+		span.SetAttributes(attribute.Int64("ai.time_to_first_token_ms", time.Since(streamStart).Milliseconds()))
+	}
 
 	res := gai.NewChatCompleteResponse(func(yield func(gai.Part, error) bool) {
 		defer span.End()
@@ -233,6 +242,7 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 					attribute.Int("ai.prompt_tokens", int(chunk.UsageMetadata.PromptTokenCount)),
 					attribute.Int("ai.thoughts_tokens", int(chunk.UsageMetadata.ThoughtsTokenCount)),
 					attribute.Int("ai.completion_tokens", int(chunk.UsageMetadata.CandidatesTokenCount)),
+					attribute.Int("ai.cache_read_tokens", int(chunk.UsageMetadata.CachedContentTokenCount)),
 				)
 			}
 
@@ -242,6 +252,7 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 
 			for _, part := range chunk.Candidates[0].Content.Parts {
 				if part.Text != "" {
+					recordFirstToken()
 					if !yield(gai.TextPart(part.Text), nil) {
 						return
 					}
@@ -259,6 +270,7 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 					if id == "" {
 						id = createRandomID()
 					}
+					recordFirstToken()
 					if !yield(gai.ToolCallPart(id, part.FunctionCall.Name, args), nil) {
 						return
 					}
