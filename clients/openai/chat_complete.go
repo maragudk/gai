@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/openai/openai-go/v3"
 	"github.com/openai/openai-go/v3/shared"
@@ -273,6 +274,15 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 	stream := c.Client.Chat.Completions.NewStreaming(ctx, params)
 
 	meta := &gai.ChatCompleteResponseMetadata{}
+	streamStart := time.Now()
+	var firstTokenRecorded bool
+	recordFirstToken := func() {
+		if firstTokenRecorded {
+			return
+		}
+		firstTokenRecorded = true
+		span.SetAttributes(attribute.Int64("ai.time_to_first_token_ms", time.Since(streamStart).Milliseconds()))
+	}
 
 	res := gai.NewChatCompleteResponse(func(yield func(gai.Part, error) bool) {
 		defer span.End()
@@ -295,6 +305,13 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 						meta.FinishReason = gai.Ptr(mapped)
 					}
 					span.SetAttributes(attribute.String("ai.finish_reason", string(mapped)))
+				}
+
+				// Record TTFT as soon as any content (text or tool call) begins streaming,
+				// not just when a tool call has finished accumulating.
+				delta := chunk.Choices[0].Delta
+				if delta.Content != "" || len(delta.ToolCalls) > 0 {
+					recordFirstToken()
 				}
 			}
 
@@ -335,6 +352,7 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 				attribute.Int("ai.prompt_tokens", int(chunk.Usage.PromptTokens)),
 				attribute.Int("ai.completion_tokens", int(chunk.Usage.CompletionTokens)),
 				attribute.Int("ai.total_tokens", int(chunk.Usage.TotalTokens)),
+				attribute.Int("ai.cache_read_tokens", int(chunk.Usage.PromptTokensDetails.CachedTokens)),
 			)
 		}
 
