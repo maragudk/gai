@@ -306,11 +306,17 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 					}
 					span.SetAttributes(attribute.String("ai.finish_reason", string(mapped)))
 				}
+
+				// Record TTFT as soon as any content (text or tool call) begins streaming,
+				// not just when a tool call has finished accumulating.
+				delta := chunk.Choices[0].Delta
+				if delta.Content != "" || len(delta.ToolCalls) > 0 {
+					recordFirstToken()
+				}
 			}
 
 			if _, ok := acc.JustFinishedContent(); !ok {
 				if toolCall, ok := acc.JustFinishedToolCall(); ok {
-					recordFirstToken()
 					if !yield(gai.ToolCallPart(toolCall.ID, toolCall.Name, json.RawMessage(toolCall.Arguments)), nil) {
 						return
 					}
@@ -328,9 +334,6 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 				}
 
 				if len(chunk.Choices) > 0 {
-					if chunk.Choices[0].Delta.Content != "" {
-						recordFirstToken()
-					}
 					if !yield(gai.TextPart(chunk.Choices[0].Delta.Content), nil) {
 						return
 					}

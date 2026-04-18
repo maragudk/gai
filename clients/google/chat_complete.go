@@ -219,6 +219,19 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 	res := gai.NewChatCompleteResponse(func(yield func(gai.Part, error) bool) {
 		defer span.End()
 
+		var lastUsage *genai.GenerateContentResponseUsageMetadata
+		defer func() {
+			if lastUsage == nil {
+				return
+			}
+			span.SetAttributes(
+				attribute.Int("ai.prompt_tokens", int(lastUsage.PromptTokenCount)),
+				attribute.Int("ai.thoughts_tokens", int(lastUsage.ThoughtsTokenCount)),
+				attribute.Int("ai.completion_tokens", int(lastUsage.CandidatesTokenCount)),
+				attribute.Int("ai.cache_read_tokens", int(lastUsage.CachedContentTokenCount)),
+			)
+		}()
+
 		for chunk, err := range chat.SendStream(ctx, lastContent.Parts...) {
 			if err != nil {
 				span.RecordError(err)
@@ -227,23 +240,16 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 				return
 			}
 
-			// Extract token usage from the response
-			// Google GenAI sends usage metadata with every chunk during streaming:
-			// - Early chunks show prompt tokens only (with minor variations between chunks)
-			// - The final chunk contains complete counts including completion tokens
-			// We update on each chunk, so the final values will be correct
+			// Google GenAI sends usage metadata on every chunk; early chunks have
+			// partial counts, the final chunk is authoritative. Track the last
+			// non-nil value and emit span attributes once via the defer above.
 			if chunk.UsageMetadata != nil {
+				lastUsage = chunk.UsageMetadata
 				meta.Usage = gai.ChatCompleteResponseUsage{
 					PromptTokens:     int(chunk.UsageMetadata.PromptTokenCount),
 					ThoughtsTokens:   int(chunk.UsageMetadata.ThoughtsTokenCount),
 					CompletionTokens: int(chunk.UsageMetadata.CandidatesTokenCount),
 				}
-				span.SetAttributes(
-					attribute.Int("ai.prompt_tokens", int(chunk.UsageMetadata.PromptTokenCount)),
-					attribute.Int("ai.thoughts_tokens", int(chunk.UsageMetadata.ThoughtsTokenCount)),
-					attribute.Int("ai.completion_tokens", int(chunk.UsageMetadata.CandidatesTokenCount)),
-					attribute.Int("ai.cache_read_tokens", int(chunk.UsageMetadata.CachedContentTokenCount)),
-				)
 			}
 
 			if len(chunk.Candidates) == 0 || chunk.Candidates[0].Content == nil {
@@ -251,8 +257,9 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 			}
 
 			for _, part := range chunk.Candidates[0].Content.Parts {
+				recordFirstToken()
+
 				if part.Text != "" {
-					recordFirstToken()
 					if !yield(gai.TextPart(part.Text), nil) {
 						return
 					}
@@ -270,7 +277,6 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 					if id == "" {
 						id = createRandomID()
 					}
-					recordFirstToken()
 					if !yield(gai.ToolCallPart(id, part.FunctionCall.Name, args), nil) {
 						return
 					}

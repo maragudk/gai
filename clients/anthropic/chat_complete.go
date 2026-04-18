@@ -260,6 +260,18 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 		}()
 
 		var message anthropic.Message
+		defer func() {
+			// ai.prompt_tokens is normalised to include cache tokens, matching
+			// OpenAI's PromptTokens and Google's PromptTokenCount semantics, so
+			// ai.cache_read_tokens is always a subset of ai.prompt_tokens.
+			span.SetAttributes(
+				attribute.Int("ai.prompt_tokens", int(message.Usage.InputTokens+message.Usage.CacheReadInputTokens+message.Usage.CacheCreationInputTokens)),
+				attribute.Int("ai.completion_tokens", int(message.Usage.OutputTokens)),
+				attribute.Int("ai.cache_read_tokens", int(message.Usage.CacheReadInputTokens)),
+				attribute.Int("ai.cache_creation_tokens", int(message.Usage.CacheCreationInputTokens)),
+			)
+		}()
+
 		for stream.Next() {
 			event := stream.Current()
 
@@ -275,11 +287,11 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 
 			switch event := event.AsAny().(type) {
 			case anthropic.ContentBlockStartEvent:
+				recordFirstToken()
 
 			case anthropic.ContentBlockDeltaEvent:
 				switch delta := event.Delta.AsAny().(type) {
 				case anthropic.TextDelta:
-					recordFirstToken()
 					if !yield(gai.TextPart(delta.Text), nil) {
 						return
 					}
@@ -295,7 +307,6 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 						for _, tool := range req.Tools {
 							if tool.Name == block.Name {
 								found = true
-								recordFirstToken()
 								if !yield(gai.ToolCallPart(block.ID, block.Name, block.Input), nil) {
 									return
 								}
@@ -315,13 +326,6 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 				message.Content = nil
 			}
 		}
-
-		span.SetAttributes(
-			attribute.Int("ai.prompt_tokens", int(message.Usage.InputTokens)),
-			attribute.Int("ai.completion_tokens", int(message.Usage.OutputTokens)),
-			attribute.Int("ai.cache_read_tokens", int(message.Usage.CacheReadInputTokens)),
-			attribute.Int("ai.cache_creation_tokens", int(message.Usage.CacheCreationInputTokens)),
-		)
 
 		if stream.Err() != nil {
 			span.RecordError(stream.Err())
