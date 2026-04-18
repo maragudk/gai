@@ -333,7 +333,7 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 					return
 				}
 
-				if len(chunk.Choices) > 0 {
+				if len(chunk.Choices) > 0 && chunk.Choices[0].Delta.Content != "" {
 					if !yield(gai.TextPart(chunk.Choices[0].Delta.Content), nil) {
 						return
 					}
