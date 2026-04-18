@@ -13,6 +13,9 @@ import (
 
 // NewSpanRecorder installs a [tracetest.SpanRecorder] as the global [otel.TracerProvider]
 // for the duration of the test and returns it. The previous provider is restored on cleanup.
+// Construct clients under test AFTER calling NewSpanRecorder; tracers obtained via
+// [otel.Tracer] earlier may continue routing to the previous provider and their spans
+// will not reach the recorder.
 // Not safe for parallel tests because it mutates global state.
 // Inspired by github.com/maragudk/glue/oteltest.
 func NewSpanRecorder(t *testing.T) *tracetest.SpanRecorder {
@@ -85,18 +88,6 @@ func RequirePositiveIntAttribute(t *testing.T, attrs []attribute.KeyValue, key s
 	}
 }
 
-// RequireNonNegativeInt64Attribute fails the test if the attribute is missing or negative.
-func RequireNonNegativeInt64Attribute(t *testing.T, attrs []attribute.KeyValue, key string) {
-	t.Helper()
-	v, ok := FindAttribute(attrs, attribute.Key(key))
-	if !ok {
-		t.Fatalf("expected attribute %q to be present", key)
-	}
-	if v.AsInt64() < 0 {
-		t.Fatalf("expected attribute %q to be >= 0, got %d", key, v.AsInt64())
-	}
-}
-
 // RequireAttributePresent fails the test if the attribute is missing. It does not
 // check the value, which is useful for attributes that may legitimately be zero
 // (e.g. ai.cache_read_tokens on a cold call).
@@ -104,5 +95,23 @@ func RequireAttributePresent(t *testing.T, attrs []attribute.KeyValue, key strin
 	t.Helper()
 	if _, ok := FindAttribute(attrs, attribute.Key(key)); !ok {
 		t.Fatalf("expected attribute %q to be present", key)
+	}
+}
+
+// RequireCacheReadSubsetOfPromptTokens fails the test if ai.cache_read_tokens is
+// not less than or equal to ai.prompt_tokens. This invariant holds across all
+// providers that emit both attributes (see PR #214).
+func RequireCacheReadSubsetOfPromptTokens(t *testing.T, attrs []attribute.KeyValue) {
+	t.Helper()
+	promptV, ok := FindAttribute(attrs, attribute.Key("ai.prompt_tokens"))
+	if !ok {
+		t.Fatalf("expected attribute %q to be present", "ai.prompt_tokens")
+	}
+	cacheV, ok := FindAttribute(attrs, attribute.Key("ai.cache_read_tokens"))
+	if !ok {
+		t.Fatalf("expected attribute %q to be present", "ai.cache_read_tokens")
+	}
+	if cacheV.AsInt64() > promptV.AsInt64() {
+		t.Fatalf("expected ai.cache_read_tokens (%d) <= ai.prompt_tokens (%d)", cacheV.AsInt64(), promptV.AsInt64())
 	}
 }

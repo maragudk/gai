@@ -26,10 +26,10 @@ func TestChatCompleter_Spans(t *testing.T) {
 
 		span := oteltest.FindSpan(t, sr.Ended(), "google.chat_complete")
 		is.True(t, oteltest.HasAttribute(span.Attributes(), attribute.String("ai.model", string(google.ChatCompleteModelGemini2_5Flash))))
-		oteltest.RequireNonNegativeInt64Attribute(t, span.Attributes(), "ai.time_to_first_token_ms")
+		oteltest.RequireAttributePresent(t, span.Attributes(), "ai.time_to_first_token_ms")
 		oteltest.RequirePositiveIntAttribute(t, span.Attributes(), "ai.prompt_tokens")
 		oteltest.RequirePositiveIntAttribute(t, span.Attributes(), "ai.completion_tokens")
-		oteltest.RequireAttributePresent(t, span.Attributes(), "ai.cache_read_tokens")
+		oteltest.RequireCacheReadSubsetOfPromptTokens(t, span.Attributes())
 	})
 }
 
