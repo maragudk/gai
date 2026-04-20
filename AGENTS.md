@@ -5,7 +5,7 @@ The repository implements `maragu.dev/gai`, a Go library that standardises inter
 
 ## Repository Landmarks
 - Top-level Go files expose the public API; keep additional exports minimal.
-- `clients/` holds provider integrations (`openai`, `google`, `anthropic`) that expose `gai.ChatCompleter` (all three) and `gai.Embedder` (openai, google) constructors; each subpackage has its own README.
+- `clients/` holds provider integrations (`openai`, `google`, `anthropic`) that implement `gai.ChatCompleter` (all three) and `gai.Embedder[T]` (openai, google); each subpackage has its own README.
 - `tools/` packages convenience tools (time, exec, fetch, memory, file) with matching tests and JSON schemas.
 - `eval/` provides the evaluation runner (`run.go`) that writes JSONL reports to `evals.jsonl`, plus built-in scorers in `eval.go` for lexical similarity (Levenshtein, exact match, contains) and semantic similarity (cosine); `eval/internal/evals` is an internal sample eval used to exercise the runner.
 - `robust/` wraps `gai.ChatCompleter` and `gai.Embedder[T]` with retry-and-fallback behaviour across multiple underlying implementations; see `docs/design/robust.md` for the design.
