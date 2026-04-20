@@ -28,5 +28,5 @@ The repository implements `maragu.dev/gai`, a Go library that standardises inter
 
 ## Handy References
 - Public docs publish from `docs/index.html`; run `go test` before updating to ensure examples remain accurate.
-- Utility scripts and sample agents live in `internal/examples/tools*`; reuse them as scaffolding for new samples.
+- Sample programs live under `internal/examples/`; reuse the subdir closest in shape (e.g. `tools*`, `evals`, `robust*`) as scaffolding for new samples.
 - When adding new make targets or scripts, update both `Makefile` and this guide so future agents stay aligned.
