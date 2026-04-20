@@ -7,7 +7,7 @@ The repository implements `maragu.dev/gai`, a Go library that standardises inter
 - Top-level Go files expose the public API; keep additional exports minimal.
 - `tools/` packages convenience tools (time, exec, fetch, memory, file) with matching tests and JSON schemas.
 - `eval/` provides the evaluation runner that writes JSONL reports to `evals.jsonl`; `eval/internal` holds scorer utilities.
-- `internal/examples/` contains runnable samples (`evals`, `tools`, `tools_custom`) demonstrating library integration.
+- `internal/examples/` contains runnable samples (`evals`, `robust`, `robust_embed`, `tools`, `tools_custom`) demonstrating library integration.
 - `docs/` stores the static site (`index.html`, `template.html`); update it when the public API changes.
 - `docker-compose.yaml` starts a local `llama32-1b` inference server on port 8090 for smoke testing chat flows.
 
