@@ -7,6 +7,6 @@
   - [x] System prompt
   - [x] Tool use
   - [x] Structured output
-  - [ ] Multi-modal input
+  - [x] Multi-modal input
   - [ ] Multi-modal output
 - [ ] Embedding
