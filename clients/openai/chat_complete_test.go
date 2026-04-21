@@ -282,7 +282,9 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			}
 		}
 
-		requireContainsAll(t, output, "bonjour")
+		// Accept either "bonjour" (formal) or "salut" (informal). GPT-5-nano picks either
+		// depending on its read of the register, and both satisfy the "respond in French" intent.
+		requireContainsAny(t, output, "bonjour", "salut")
 	})
 
 	t.Run("tracks token usage", func(t *testing.T) {
