@@ -246,7 +246,11 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			}
 		}
 
-		is.Equal(t, "Bonjour !", output)
+		// Accept either "bonjour" (formal) or "salut" (informal); both satisfy the
+		// "respond in French" intent even if a model revision drifts on register
+		// or trailing punctuation.
+		lower := strings.ToLower(output)
+		is.True(t, strings.Contains(lower, "bonjour") || strings.Contains(lower, "salut"), output)
 	})
 
 	t.Run("can use structured output", func(t *testing.T) {
@@ -287,10 +291,12 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 		err = json.Unmarshal([]byte(output), &book)
 		is.NotError(t, err)
 
-		// Check that all fields are populated
-		is.Equal(t, "Dune", book.Title)
-		is.Equal(t, "Frank Herbert", book.Author)
-		is.Equal(t, 1965, book.Year)
+		// Check that all fields are populated. Avoid pinning the exact recommendation
+		// (Dune / Frank Herbert / 1965) since a model revision could reasonably
+		// suggest a different canonical sci-fi title.
+		is.True(t, book.Title != "", "title should not be empty")
+		is.True(t, book.Author != "", "author should not be empty")
+		is.True(t, book.Year > 0, "year should be positive")
 	})
 
 	t.Run("can describe an image", func(t *testing.T) {
