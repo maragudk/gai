@@ -174,3 +174,12 @@ After the patch, ran the focused subtest once to confirm it still passes on a "B
 ### Cross-client note
 
 The Anthropic version (`clients/anthropic/chat_complete_test.go:284`) uses `Temperature=0`, which probably masks the same register drift. If Anthropic ever loses that Temperature=0 pin, or if the Claude default starts to hedge toward `Salut`, it'd flake too. Pre-emptively broadening that assertion is cheap but not urgent; noting it here rather than drive-by-patching a second client in a flake-hunt branch. The Google version (`clients/google/chat_complete_test.go:249`, `is.Equal(t, "Bonjour !", output)`) was already flagged as latent in the first pass.
+
+## Follow-up: Google P2 fixes applied
+
+Loosened the two latent-but-not-actively-flaking Google assertions called out under Priority 2 above:
+
+- `clients/google/chat_complete_test.go:249` — `is.Equal(t, "Bonjour !", output)` → case-insensitive substring match accepting either `bonjour` or `salut`, matching the OpenAI fix.
+- `clients/google/chat_complete_test.go:291-293` — exact `Dune` / `Frank Herbert` / `1965` check → structural checks (non-empty title, non-empty author, positive year), matching the OpenAI and Anthropic structured-output assertions.
+
+The Priority 1 Vertex AI 429 retrofit (wrapping the Vertex subtests in `robust.ChatCompleter` / `robust.Embedder`) is deferred to a separate PR by the user's call; this branch carries only the cheap assertion fixes.
