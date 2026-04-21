@@ -38,7 +38,7 @@ func TestEmbedder_Spans(t *testing.T) {
 	t.Run("records standard attributes on the embed span", func(t *testing.T) {
 		sr := oteltest.NewSpanRecorder(t)
 		c := newClient(t)
-		e := c.NewEmbedder(openai.NewEmbedderOptions{
+		e := openai.NewEmbedder[float64](c, openai.NewEmbedderOptions{
 			Model:      openai.EmbedModelTextEmbedding3Small,
 			Dimensions: 1536,
 		})

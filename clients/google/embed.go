@@ -22,8 +22,9 @@ const (
 	EmbedModelGeminiEmbedding2Preview = EmbedModel("gemini-embedding-2-preview")
 )
 
-// Embedder satisfies [gai.Embedder] for Google Gemini models.
-type Embedder struct {
+// Embedder satisfies [gai.Embedder] for Google Gemini embedding models.
+// T picks the vector component type; typical choices are float32 or float64.
+type Embedder[T gai.VectorComponent] struct {
 	Client     *genai.Client
 	dimensions int
 	log        *slog.Logger
@@ -31,14 +32,16 @@ type Embedder struct {
 	tracer     trace.Tracer
 }
 
-// NewEmbedderOptions for [Client.NewEmbedder].
+// NewEmbedderOptions for [NewEmbedder].
 type NewEmbedderOptions struct {
 	Dimensions int
 	Model      EmbedModel
 }
 
-// NewEmbedder creates a new [Embedder].
-func (c *Client) NewEmbedder(opts NewEmbedderOptions) *Embedder {
+// NewEmbedder returns a new [Embedder] with the given vector component type T.
+// This is a package-level function rather than a method on [Client] because Go
+// does not permit type parameters on methods. Example: google.NewEmbedder[float32](c, opts).
+func NewEmbedder[T gai.VectorComponent](c *Client, opts NewEmbedderOptions) *Embedder[T] {
 	if opts.Dimensions <= 0 {
 		panic("dimensions must be greater than 0")
 	}
@@ -47,7 +50,7 @@ func (c *Client) NewEmbedder(opts NewEmbedderOptions) *Embedder {
 		panic("dimensions must be less than or equal to 3072")
 	}
 
-	return &Embedder{
+	return &Embedder[T]{
 		Client:     c.Client,
 		dimensions: opts.Dimensions,
 		log:        c.log,
@@ -57,7 +60,7 @@ func (c *Client) NewEmbedder(opts NewEmbedderOptions) *Embedder {
 }
 
 // Embed satisfies [gai.Embedder].
-func (e *Embedder) Embed(ctx context.Context, req gai.EmbedRequest) (gai.EmbedResponse[float32], error) {
+func (e *Embedder[T]) Embed(ctx context.Context, req gai.EmbedRequest) (gai.EmbedResponse[T], error) {
 	ctx, span := e.tracer.Start(ctx, "google.embed",
 		trace.WithSpanKind(trace.SpanKindClient),
 		trace.WithAttributes(
@@ -97,18 +100,21 @@ func (e *Embedder) Embed(ctx context.Context, req gai.EmbedRequest) (gai.EmbedRe
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "embedding request failed")
-		return gai.EmbedResponse[float32]{}, errors.Wrap(err, "error embedding")
+		return gai.EmbedResponse[T]{}, errors.Wrap(err, "error embedding")
 	}
 	if len(res.Embeddings) == 0 {
 		err := errors.New("no embeddings returned")
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "no embeddings in response")
-		return gai.EmbedResponse[float32]{}, err
+		return gai.EmbedResponse[T]{}, err
 	}
 
-	return gai.EmbedResponse[float32]{
-		Embedding: res.Embeddings[0].Values,
+	values := res.Embeddings[0].Values
+	embedding := make([]T, len(values))
+	for i, c := range values {
+		embedding[i] = T(c)
+	}
+	return gai.EmbedResponse[T]{
+		Embedding: embedding,
 	}, nil
 }
-
-var _ gai.Embedder[float32] = (*Embedder)(nil)

@@ -329,7 +329,7 @@ func TestEvalSeagull(t *testing.T) {
 		Model: openai.ChatCompleteModelGPT4o,
 	})
 
-	embedder := c.NewEmbedder(openai.NewEmbedderOptions{
+	embedder := openai.NewEmbedder[float64](c, openai.NewEmbedderOptions{
 		Dimensions: 1536,
 		Model:      openai.EmbedModelTextEmbedding3Small,
 	})
@@ -425,7 +425,7 @@ func TestEvalImageDescription(t *testing.T) {
 		})
 
 		// Use the multimodal embedder for semantic similarity scoring.
-		embedder := gc.NewEmbedder(google.NewEmbedderOptions{
+		embedder := google.NewEmbedder[float32](gc, google.NewEmbedderOptions{
 			Model:      google.EmbedModelGeminiEmbedding2Preview,
 			Dimensions: 768,
 		})

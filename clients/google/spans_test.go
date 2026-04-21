@@ -37,7 +37,7 @@ func TestEmbedder_Spans(t *testing.T) {
 	t.Run("records standard attributes on the embed span", func(t *testing.T) {
 		sr := oteltest.NewSpanRecorder(t)
 		c := newClient(t)
-		e := c.NewEmbedder(google.NewEmbedderOptions{
+		e := google.NewEmbedder[float32](c, google.NewEmbedderOptions{
 			Model:      google.EmbedModelGeminiEmbedding001,
 			Dimensions: 768,
 		})
