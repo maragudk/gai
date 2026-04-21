@@ -105,3 +105,72 @@ These didn't flake in the 20-run sample but are the only tests in the client sui
 ## No code changes in this branch
 
 The Vertex AI fix is three-ish lines but requires touching two files plus an import, and I want the decision about `robust`-wrapping tests reviewed before committing. Branch `flaky-test-hunt-2026-04-21` is push-worthy only to land this diary; I'll let the follow-up PR carry the actual fix.
+
+## OpenAI deep-dive follow-up
+
+Follow-up brief (same day): the first pass saw 0/20 on `clients/openai`, but CI observed one live flake of `TestChatCompleter_ChatComplete/can_use_a_system_prompt` earlier that day. 20 iterations was clearly undersampled; this follow-up hammers harder.
+
+Rebased this branch onto `origin/main` first (two doc-only commits, `f2082ff`). No base-layer changes affect the OpenAI client code.
+
+### Iteration counts and commands
+
+Focused run (cheapest per iteration, most iterations per dollar):
+
+```
+go test -count=1 -shuffle on -run 'TestChatCompleter_ChatComplete/can_use_a_system_prompt' -v ./clients/openai/
+```
+
+Looped 100 times, serialized. Roughly 4 s per iteration, ~7 min wall time.
+
+Full-suite run (so any other latent flakes surface too):
+
+```
+go test -count=1 -shuffle on ./clients/openai/
+```
+
+Looped 30 times, serialized. Roughly 40 s per iteration, ~20 min wall time.
+
+Total API spend: well under a dollar (GPT-5-nano priced around $0.05/M input, $0.40/M output; the system-prompt subtest is ~20 tokens in, ~30–80 tokens out).
+
+### Results
+
+| Scope                                                     | Iterations | Failures | Rate |
+|-----------------------------------------------------------|------------|----------|------|
+| `TestChatCompleter_ChatComplete/can_use_a_system_prompt`  | 100        | 2        | 2%   |
+| Full `clients/openai` suite                               | 30         | 1        | 3.3% |
+
+Combined: 3 flakes out of 130 runs (~2.3%). **The flake reproduces cleanly and consistently** — it wasn't a provider blip.
+
+Every single failure was in the same subtest with the same root cause.
+
+### Root cause
+
+Two sample failures (raw):
+
+```
+chat_complete_test.go:285: expected output "Salut ! Comment puis-je vous aider aujourd'hui ? Dites-moi ce dont vous avez besoin — parler d'un sujet, écrire quelque chose, traduire, ou aider pour du code, etc." to contain "bonjour"
+
+chat_complete_test.go:285: expected output "Salut ! Comment puis-je t'aider aujourd'hui ? Je peux répondre à tes questions, t'aider à écrire ou corriger un texte, traduire, expliquer un concept, coder, planifier un projet, et bien plus encore. Dis-moi ce que tu veux faire ou donne un sujet." to contain "bonjour"
+```
+
+The model is obeying the system prompt — it's answering in French — but it picks `Salut` (informal) instead of `Bonjour` (formal) ~2–3% of the time. Both are canonical French greetings; the test is asserting on *which* greeting, not *whether* the output is French. That's over-specified.
+
+Why this affects OpenAI but not Anthropic even though the assertion string is identical: the Anthropic test (`clients/anthropic/chat_complete_test.go:265`) explicitly sets `Temperature: gai.Ptr(gai.Temperature(0))`. The OpenAI test does not, so GPT-5-nano samples with its default temperature and occasionally lands on `Salut`. Setting `Temperature: 0` isn't an option for GPT-5 reasoning models (OpenAI only allows temperature=1 for these), so matching Anthropic's approach doesn't port.
+
+### Fix
+
+Broaden the matcher from "must contain `bonjour`" to "must contain `bonjour` or `salut`". This keeps the actual test intent (model honored the French system prompt) and drops the implicit register requirement. Same file already has a `requireContainsAny` helper used by the first subtest for exactly this kind of either/or check, so no new helpers needed.
+
+Concrete change applied in this branch:
+
+- `clients/openai/chat_complete_test.go:285` — `requireContainsAll(t, output, "bonjour")` → `requireContainsAny(t, output, "bonjour", "salut")` with a brief comment explaining the register caveat.
+
+No other subtests flaked across the 130 runs, so the change is scoped to this one assertion.
+
+### Validation
+
+After the patch, ran the focused subtest once to confirm it still passes on a "Bonjour" response and compiles cleanly; `golangci-lint run ./clients/openai/...` reports 0 issues. I did not re-hammer 100x post-fix — the fix strictly expands the accepted set, so mathematically the flake rate can only go down. If QA wants empirical confirmation, the same 100-iteration script at `/tmp/flake-hunt-openai/run_system_prompt.sh` can be re-run.
+
+### Cross-client note
+
+The Anthropic version (`clients/anthropic/chat_complete_test.go:284`) uses `Temperature=0`, which probably masks the same register drift. If Anthropic ever loses that Temperature=0 pin, or if the Claude default starts to hedge toward `Salut`, it'd flake too. Pre-emptively broadening that assertion is cheap but not urgent; noting it here rather than drive-by-patching a second client in a flake-hunt branch. The Google version (`clients/google/chat_complete_test.go:249`, `is.Equal(t, "Bonjour !", output)`) was already flagged as latent in the first pass.
