@@ -480,7 +480,7 @@ func TestEvalImageDescription(t *testing.T) {
 | `Message` | `Content` | `ChatCompletionMessageParamUnion` | `MessageParam` |
 | `MessageRole` | `Role` | string | `MessageParamRole` |
 | `Part` | `*Part` | `ChatCompletionContentPartUnionParam` | `ContentBlockParamUnion` |
-| `Tool` | `FunctionDeclaration` | `ChatCompletionToolParam` | `ToolParam` |
+| `Tool` | `FunctionDeclaration` | `ChatCompletionToolUnionParam` | `ToolParam` |
 | `ToolCall` | `FunctionCall` | `ChatCompletionMessageFunctionToolCall` | `ToolUseBlock` |
 | `ToolResult` | `FunctionResponse` | `ChatCompletionToolMessageParam` | `ToolResultBlockParam` |
 
