@@ -30,6 +30,7 @@ Subpackage `maragu.dev/gai/robust`:
 - `backoff.go` — private `sleep` and `nextDelay` helpers shared between wrappers.
 - `chat_completer_test.go`, `embedder_test.go` — external (`package robust_test`) tests against the public API.
 - `classify_test.go` — internal (`package robust`) tests for unexported helpers.
+- `spans_test.go` — external (`package robust_test`) tests asserting the OpenTelemetry span shape emitted by both wrappers.
 
 ## Shared policy types
 
