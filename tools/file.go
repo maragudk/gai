@@ -16,10 +16,12 @@ import (
 	"maragu.dev/gai"
 )
 
+// ReadFileArgs holds the arguments for the ReadFile tool.
 type ReadFileArgs struct {
 	Path string `json:"path" jsonschema_description:"The relative path of a file in the working directory."`
 }
 
+// NewReadFile creates a new tool that reads the contents of a file relative to the given [os.Root].
 func NewReadFile(root *os.Root) gai.Tool {
 	return gai.Tool{
 		Name:        "read_file",
@@ -48,10 +50,12 @@ func NewReadFile(root *os.Root) gai.Tool {
 	}
 }
 
+// ListDirArgs holds the arguments for the ListDir tool.
 type ListDirArgs struct {
 	Path string `json:"path,omitempty" jsonschema_description:"Optional relative path to list files and directories from. Defaults to current directory if not provided."`
 }
 
+// NewListDir creates a new tool that recursively lists files and directories relative to the given [os.Root].
 func NewListDir(root *os.Root) gai.Tool {
 	return gai.Tool{
 		Name:        "list_dir",
@@ -114,12 +118,14 @@ func NewListDir(root *os.Root) gai.Tool {
 	}
 }
 
+// EditFileArgs holds the arguments for the EditFile tool.
 type EditFileArgs struct {
 	Path       string `json:"path" jsonschema_description:"The path to the file."`
 	SearchStr  string `json:"search_str" jsonschema_description:"Text to search for. Must match exactly and must have one match exactly."`
 	ReplaceStr string `json:"replace_str" jsonschema_description:"Text to replace search_str with."`
 }
 
+// NewEditFile creates a new tool that edits or creates a file relative to the given [os.Root].
 func NewEditFile(root *os.Root) gai.Tool {
 	return gai.Tool{
 		Name: "edit_file",
