@@ -323,6 +323,7 @@ func GenerateToolSchema[T any]() ToolSchema {
 	}
 }
 
+// SchemaType is the primitive type of a [Schema].
 type SchemaType string
 
 const (
