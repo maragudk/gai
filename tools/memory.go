@@ -17,7 +17,7 @@ type memorySaver interface {
 	SaveMemory(ctx context.Context, memory string) error
 }
 
-// NewSaveMemory creates a new tool that stores a memory via the given [memorySaver].
+// NewSaveMemory creates a new tool that stores a memory via the given memory saver.
 func NewSaveMemory(ms memorySaver) gai.Tool {
 	return gai.Tool{
 		Name:        "save_memory",
@@ -59,7 +59,7 @@ type memoryGetter interface {
 	GetMemories(ctx context.Context) ([]string, error)
 }
 
-// NewGetMemories creates a new tool that returns all saved memories via the given [memoryGetter].
+// NewGetMemories creates a new tool that returns all saved memories via the given memory getter.
 func NewGetMemories(mg memoryGetter) gai.Tool {
 	return gai.Tool{
 		Name:        "get_memories",
@@ -88,7 +88,7 @@ type memorySearcher interface {
 	SearchMemories(ctx context.Context, query string) ([]string, error)
 }
 
-// NewSearchMemories creates a new tool that searches saved memories by query via the given [memorySearcher].
+// NewSearchMemories creates a new tool that searches saved memories by query via the given memory searcher.
 func NewSearchMemories(ms memorySearcher) gai.Tool {
 	return gai.Tool{
 		Name:        "search_memories",
