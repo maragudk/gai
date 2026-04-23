@@ -1,3 +1,7 @@
+// Package anthropic provides a [gai.ChatCompleter] implementation backed by
+// the Anthropic Messages API. Construct a [Client] with [NewClient], then
+// derive a chat completer via [Client.NewChatCompleter]. Anthropic does not
+// expose embeddings, so this package has no Embedder.
 package anthropic
 
 import (

@@ -1,3 +1,7 @@
+// Package openai provides [gai.ChatCompleter] and [gai.Embedder] implementations
+// backed by the OpenAI API and OpenAI-compatible endpoints. Construct a [Client]
+// with [NewClient], then derive a chat completer or embedder via
+// [Client.NewChatCompleter] or [Client.NewEmbedder].
 package openai
 
 import (

@@ -1,3 +1,7 @@
+// Package google provides [gai.ChatCompleter] and [gai.Embedder] implementations
+// backed by Google Gemini (via the Gemini API or Vertex AI). Construct a [Client]
+// with [NewClient], then derive a chat completer or embedder via
+// [Client.NewChatCompleter] or [Client.NewEmbedder].
 package google
 
 import (
