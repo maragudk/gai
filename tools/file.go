@@ -125,7 +125,7 @@ type EditFileArgs struct {
 	ReplaceStr string `json:"replace_str" jsonschema_description:"Text to replace search_str with."`
 }
 
-// NewEditFile creates a new tool that edits a file relative to the given [os.Root] by replacing a search string with a replacement, creating the file if it does not exist.
+// NewEditFile creates a new tool that edits or creates a file relative to the given [os.Root].
 func NewEditFile(root *os.Root) gai.Tool {
 	return gai.Tool{
 		Name: "edit_file",
