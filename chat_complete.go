@@ -326,17 +326,17 @@ func GenerateToolSchema[T any]() ToolSchema {
 type SchemaType string
 
 const (
-	// OpenAPI string type
+	// SchemaTypeString is the OpenAPI string type.
 	SchemaTypeString SchemaType = "string"
-	// OpenAPI number type
+	// SchemaTypeNumber is the OpenAPI number type.
 	SchemaTypeNumber SchemaType = "number"
-	// OpenAPI integer type
+	// SchemaTypeInteger is the OpenAPI integer type.
 	SchemaTypeInteger SchemaType = "integer"
-	// OpenAPI boolean type
+	// SchemaTypeBoolean is the OpenAPI boolean type.
 	SchemaTypeBoolean SchemaType = "boolean"
-	// OpenAPI array type
+	// SchemaTypeArray is the OpenAPI array type.
 	SchemaTypeArray SchemaType = "array"
-	// OpenAPI object type
+	// SchemaTypeObject is the OpenAPI object type.
 	SchemaTypeObject SchemaType = "object"
 )
 
