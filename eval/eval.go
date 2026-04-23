@@ -91,7 +91,7 @@ func LevenshteinDistance(a, b string) Score {
 }
 
 // ExactMatch computes a [Score] between two strings, returning 1 if they are equal and 0 otherwise.
-// Useful as a simple [Scorer] for exact string matching together with [LexicalSimilarityScorer].
+// Useful as a lexical similarity metric for exact string matching together with [LexicalSimilarityScorer].
 func ExactMatch(a, b string) Score {
 	if a == b {
 		return 1
@@ -100,7 +100,7 @@ func ExactMatch(a, b string) Score {
 }
 
 // Contains computes a [Score] between two strings, returning 1 if the first string contains the second string, and 0 otherwise.
-// Useful as a simple [Scorer] for string containment together with [LexicalSimilarityScorer].
+// Useful as a lexical similarity metric for string containment together with [LexicalSimilarityScorer].
 func Contains(a, b string) Score {
 	if strings.Contains(a, b) {
 		return 1
