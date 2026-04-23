@@ -8,6 +8,7 @@ import (
 	"maragu.dev/gai"
 )
 
+// SaveMemoryArgs holds the arguments for the SaveMemory tool.
 type SaveMemoryArgs struct {
 	Memory string `json:"memory"`
 }
@@ -16,6 +17,7 @@ type memorySaver interface {
 	SaveMemory(ctx context.Context, memory string) error
 }
 
+// NewSaveMemory creates a new tool that stores a memory via the given memory saver.
 func NewSaveMemory(ms memorySaver) gai.Tool {
 	return gai.Tool{
 		Name:        "save_memory",
@@ -50,12 +52,14 @@ func NewSaveMemory(ms memorySaver) gai.Tool {
 	}
 }
 
+// GetMemoryArgs holds the arguments for the GetMemories tool.
 type GetMemoryArgs struct{}
 
 type memoryGetter interface {
 	GetMemories(ctx context.Context) ([]string, error)
 }
 
+// NewGetMemories creates a new tool that returns all saved memories via the given memory getter.
 func NewGetMemories(mg memoryGetter) gai.Tool {
 	return gai.Tool{
 		Name:        "get_memories",
@@ -75,6 +79,7 @@ func NewGetMemories(mg memoryGetter) gai.Tool {
 	}
 }
 
+// SearchMemoriesArgs holds the arguments for the SearchMemories tool.
 type SearchMemoriesArgs struct {
 	Query string `json:"query"`
 }
@@ -83,6 +88,7 @@ type memorySearcher interface {
 	SearchMemories(ctx context.Context, query string) ([]string, error)
 }
 
+// NewSearchMemories creates a new tool that searches saved memories by query via the given memory searcher.
 func NewSearchMemories(ms memorySearcher) gai.Tool {
 	return gai.Tool{
 		Name:        "search_memories",
