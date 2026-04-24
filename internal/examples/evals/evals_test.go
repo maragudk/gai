@@ -78,7 +78,7 @@ func TestEvalImageDescription(t *testing.T) {
 		})
 
 		embedder := gc.NewEmbedder(google.NewEmbedderOptions{
-			Model:      google.EmbedModelGeminiEmbedding2Preview,
+			Model:      google.EmbedModelGeminiEmbedding2,
 			Dimensions: 768,
 		})
 		// Send the image to the model and ask it to describe what it sees.
