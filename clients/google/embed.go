@@ -22,6 +22,54 @@ const (
 	EmbedModelGeminiEmbedding2   = EmbedModel("gemini-embedding-2")
 )
 
+// EmbedTaskAsymmetric is a task-type prefix for asymmetric retrieval tasks with the [EmbedModelGeminiEmbedding2] model, where queries and documents use different formats.
+// Use [FormatEmbedTaskQuery] on the query side and [FormatEmbedTaskDocument] on the document side.
+type EmbedTaskAsymmetric string
+
+const (
+	// EmbedTaskSearchResult is the retrieval task for general search, where queries are matched against documents.
+	EmbedTaskSearchResult = EmbedTaskAsymmetric("search result")
+	// EmbedTaskQuestionAnswering is the retrieval task for question-answering systems, where questions are matched against answer passages.
+	EmbedTaskQuestionAnswering = EmbedTaskAsymmetric("question answering")
+	// EmbedTaskFactChecking is the retrieval task for fact verification, where statements are matched against supporting or refuting evidence.
+	EmbedTaskFactChecking = EmbedTaskAsymmetric("fact checking")
+	// EmbedTaskCodeRetrieval is the retrieval task for matching natural-language queries against code blocks.
+	EmbedTaskCodeRetrieval = EmbedTaskAsymmetric("code retrieval")
+)
+
+// EmbedTaskSymmetric is a task-type prefix for symmetric tasks with the [EmbedModelGeminiEmbedding2] model, where both sides use the same format.
+// Use [FormatEmbedTask] on all inputs.
+type EmbedTaskSymmetric string
+
+const (
+	// EmbedTaskClassification is the task for classifying texts according to preset labels.
+	EmbedTaskClassification = EmbedTaskSymmetric("classification")
+	// EmbedTaskClustering is the task for clustering texts based on their similarities.
+	EmbedTaskClustering = EmbedTaskSymmetric("clustering")
+	// EmbedTaskSentenceSimilarity is the task for assessing similarity between sentences.
+	EmbedTaskSentenceSimilarity = EmbedTaskSymmetric("sentence similarity")
+)
+
+// FormatEmbedTask formats content with the given symmetric task-type prefix for the [EmbedModelGeminiEmbedding2] model, as "task: {task} | query: {content}".
+func FormatEmbedTask(task EmbedTaskSymmetric, content string) string {
+	return "task: " + string(task) + " | query: " + content
+}
+
+// FormatEmbedTaskQuery formats a query with the given asymmetric task-type prefix for the [EmbedModelGeminiEmbedding2] model, as "task: {task} | query: {query}".
+func FormatEmbedTaskQuery(task EmbedTaskAsymmetric, query string) string {
+	return "task: " + string(task) + " | query: " + query
+}
+
+// FormatEmbedTaskDocument formats a document with the given title for the [EmbedModelGeminiEmbedding2] model, as "title: {title} | text: {content}".
+// Use this for the document side of asymmetric retrieval tasks. If title is empty, it is set to "none".
+// The task is not included in the output but is accepted so the document helper mirrors the shape of [FormatEmbedTaskQuery].
+func FormatEmbedTaskDocument(_ EmbedTaskAsymmetric, title, content string) string {
+	if title == "" {
+		title = "none"
+	}
+	return "title: " + title + " | text: " + content
+}
+
 // Embedder satisfies [gai.Embedder] for Google Gemini models.
 type Embedder struct {
 	Client     *genai.Client
