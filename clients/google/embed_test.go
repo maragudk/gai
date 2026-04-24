@@ -126,6 +126,21 @@ func TestEmbedder_Embed(t *testing.T) {
 		is.Equal(t, 768, len(res.Embedding))
 	})
 
+	t.Run("can embed with a symmetric task prefix", func(t *testing.T) {
+		c := newClient(t)
+
+		e := c.NewEmbedder(google.NewEmbedderOptions{
+			Model:      google.EmbedModelGeminiEmbedding2,
+			Dimensions: 768,
+		})
+
+		text := google.FormatEmbedTask(google.EmbedTaskClassification, "Paris is the capital of France.")
+		res, err := e.Embed(t.Context(), gai.NewTextEmbedRequest(text))
+		is.NotError(t, err)
+
+		is.Equal(t, 768, len(res.Embedding))
+	})
+
 	t.Run("can embed with a task query prefix", func(t *testing.T) {
 		c := newClient(t)
 
