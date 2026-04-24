@@ -62,7 +62,7 @@ func TestEmbedder_Embed(t *testing.T) {
 		c := newClient(t)
 
 		e := c.NewEmbedder(google.NewEmbedderOptions{
-			Model:      google.EmbedModelGeminiEmbedding2Preview,
+			Model:      google.EmbedModelGeminiEmbedding2,
 			Dimensions: 768,
 		})
 
@@ -80,7 +80,7 @@ func TestEmbedder_Embed(t *testing.T) {
 		c := newClient(t)
 
 		e := c.NewEmbedder(google.NewEmbedderOptions{
-			Model:      google.EmbedModelGeminiEmbedding2Preview,
+			Model:      google.EmbedModelGeminiEmbedding2,
 			Dimensions: 768,
 		})
 
@@ -98,7 +98,7 @@ func TestEmbedder_Embed(t *testing.T) {
 		c := newClient(t)
 
 		e := c.NewEmbedder(google.NewEmbedderOptions{
-			Model:      google.EmbedModelGeminiEmbedding2Preview,
+			Model:      google.EmbedModelGeminiEmbedding2,
 			Dimensions: 768,
 		})
 
@@ -130,7 +130,7 @@ func TestEmbedder_Embed(t *testing.T) {
 		c := newClient(t)
 
 		e := c.NewEmbedder(google.NewEmbedderOptions{
-			Model:      google.EmbedModelGeminiEmbedding2Preview,
+			Model:      google.EmbedModelGeminiEmbedding2,
 			Dimensions: 768,
 		})
 
