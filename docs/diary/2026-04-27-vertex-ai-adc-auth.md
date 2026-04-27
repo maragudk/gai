@@ -502,3 +502,216 @@ Diagnosing the panic from the CI log required reading the runner output carefull
 
 - Harden the CI step against an empty `GOOGLE_VERTEX_CREDENTIALS_JSON` secret (skip exporting the path rather than writing an empty file).
 - Decide whether CI should run live Vertex tests at all on PR runs from forks (where secrets won't be available).
+
+## Step 13: Rename CI credentials file
+
+### Prompt Context
+
+**Verbatim prompt:** gcp-key.json in CI -> vertex.json
+**Interpretation:** Rename the temp file the workflow writes the secret to. Cosmetic.
+**Inferred intent:** The existing name was the generic placeholder I picked early on; `vertex.json` matches the secret name and the env var name and reads better in logs.
+
+### What I did
+
+`sed -i '' 's|gcp-key\.json|vertex.json|g' .github/workflows/ci.yml`. Verified with `grep` that no `gcp-key` references remain. Committed and pushed.
+
+### Why
+
+Naming consistency. The env var is `GOOGLE_VERTEX_CREDENTIALS_PATH`; the secret is `GOOGLE_VERTEX_CREDENTIALS_JSON`. Calling the on-disk file `vertex.json` keeps the trail uniform.
+
+### What worked
+
+`sed -i ''` (BSD `sed` syntax) on macOS rewrote both occurrences cleanly.
+
+### What didn't work
+
+Nothing.
+
+### What I learned
+
+When `sed -i` is invoked on macOS without an empty string after `-i`, it errors. Worth remembering — Linux `sed` accepts `sed -i 's/...//'` directly.
+
+### What was tricky
+
+Not tricky.
+
+### What warrants review
+
+The rename is internally consistent. If anyone later searches for `gcp-key`, they won't find it; if they search for `vertex.json`, both write and export sites match.
+
+### Future work
+
+None.
+
+## Step 14: Split test helpers per auth path
+
+### Prompt Context
+
+**Verbatim prompt:** I don't think we're exercising the Vertex API key path in CI anymore?
+**Interpretation:** Markus noticed that the unified `newVertexAIClient` helper sets both `Key` and `CredentialsPath`, and our client logic prefers `CredentialsPath` when both are set. So in CI, the old "API key Vertex" tests were silently routed through the service account path, leaving the API-key path uncovered.
+**Inferred intent:** Make each test exercise exactly one auth path, so a regression on either path actually fails CI.
+
+### What I did
+
+Replaced `newVertexAIClient` with two helpers in `/clients/google/client_test.go`:
+- `newVertexAIClientWithKey` — only sets `Key` (from `GOOGLE_VERTEX_KEY`); exercises the API-key path.
+- `newVertexAIClientWithCredentials` — only sets `CredentialsPath` (from `GOOGLE_VERTEX_CREDENTIALS_PATH`) and `Location: "global"`; exercises the service account path.
+
+Updated `TestNewClient` to construct one of each. Routed the existing 001 Vertex embed test and the Vertex chat-complete test through `newVertexAIClientWithKey` (preserving their original intent), and the Embedding 2 test through `newVertexAIClientWithCredentials`. Verified locally: all four passed.
+
+### Why
+
+Markus was right: as written, "Vertex AI backend" tests were falling through to whichever path the helper happened to populate first. The split makes each test's auth surface explicit and forces CI to actually fail when a particular path breaks.
+
+### What worked
+
+The split was mechanical and the existing tests reused the new helpers without other changes. `go vet` and the local live tests stayed green.
+
+### What didn't work
+
+Nothing in this step.
+
+### What I learned
+
+Test fixtures that "set everything we might need" hide regressions when production code routes choices internally. A fixture should declare which path it's testing as clearly as the system under test does.
+
+### What was tricky
+
+The implicit-routing failure mode is silent and only catches you when you split helpers; nothing in the green CI run before the split would tell you the API-key tests weren't really running. Subtle.
+
+### What warrants review
+
+`/clients/google/client_test.go` — both helpers should set the *minimum* fields for their path and nothing else.
+
+### Future work
+
+None.
+
+## Step 15: Fill in the test matrix
+
+### Prompt Context
+
+**Verbatim prompt:** Add another test that 001 also works with JSON key. And add two more tests, that newest Gemini Flash works on Vertex with both API key and JSON key.
+**Interpretation:** Cover the full matrix of {API key, service account} × {Embedding 001, Gemini 2.5 Flash}. Embedding 2 stays SA-only because the API-key path 404s for it.
+**Inferred intent:** Lock in regression coverage for both auth paths across the models we actually use.
+
+### What I did
+
+In `/clients/google/embed_test.go`, added "can embed a text with Vertex AI backend and service account" mirroring the existing "and API key" test, both targeting `EmbedModelGeminiEmbedding001`. In `/clients/google/chat_complete_test.go`, refactored `TestChatCompleter_ChatComplete_VertexAI` into two subtests ("and API key", "and service account") and pulled the request body into `assertVertexFlashChatComplete` so both subtests share the same assertion logic. Both target `ChatCompleteModelGemini2_5Flash`. Ran the full set locally with the SA JSON path set; all four Vertex tests passed.
+
+### Why
+
+Neither auth path is "the" path going forward — API key is fine for 001 and Flash today, service account is required for Embedding 2 and is the prod path on AWS. CI needs to break loudly if either degrades.
+
+### What worked
+
+The shared `assertVertexFlashChatComplete` keeps the chat-complete tests DRY without inventing more abstraction than necessary. Test names follow the "with X and Y" convention so reading the test output makes the matrix obvious.
+
+### What didn't work
+
+Nothing locally. CI surfaced a real issue in the next step.
+
+### What I learned
+
+The natural shape for this kind of matrix is one outer test per behaviour and a subtest per auth path, with assertions in a shared helper. Keeps test names readable and avoids parameterised-test gymnastics.
+
+### What was tricky
+
+Nothing notable.
+
+### What warrants review
+
+`/clients/google/embed_test.go` and `/clients/google/chat_complete_test.go` — verify each subtest's helper choice matches its name (key vs credentials).
+
+### Future work
+
+None.
+
+## Step 16: Diagnose CI 401, key rotation
+
+### Prompt Context
+
+**Verbatim prompt 1:** CI tests failing
+**Verbatim prompt 2:** Maybe because we renamed the JSON in CI?
+**Verbatim prompt 3:** Or some of the test client wiring?
+**Verbatim prompt 4:** Key rotated, rerun tests in CI
+**Interpretation:** With the new genuinely-API-key tests live in CI, the workflow now hit a 401 from Vertex. Markus offered hypotheses (file rename, test wiring); I traced both and ruled them out, ultimately landing on "CI secret value is wrong/stale." Markus rotated the key and asked for a rerun.
+**Inferred intent:** Get to root cause and unblock the PR.
+
+### What I did
+
+Pulled the failing job log via `gh run view 24992999634 --log-failed --job 73182922547`. Found the verbatim error:
+
+> `Error 401, Message: Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. ... Status: UNAUTHENTICATED, Details: ... reason:ACCESS_TOKEN_TYPE_UNSUPPORTED ...`
+
+Reproduced locally — local key from `.env.test.local` (`AQ.Ab8RN...`) passed. Searched the workflow for any leftover `gcp-key.json` references — clean. Read `client_test.go` again — the API-key helper is minimal, doesn't read `GOOGLE_VERTEX_CREDENTIALS_PATH`, and the genai SDK only auto-discovers a known set of env vars (`GOOGLE_API_KEY`, `GEMINI_API_KEY`, `GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_LOCATION`, `GOOGLE_APPLICATION_CREDENTIALS`) — none of which we leak into the test process. Concluded the secret value itself was the problem. Walked Markus through the `AQ.` prefix vs `ya29.` (OAuth) prefix distinction — `ACCESS_TOKEN_TYPE_UNSUPPORTED` is what Vertex returns when you send it a token in OAuth-bearer format that it expected as an API key. Markus rotated the secret, I reran the workflow with `gh run rerun --failed`, watched it green with `gh run watch --exit-status`.
+
+### Why
+
+The split-helpers change was the trigger but the root cause was independent: the API-key path had been silently bypassed in CI for the entire history of this branch, so the CI secret had never been exercised against a real Vertex call. As soon as the split forced it through, the stale/wrong secret was the first thing to fail.
+
+### What worked
+
+`gh run view --log-failed` cuts straight to the failing assertions. The verbatim error pointed at a token-type mismatch, which led to the `AQ.`-vs-`ya29.` prefix theory. Once Markus rotated the key, the rerun was clean: Test (1m3s), Evaluate, Lint, govulncheck — all green.
+
+### What didn't work
+
+The first hypothesis Markus offered ("renamed the JSON in CI?") was wrong but had to be checked — `grep -rn "gcp-key\|vertex\.json\|GOOGLE_APPLICATION_CREDENTIALS\|GOOGLE_VERTEX_CREDENTIALS"` confirmed no dangling references. The second ("test client wiring?") was also wrong but cheap to verify by re-reading the helpers. Both ruled out before concluding it was the secret value.
+
+### What I learned
+
+`ACCESS_TOKEN_TYPE_UNSUPPORTED` is a specific Vertex AI error code that nearly always means "the token shape isn't what I expected." Vertex API keys carry an `AQ.` prefix; OAuth bearer tokens (e.g. from `gcloud auth print-access-token`) carry `ya29.`. Storing the wrong one in a "key" secret is a common foot-gun. Checking the prefix is a fast sanity check before suspecting code.
+
+The deeper lesson: if a test "passes in CI" but no credential path it depends on is actually being hit, it's not really passing. The previous green CI runs on this branch were partial green — the SA tests were live, the API-key tests were ghosts.
+
+### What was tricky
+
+Convincing myself to go past the file-rename and test-wiring hypotheses. Both were plausible-sounding and I had to actually grep + reread to feel confident they were dead ends. Worth the time — wrong root cause means next failure looks the same and costs another debug cycle.
+
+### What warrants review
+
+Nothing code-side in this step. On the operations side: the CI secret hygiene matters more than I treated it before. If we're going to claim a path is "tested in CI", the secret backing that path needs to be part of the rotation/review story.
+
+### Future work
+
+- Consider a small startup check in the test helper that warns or skips if `GOOGLE_VERTEX_KEY` doesn't match `^AQ\.` — would have caught this immediately.
+
+## Step 17: Default Location to "global"
+
+### Prompt Context
+
+**Verbatim prompt:** Should we set default location to "global" in NewClient?
+**Interpretation:** Make the most common case (multi-region Vertex models) zero-config in the wrapper. genai already falls back to "global" internally, but putting the default in our code makes the choice visible to readers of `NewClientOptions`.
+**Inferred intent:** Reduce footguns. A caller setting `CredentialsPath` and forgetting `Location` still gets a working client.
+
+### What I did
+
+In `/clients/google/client.go`, after the credentials/project handling, added `if cfg.Location == "" { cfg.Location = "global" }`. Updated the GoDoc on `Location` to state the default. Removed the now-redundant `Location: "global"` from `newVertexAIClientWithCredentials` so the test exercises the default. Local run confirmed all four Vertex tests still pass.
+
+### Why
+
+The default makes the field optional in practice for the case we care about most (multi-region models like Embedding 2). Data-residency callers who need `us` or `eu` still set it explicitly, so we don't lose flexibility. And anchoring the default in our wrapper insulates us from any future change to genai's internal fallback.
+
+### What worked
+
+Tiny change, tests stayed green. The GoDoc note keeps the behaviour discoverable without reading `NewClient`.
+
+### What didn't work
+
+Nothing.
+
+### What I learned
+
+When a wrapper depends on an upstream library's internal fallback, replacing it with an explicit local default costs one line and gains a contract you control.
+
+### What was tricky
+
+Not tricky.
+
+### What warrants review
+
+`/clients/google/client.go` — confirm the default lives in the credentials branch only (Location is irrelevant on the API-key path) and that the GoDoc on `Location` matches.
+
+### Future work
+
+None.
