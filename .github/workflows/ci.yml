@@ -37,8 +37,8 @@ jobs:
         env:
           GOOGLE_VERTEX_CREDENTIALS_JSON: ${{ secrets.GOOGLE_VERTEX_CREDENTIALS_JSON }}
         run: |
-          echo "$GOOGLE_VERTEX_CREDENTIALS_JSON" > "$RUNNER_TEMP/gcp-key.json"
-          echo "GOOGLE_VERTEX_CREDENTIALS_PATH=$RUNNER_TEMP/gcp-key.json" >> "$GITHUB_ENV"
+          echo "$GOOGLE_VERTEX_CREDENTIALS_JSON" > "$RUNNER_TEMP/vertex.json"
+          echo "GOOGLE_VERTEX_CREDENTIALS_PATH=$RUNNER_TEMP/vertex.json" >> "$GITHUB_ENV"
 
       - name: Test
         run: go test -shuffle on ./...
@@ -69,8 +69,8 @@ jobs:
         env:
           GOOGLE_VERTEX_CREDENTIALS_JSON: ${{ secrets.GOOGLE_VERTEX_CREDENTIALS_JSON }}
         run: |
-          echo "$GOOGLE_VERTEX_CREDENTIALS_JSON" > "$RUNNER_TEMP/gcp-key.json"
-          echo "GOOGLE_VERTEX_CREDENTIALS_PATH=$RUNNER_TEMP/gcp-key.json" >> "$GITHUB_ENV"
+          echo "$GOOGLE_VERTEX_CREDENTIALS_JSON" > "$RUNNER_TEMP/vertex.json"
+          echo "GOOGLE_VERTEX_CREDENTIALS_PATH=$RUNNER_TEMP/vertex.json" >> "$GITHUB_ENV"
 
       - name: Evaluate
         run: |
