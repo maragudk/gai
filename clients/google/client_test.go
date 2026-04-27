@@ -58,7 +58,6 @@ func newVertexAIClientWithCredentials(t *testing.T) *google.Client {
 	return google.NewClient(google.NewClientOptions{
 		Backend:         google.BackendVertexAI,
 		CredentialsPath: env.GetStringOrDefault("GOOGLE_VERTEX_CREDENTIALS_PATH", ""),
-		Location:        "global",
 		Log:             log,
 	})
 }

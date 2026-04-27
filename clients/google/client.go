@@ -41,7 +41,7 @@ type NewClientOptions struct {
 	Key string
 	// Location is the Vertex AI location (e.g. "global", "us", "eu", "us-central1").
 	// Used only when CredentialsPath is set; ignored on the API-key path because
-	// Vertex AI API keys carry their own routing.
+	// Vertex AI API keys carry their own routing. Defaults to "global" when empty.
 	Location string
 	Log      *slog.Logger
 }
@@ -71,6 +71,9 @@ func NewClient(opts NewClientOptions) *Client {
 			cfg.Credentials = creds
 			cfg.Project = project
 			cfg.Location = opts.Location
+			if cfg.Location == "" {
+				cfg.Location = "global"
+			}
 		} else {
 			cfg.APIKey = opts.Key
 		}
