@@ -28,13 +28,19 @@ type Client struct {
 
 type NewClientOptions struct {
 	Backend Backend
-	Key     string
+	// Key is the API key. For [BackendVertexAI] it is ignored when Project is set,
+	// because Vertex AI API keys pin requests to a fixed regional endpoint and
+	// cannot reach multi-region-only models such as [EmbedModelGeminiEmbedding2].
+	Key string
 	// Location is the Vertex AI location (e.g. "global", "us", "eu", "us-central1").
-	// Required for [BackendVertexAI] when authenticating via Application Default Credentials.
+	// Used only when Project is set; ignored on the API-key path because Vertex AI
+	// API keys carry their own routing.
 	Location string
 	Log      *slog.Logger
-	// Project is the Google Cloud project ID.
-	// Required for [BackendVertexAI] when authenticating via Application Default Credentials.
+	// Project is the Google Cloud project ID. When set on [BackendVertexAI], the
+	// client authenticates via Application Default Credentials (e.g. a service
+	// account JSON via GOOGLE_APPLICATION_CREDENTIALS) instead of Key, and Location
+	// is required.
 	Project string
 }
 
