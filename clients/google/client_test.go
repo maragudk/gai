@@ -42,7 +42,6 @@ func newVertexAIClient(t *testing.T) *google.Client {
 		Key:             env.GetStringOrDefault("GOOGLE_VERTEX_KEY", ""),
 		Location:        "global",
 		Log:             log,
-		Project:         env.GetStringOrDefault("GOOGLE_VERTEX_PROJECT", ""),
 	})
 }
 

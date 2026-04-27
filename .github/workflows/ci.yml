@@ -46,7 +46,6 @@ jobs:
           ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_KEY }}
           GOOGLE_KEY: ${{ secrets.GOOGLE_KEY }}
           GOOGLE_VERTEX_KEY: ${{ secrets.GOOGLE_VERTEX_KEY }}
-          GOOGLE_VERTEX_PROJECT: ${{ secrets.GOOGLE_VERTEX_PROJECT }}
           OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
 
   evaluate:
@@ -80,7 +79,6 @@ jobs:
         env:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_KEY }}
           GOOGLE_VERTEX_KEY: ${{ secrets.GOOGLE_VERTEX_KEY }}
-          GOOGLE_VERTEX_PROJECT: ${{ secrets.GOOGLE_VERTEX_PROJECT }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_KEY }}
 
   lint:

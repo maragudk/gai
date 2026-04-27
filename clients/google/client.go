@@ -29,25 +29,21 @@ type Client struct {
 
 type NewClientOptions struct {
 	Backend Backend
-	// CredentialsPath is the path to a service account JSON key file used for
-	// [BackendVertexAI] when Project is set. If empty, credentials are resolved
-	// via Application Default Credentials (e.g. GOOGLE_APPLICATION_CREDENTIALS,
-	// gcloud, or attached service accounts on GCP infrastructure).
+	// CredentialsPath is the path to a service account JSON key file. When set on
+	// [BackendVertexAI], the client authenticates via the service account instead
+	// of Key, the project ID is read from the JSON's project_id field, and Location
+	// is required. Vertex AI API keys pin requests to a fixed regional endpoint and
+	// cannot reach multi-region-only models such as [EmbedModelGeminiEmbedding2],
+	// which is why this path is required for those models.
 	CredentialsPath string
-	// Key is the API key. For [BackendVertexAI] it is ignored when Project is set,
-	// because Vertex AI API keys pin requests to a fixed regional endpoint and
-	// cannot reach multi-region-only models such as [EmbedModelGeminiEmbedding2].
+	// Key is the API key. For [BackendVertexAI] it is ignored when CredentialsPath
+	// is set.
 	Key string
 	// Location is the Vertex AI location (e.g. "global", "us", "eu", "us-central1").
-	// Used only when Project is set; ignored on the API-key path because Vertex AI
-	// API keys carry their own routing.
+	// Used only when CredentialsPath is set; ignored on the API-key path because
+	// Vertex AI API keys carry their own routing.
 	Location string
 	Log      *slog.Logger
-	// Project is the Google Cloud project ID. When set on [BackendVertexAI], the
-	// client authenticates via a service account (CredentialsPath, or Application
-	// Default Credentials if CredentialsPath is empty) instead of Key, and Location
-	// is required.
-	Project string
 }
 
 func NewClient(opts NewClientOptions) *Client {
@@ -59,19 +55,22 @@ func NewClient(opts NewClientOptions) *Client {
 	switch opts.Backend {
 	case BackendVertexAI:
 		cfg.Backend = genai.BackendVertexAI
-		if opts.Project != "" {
-			cfg.Project = opts.Project
-			cfg.Location = opts.Location
-			if opts.CredentialsPath != "" {
-				creds, err := credentials.DetectDefault(&credentials.DetectOptions{
-					CredentialsFile: opts.CredentialsPath,
-					Scopes:          []string{"https://www.googleapis.com/auth/cloud-platform"},
-				})
-				if err != nil {
-					panic(err)
-				}
-				cfg.Credentials = creds
+		if opts.CredentialsPath != "" {
+			ctx := context.Background()
+			creds, err := credentials.DetectDefault(&credentials.DetectOptions{
+				CredentialsFile: opts.CredentialsPath,
+				Scopes:          []string{"https://www.googleapis.com/auth/cloud-platform"},
+			})
+			if err != nil {
+				panic(err)
 			}
+			project, err := creds.ProjectID(ctx)
+			if err != nil {
+				panic(err)
+			}
+			cfg.Credentials = creds
+			cfg.Project = project
+			cfg.Location = opts.Location
 		} else {
 			cfg.APIKey = opts.Key
 		}
