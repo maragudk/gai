@@ -512,37 +512,48 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 }
 
 func TestChatCompleter_ChatComplete_VertexAI(t *testing.T) {
-	t.Run("can chat-complete with Vertex AI backend", func(t *testing.T) {
+	t.Run("can chat-complete with Vertex AI backend and API key", func(t *testing.T) {
 		c := newVertexAIClientWithKey(t)
-		cc := c.NewChatCompleter(google.NewChatCompleterOptions{
-			Model: google.ChatCompleteModelGemini2_5Flash,
-		})
+		assertVertexFlashChatComplete(t, c)
+	})
 
-		req := gai.ChatCompleteRequest{
-			Messages: []gai.Message{
-				gai.NewUserTextMessage("Hi!"),
-			},
-			Temperature: gai.Ptr(gai.Temperature(0)),
-		}
+	t.Run("can chat-complete with Vertex AI backend and service account", func(t *testing.T) {
+		c := newVertexAIClientWithCredentials(t)
+		assertVertexFlashChatComplete(t, c)
+	})
+}
 
-		res, err := cc.ChatComplete(t.Context(), req)
+func assertVertexFlashChatComplete(t *testing.T, c *google.Client) {
+	t.Helper()
+
+	cc := c.NewChatCompleter(google.NewChatCompleterOptions{
+		Model: google.ChatCompleteModelGemini2_5Flash,
+	})
+
+	req := gai.ChatCompleteRequest{
+		Messages: []gai.Message{
+			gai.NewUserTextMessage("Hi!"),
+		},
+		Temperature: gai.Ptr(gai.Temperature(0)),
+	}
+
+	res, err := cc.ChatComplete(t.Context(), req)
+	is.NotError(t, err)
+
+	var output string
+	for part, err := range res.Parts() {
 		is.NotError(t, err)
 
-		var output string
-		for part, err := range res.Parts() {
-			is.NotError(t, err)
+		switch part.Type {
+		case gai.PartTypeText:
+			output += part.Text()
 
-			switch part.Type {
-			case gai.PartTypeText:
-				output += part.Text()
-
-			default:
-				t.Fatal("unexpected message parts")
-			}
+		default:
+			t.Fatal("unexpected message parts")
 		}
+	}
 
-		is.True(t, len(output) > 0, "should have response text")
-	})
+	is.True(t, len(output) > 0, "should have response text")
 }
 
 func newChatCompleter(t *testing.T) *google.ChatCompleter {
