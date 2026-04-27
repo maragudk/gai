@@ -218,3 +218,287 @@ Markus dropped the SA key file in the repo root — `maragu-488510-4aed7da41045.
 - Add `.gitignore` entry for GCP service account JSON keys.
 - Consider whether CI should run the live Vertex tests at all; if yes, plumb the SA key into the CI secrets store.
 - Document the AWS prod deployment recipe somewhere user-facing (probably the `clients/google/README.md`), since the design decision is now in `docs/decisions.md` but isn't a how-to.
+
+## Step 6: Open the PR and wire credentials into CI
+
+### Prompt Context
+
+**Verbatim prompt:** I've deleted it for now. But I need to add it in CI as well somehow. Create a PR
+**Interpretation:** Markus removed the SA key file from his working tree (good — addresses the leak risk I flagged). Now the gap is CI: the test that lives on this PR needs credentials when it runs in GitHub Actions, and Markus wants both the PR opened and a plan for CI auth.
+**Inferred intent:** Get the change into review and have a concrete CI configuration to point at.
+
+### What I did
+
+Created branch `vertex-ai-adc-auth`, committed the library + diary changes with a descriptive message, pushed, and opened PR #249. Then read `/.github/workflows/ci.yml` and added a "Set up GCP credentials" step to both the `test` and `evaluate` jobs that writes the secret JSON to `$RUNNER_TEMP/gcp-key.json` and exports `GOOGLE_APPLICATION_CREDENTIALS`. Plumbed `GOOGLE_VERTEX_PROJECT` and `GOOGLE_VERTEX_LOCATION` env vars through, all sourced from secrets at first.
+
+### Why
+
+Prod CI must exercise the real Vertex auth path or the regression test is theatre. Deciding the secret-storage shape early avoided more churn later.
+
+### What worked
+
+PR opened cleanly. The CI step pattern (write JSON to `$RUNNER_TEMP`, export env-var pointer) is a well-trodden GitHub Actions idiom and worked first try when later run.
+
+### What didn't work
+
+Nothing in this step.
+
+### What I learned
+
+`$RUNNER_TEMP` is the ergonomic place for ephemeral files in GitHub Actions — auto-cleaned and outside the workspace. `$GITHUB_ENV` writes propagate to subsequent steps in the same job, which is exactly what's needed for an "auth setup" step.
+
+### What was tricky
+
+Markus's git skill (`/Users/maragubot/Developer/fabrik/skills/git`) requires asking about issue references before committing. Auto mode says "minimize interruptions." Resolved the conflict by checking open issues myself first (`gh issue list --search ...`), confirming nothing matched, and proceeding without a reference. Worth flagging if a future skill update changes this expectation.
+
+### What warrants review
+
+`/.github/workflows/ci.yml` — both jobs now have a credentials-setup step. Verify the `$RUNNER_TEMP` path is correct and the env var name matches what the genai SDK reads.
+
+### Future work
+
+Sort out which env vars are actually secrets vs plain configuration — `Location: "global"` in particular is not sensitive.
+
+## Step 7: Hardcode location, simplify the auth-mode switch
+
+### Prompt Context
+
+**Verbatim prompt:** Remove it from the workflow, hardcode to global in tests
+**Interpretation:** `Location` is non-sensitive and effectively constant for our use case (multi-region Embedding 2). Drop it from CI secrets and `.env.test.local`, hardcode `"global"` in the test helper.
+**Inferred intent:** Reduce the surface area of CI configuration. Don't pretend a constant is a secret.
+
+### What I did
+
+Edited `/clients/google/client_test.go` to set `Location: "global"` directly. Removed the env-var read from CI workflow and `.env.test.local`. Ran the API-key 001 Vertex test to verify the change — it panicked with `failed to find default credentials`. Diagnosed: the previous client logic (`opts.Project == "" && opts.Location == ""` to use the API key) now broke because `Location` was always non-empty; any caller passing only an API key would now wrongly fall into the ADC branch. Fixed by switching the auth-mode predicate to `opts.Project != ""` — Project is the load-bearing field, Location is just routing info.
+
+### Why
+
+The bug was real and immediate: hardcoding a default for `Location` accidentally turned it into a switch. Decoupling the two concerns (which auth method? which routing?) made the code clearer too.
+
+### What worked
+
+The `go build ./...` and `go vet ./...` passed silently after the fix. Intent of the predicate change is now obvious in the code: "do they have a project? then do ADC."
+
+### What didn't work
+
+The first iteration broke local tests. Verbatim panic: `panic: failed to find default credentials: open /Users/maragubot/Developer/gai/maragu-488510-4aed7da41045.json: no such file or directory [recovered, repanicked]` because the SA file Markus had earlier deleted was being requested via `GOOGLE_APPLICATION_CREDENTIALS` while my code unconditionally took the ADC branch.
+
+### What I learned
+
+When a config struct has multiple fields that interact, the predicate that picks the branch must depend only on fields that *cause* the choice — not on incidental fields like routing parameters that may legitimately have defaults. "Which field is load-bearing for the choice?" is a useful diagnostic question.
+
+### What was tricky
+
+Markus deleted the SA key file (per my earlier security flag), so I couldn't live-test the ADC path locally. I trusted the build/vet for the change correctness and verified the API-key Vertex test would no longer crash on missing creds — relying on CI for the live ADC verification.
+
+### What warrants review
+
+`/clients/google/client.go:50-57` — the auth-mode predicate flipped from `Project == "" && Location == ""` (use API key) to `Project != ""` (use ADC). The truth table is now: only `Project` decides; `Location` never causes an auth-mode switch.
+
+### Future work
+
+None directly; precedence is now correct.
+
+## Step 8: Document field precedence in GoDoc
+
+### Prompt Context
+
+**Verbatim prompt:** We should probably document in the comments that the location is not respected for Vertex AI if the key is set.
+**Interpretation:** The auth-mode rules — particularly that `Location` is silently ignored on the API-key path — need to be discoverable in the code, not just in conversation context.
+**Inferred intent:** Future readers should understand why fields behave the way they do without having to read the source of `NewClient` or hit the bug themselves.
+
+### What I did
+
+Expanded the GoDoc on `Key`, `Location`, and `Project` in `/clients/google/client.go`. Each comment now states what the field is, when it applies, when it's ignored, and why (with the API-key routing constraint named explicitly).
+
+### Why
+
+GoDoc is the discovery surface for this struct; the precedence rules are non-obvious enough that they need to be there, not buried in a decision doc.
+
+### What worked
+
+Editing three field comments at once kept the truth-table consistent across all of them.
+
+### What didn't work
+
+Nothing.
+
+### What I learned
+
+For configuration structs with cross-field interactions, document each field's behaviour against every other relevant field, even if it feels redundant — readers approach the struct from different starting fields.
+
+### What was tricky
+
+Not tricky.
+
+### What warrants review
+
+Comments on `/clients/google/client.go:30-50`. Confirm the wording matches the actual logic in `NewClient`.
+
+### Future work
+
+None.
+
+## Step 9: Switch to explicit credentials path
+
+### Prompt Context
+
+**Verbatim prompt:** Can we wire the path in GOOGLE_APPLICATION_CREDENTIALS explicitly instead of relying on env vars?
+**Interpretation:** Replace the implicit ADC env-var dance with a `CredentialsPath` option on `NewClientOptions`. The library loads the JSON directly via the Google auth library and passes a `*auth.Credentials` to genai.
+**Inferred intent:** Remove dependence on global process state. A single library call should be able to pick exactly which credentials it uses.
+
+### What I did
+
+Checked `genai.ClientConfig` (it has a `Credentials *auth.Credentials` field) and `cloud.google.com/go/auth/credentials.DetectOptions` (which has `CredentialsFile` for an explicit path). Confirmed `cloud.google.com/go/auth` was already an indirect transitive dep. Added a `CredentialsPath` field to `NewClientOptions`. In `NewClient` for the Vertex backend, when `CredentialsPath` is set, load credentials via `credentials.DetectDefault` with `CredentialsFile` and the `cloud-platform` scope, then assign to `cfg.Credentials`. Updated the test helper and CI workflow to read `GOOGLE_VERTEX_CREDENTIALS_PATH` (workflow now writes the JSON to a runner temp file and exports the path env var). Ran `go mod tidy` to promote the auth dep to direct.
+
+### Why
+
+The implicit env-var path forces every call site to live in a process where `GOOGLE_APPLICATION_CREDENTIALS` happens to be correct. Explicit path is composable: tests, multi-tenant scenarios, and ad-hoc scripts can all pick their own creds.
+
+### What worked
+
+The `auth` dep was already in `go.sum` as a transitive — no new module pulled in, just promoted to direct. The `DetectDefault(&DetectOptions{CredentialsFile: ..., Scopes: ...})` API is exactly what's needed; no glue required.
+
+### What didn't work
+
+Nothing in this step.
+
+### What I learned
+
+`credentials.DetectDefault` is more flexible than its name suggests — with `CredentialsFile`, it bypasses detection entirely and just loads the named file. Useful even when ADC discovery isn't desired.
+
+### What was tricky
+
+Choosing between "library-loads-the-file" vs "library-takes-an-already-loaded-Credentials" was not obvious. Library-loads is simpler for callers (one string, no extra import) but couples us to one source. The library-takes-Credentials approach would be more flexible but pushes the auth-package import to every caller. Picked the simpler one for now since 99% of cases are file-based.
+
+### What warrants review
+
+`/clients/google/client.go:55-74` — the explicit-path branch loads creds and passes them to `genai.ClientConfig.Credentials`. Verify the scope (`cloud-platform`) is correct for Vertex calls.
+
+### Future work
+
+If a caller ever needs to pass a pre-built `*auth.Credentials` (e.g. workload identity federation with a custom token source), expose that as a separate field. Not needed today.
+
+## Step 10: Drop the Project field, infer from credentials
+
+### Prompt Context
+
+**Verbatim prompt 1:** Are you sure the project also isn't inferred from the JSON?
+**Verbatim prompt 2:** Could we also drop the Project field entirely then?
+**Verbatim prompt 3:** 1
+**Interpretation:** First verify whether genai pulls project ID from the credentials object (it doesn't — it only reads `GOOGLE_CLOUD_PROJECT`). Then, given that the auth library *does* expose `creds.ProjectID(ctx)` and that service account JSONs always carry a `project_id`, infer it ourselves and drop the `Project` field from the public API. Markus chose option 1 (drop entirely) over option 2 (keep as optional auto-inferred fallback).
+**Inferred intent:** Simplify the public API. One fewer thing for production callers to configure.
+
+### What I did
+
+Read genai's source at `/Users/maragubot/Developer/go/pkg/mod/google.golang.org/genai@v1.54.0/client.go:230-300` and confirmed `cc.Project` is only populated from `GOOGLE_CLOUD_PROJECT`, never from `cc.Credentials`. Dropped the `Project` field from `NewClientOptions`. In the Vertex ADC branch of `NewClient`, after loading credentials, called `creds.ProjectID(ctx)` and assigned the result to `cfg.Project`. Removed `GOOGLE_VERTEX_PROJECT` from `.env.test.local`, the test helper, and both jobs in the CI workflow. Updated the field GoDocs accordingly. Ran `go build ./... && go vet ./...` — passed clean.
+
+### Why
+
+`project_id` is right there in the JSON every service account ships with. Asking callers to type it out separately was redundant. Tradeoff: user credentials from `gcloud auth application-default login` don't carry a project ID — that case now requires `GOOGLE_CLOUD_PROJECT` in env. Acceptable for a local-dev-only path.
+
+### What worked
+
+`auth.Credentials.ProjectID(ctx)` returns the JSON's `project_id` synchronously for service accounts (no token fetch needed). The change shrunk the API surface meaningfully — `NewClientOptions` is back to four exported fields plus `Log`.
+
+### What didn't work
+
+Nothing.
+
+### What I learned
+
+When deciding what's load-bearing in a config struct, follow the data: does the value already exist somewhere? If yes, the caller shouldn't have to retype it. Service account JSONs are an authoritative source for project ID — let the library read them.
+
+### What was tricky
+
+The instinct was to ship "Project optional, auto-inferred when empty" (belt and braces) — but that's a worse API: it leaves a vestigial field that future callers might set "just in case." Markus pushed for full removal, which is cleaner. Adding the field back later in a backward-compatible way is trivial; designing around an API that has it now is harder to undo.
+
+### What warrants review
+
+`/clients/google/client.go:54-74` — the ADC branch now reads project from creds. Verify `creds.ProjectID(ctx)` returns the right value (the JSON file in this session had `project_id: "maragu-488510"`).
+
+### Future work
+
+If a caller needs ADC discovery (no explicit path) or a credential type without `project_id`, we can reintroduce `Project` as an optional field then.
+
+## Step 11: Live verification with the new key
+
+### Prompt Context
+
+**Verbatim prompt:** Test with the new key at maragu-488510-2cfd82b4df15.json
+**Interpretation:** Markus dropped a fresh service account JSON and wants me to confirm the simplified API works end-to-end.
+**Inferred intent:** Final live check on the shipped design before merging.
+
+### What I did
+
+Set `GOOGLE_VERTEX_CREDENTIALS_PATH="$(pwd)/maragu-488510-2cfd82b4df15.json"` and ran both Vertex subtests of `TestEmbedder_Embed`. Both passed: Embedding 001 via the API-key path (1.07s) and Embedding 2 via the ADC path with project inferred from JSON (0.79s).
+
+### Why
+
+Final confirmation that the simplified surface — just `CredentialsPath` and `Location` — actually reaches Embedding 2 and routes through to `maragu-488510` at the multi-region `global` endpoint without any `Project` field involvement.
+
+### What worked
+
+Both tests passed first try. `creds.ProjectID(ctx)` returned the project ID, the genai client used it, and the multi-region endpoint resolved Embedding 2 correctly.
+
+### What didn't work
+
+Nothing.
+
+### What I learned
+
+End-to-end the simplified path is one env var (`GOOGLE_VERTEX_CREDENTIALS_PATH`) and one struct field (`CredentialsPath`) for prod callers. Hard to make it more compact while still being explicit.
+
+### What was tricky
+
+Reminded Markus again about not committing the new SA file (`maragu-488510-2cfd82b4df15.json`). Same concern as the first key file.
+
+### What warrants review
+
+Nothing new beyond what's in earlier steps. Live test passing is the load-bearing signal.
+
+### Future work
+
+None.
+
+## Step 12: Polish PR metadata, run CI green
+
+### Prompt Context
+
+**Verbatim prompt 1:** Update PR title/description
+**Verbatim prompt 2:** rerun CI and monitor
+**Interpretation:** Bring the PR text in line with the simplified shipped design (the original body still mentioned `Project`/`Location` from the earlier shape), then trigger CI and watch it through to completion.
+**Inferred intent:** Get the PR into a mergeable state — accurate metadata, all checks green.
+
+### What I did
+
+Updated PR #249's title to "Add Vertex AI service account auth to `google.NewClient`" and rewrote the body around `CredentialsPath` and project inference. Triggered `gh run rerun --failed` for the previously-failing CI run (the Test job had panicked on `unexpected end of JSON input` because Markus hadn't yet uploaded `GOOGLE_VERTEX_CREDENTIALS_JSON` as a repo secret). Watched with `gh run watch 24992353080 --exit-status`. After the rerun, all four checks pass: Test (1m9s), Evaluate, Lint, govulncheck.
+
+### Why
+
+A PR title and body that misrepresent the change cause review confusion. CI status determines merge readiness.
+
+### What worked
+
+`gh pr edit --title --body` with a heredoc kept the body legible across the multi-bullet structure. `gh run watch --exit-status` is the right tool for "block until this is done."
+
+### What didn't work
+
+The first CI run failed with `panic: unexpected end of JSON input` at `client.go:65`. Verbatim from the run log: `Test 2026-04-27T11:28:27.5621964Z panic: unexpected end of JSON input [recovered, repanicked]`. Cause: the workflow always wrote the secret to `$RUNNER_TEMP/gcp-key.json` and always exported `GOOGLE_VERTEX_CREDENTIALS_PATH`, even when the secret was empty — so `credentials.DetectDefault` tried to parse an empty file and crashed. Once Markus added the secret, the rerun passed. Worth noting: the workflow could be hardened to not export the path when the secret is missing, so a missing CI secret would degrade to "skip Vertex tests" rather than "panic."
+
+### What I learned
+
+GitHub Actions secrets resolve to empty strings, not unset variables, when the secret doesn't exist on the repo. Workflows that branch on "is the value present" need to check for non-empty explicitly. Equally, defaulting to "make Vertex tests load-bearing" means a missing secret looks like a code bug rather than infrastructure config.
+
+### What was tricky
+
+Diagnosing the panic from the CI log required reading the runner output carefully — the panic message itself didn't say "the file you read was empty," only "unexpected end of JSON input." Knowing the workflow shape was needed to connect those dots.
+
+### What warrants review
+
+`/.github/workflows/ci.yml` — the credentials-setup step writes the file unconditionally. If a future maintainer turns off the live Vertex tests by removing the secret, CI will start panicking instead of silently skipping. Worth a follow-up to add `if: secrets.GOOGLE_VERTEX_CREDENTIALS_JSON != ''` or equivalent.
+
+### Future work
+
+- Harden the CI step against an empty `GOOGLE_VERTEX_CREDENTIALS_JSON` secret (skip exporting the path rather than writing an empty file).
+- Decide whether CI should run live Vertex tests at all on PR runs from forks (where secrets won't be available).
