@@ -16,8 +16,13 @@ func TestNewClient(t *testing.T) {
 		is.NotNil(t, client)
 	})
 
-	t.Run("can create a new client with the Vertex AI backend", func(t *testing.T) {
-		client := newVertexAIClient(t)
+	t.Run("can create a new client with the Vertex AI backend and an API key", func(t *testing.T) {
+		client := newVertexAIClientWithKey(t)
+		is.NotNil(t, client)
+	})
+
+	t.Run("can create a new client with the Vertex AI backend and a service account", func(t *testing.T) {
+		client := newVertexAIClientWithCredentials(t)
 		is.NotNil(t, client)
 	})
 }
@@ -29,7 +34,21 @@ func TestBackend(t *testing.T) {
 	})
 }
 
-func newVertexAIClient(t *testing.T) *google.Client {
+func newVertexAIClientWithKey(t *testing.T) *google.Client {
+	t.Helper()
+
+	_ = env.Load("../../.env.test.local")
+
+	log := slog.New(slog.NewTextHandler(&tWriter{t}, &slog.HandlerOptions{Level: slog.LevelDebug}))
+
+	return google.NewClient(google.NewClientOptions{
+		Backend: google.BackendVertexAI,
+		Key:     env.GetStringOrDefault("GOOGLE_VERTEX_KEY", ""),
+		Log:     log,
+	})
+}
+
+func newVertexAIClientWithCredentials(t *testing.T) *google.Client {
 	t.Helper()
 
 	_ = env.Load("../../.env.test.local")
@@ -39,7 +58,6 @@ func newVertexAIClient(t *testing.T) *google.Client {
 	return google.NewClient(google.NewClientOptions{
 		Backend:         google.BackendVertexAI,
 		CredentialsPath: env.GetStringOrDefault("GOOGLE_VERTEX_CREDENTIALS_PATH", ""),
-		Key:             env.GetStringOrDefault("GOOGLE_VERTEX_KEY", ""),
 		Location:        "global",
 		Log:             log,
 	})

@@ -513,7 +513,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 
 func TestChatCompleter_ChatComplete_VertexAI(t *testing.T) {
 	t.Run("can chat-complete with Vertex AI backend", func(t *testing.T) {
-		c := newVertexAIClient(t)
+		c := newVertexAIClientWithKey(t)
 		cc := c.NewChatCompleter(google.NewChatCompleterOptions{
 			Model: google.ChatCompleteModelGemini2_5Flash,
 		})

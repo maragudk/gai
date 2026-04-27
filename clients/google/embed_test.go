@@ -113,7 +113,7 @@ func TestEmbedder_Embed(t *testing.T) {
 	})
 
 	t.Run("can embed a text with Vertex AI backend", func(t *testing.T) {
-		c := newVertexAIClient(t)
+		c := newVertexAIClientWithKey(t)
 
 		e := c.NewEmbedder(google.NewEmbedderOptions{
 			Model:      google.EmbedModelGeminiEmbedding001,
@@ -127,7 +127,7 @@ func TestEmbedder_Embed(t *testing.T) {
 	})
 
 	t.Run("can embed a text with Embedding 2 on Vertex AI backend", func(t *testing.T) {
-		c := newVertexAIClient(t)
+		c := newVertexAIClientWithCredentials(t)
 
 		e := c.NewEmbedder(google.NewEmbedderOptions{
 			Model:      google.EmbedModelGeminiEmbedding2,
