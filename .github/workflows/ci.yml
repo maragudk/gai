@@ -35,10 +35,10 @@ jobs:
 
       - name: Set up GCP credentials
         env:
-          GOOGLE_APPLICATION_CREDENTIALS_JSON: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS_JSON }}
+          GOOGLE_VERTEX_CREDENTIALS_JSON: ${{ secrets.GOOGLE_VERTEX_CREDENTIALS_JSON }}
         run: |
-          echo "$GOOGLE_APPLICATION_CREDENTIALS_JSON" > "$RUNNER_TEMP/gcp-key.json"
-          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/gcp-key.json" >> "$GITHUB_ENV"
+          echo "$GOOGLE_VERTEX_CREDENTIALS_JSON" > "$RUNNER_TEMP/gcp-key.json"
+          echo "GOOGLE_VERTEX_CREDENTIALS_PATH=$RUNNER_TEMP/gcp-key.json" >> "$GITHUB_ENV"
 
       - name: Test
         run: go test -shuffle on ./...
@@ -68,10 +68,10 @@ jobs:
 
       - name: Set up GCP credentials
         env:
-          GOOGLE_APPLICATION_CREDENTIALS_JSON: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS_JSON }}
+          GOOGLE_VERTEX_CREDENTIALS_JSON: ${{ secrets.GOOGLE_VERTEX_CREDENTIALS_JSON }}
         run: |
-          echo "$GOOGLE_APPLICATION_CREDENTIALS_JSON" > "$RUNNER_TEMP/gcp-key.json"
-          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/gcp-key.json" >> "$GITHUB_ENV"
+          echo "$GOOGLE_VERTEX_CREDENTIALS_JSON" > "$RUNNER_TEMP/gcp-key.json"
+          echo "GOOGLE_VERTEX_CREDENTIALS_PATH=$RUNNER_TEMP/gcp-key.json" >> "$GITHUB_ENV"
 
       - name: Evaluate
         run: |

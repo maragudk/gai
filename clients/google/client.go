@@ -8,6 +8,7 @@ import (
 	"context"
 	"log/slog"
 
+	"cloud.google.com/go/auth/credentials"
 	"google.golang.org/genai"
 )
 
@@ -28,6 +29,11 @@ type Client struct {
 
 type NewClientOptions struct {
 	Backend Backend
+	// CredentialsPath is the path to a service account JSON key file used for
+	// [BackendVertexAI] when Project is set. If empty, credentials are resolved
+	// via Application Default Credentials (e.g. GOOGLE_APPLICATION_CREDENTIALS,
+	// gcloud, or attached service accounts on GCP infrastructure).
+	CredentialsPath string
 	// Key is the API key. For [BackendVertexAI] it is ignored when Project is set,
 	// because Vertex AI API keys pin requests to a fixed regional endpoint and
 	// cannot reach multi-region-only models such as [EmbedModelGeminiEmbedding2].
@@ -38,8 +44,8 @@ type NewClientOptions struct {
 	Location string
 	Log      *slog.Logger
 	// Project is the Google Cloud project ID. When set on [BackendVertexAI], the
-	// client authenticates via Application Default Credentials (e.g. a service
-	// account JSON via GOOGLE_APPLICATION_CREDENTIALS) instead of Key, and Location
+	// client authenticates via a service account (CredentialsPath, or Application
+	// Default Credentials if CredentialsPath is empty) instead of Key, and Location
 	// is required.
 	Project string
 }
@@ -56,6 +62,16 @@ func NewClient(opts NewClientOptions) *Client {
 		if opts.Project != "" {
 			cfg.Project = opts.Project
 			cfg.Location = opts.Location
+			if opts.CredentialsPath != "" {
+				creds, err := credentials.DetectDefault(&credentials.DetectOptions{
+					CredentialsFile: opts.CredentialsPath,
+					Scopes:          []string{"https://www.googleapis.com/auth/cloud-platform"},
+				})
+				if err != nil {
+					panic(err)
+				}
+				cfg.Credentials = creds
+			}
 		} else {
 			cfg.APIKey = opts.Key
 		}

@@ -3,6 +3,7 @@ module maragu.dev/gai
 go 1.25.0
 
 require (
+	cloud.google.com/go/auth v0.16.1
 	github.com/agnivade/levenshtein v1.2.1
 	github.com/anthropics/anthropic-sdk-go v1.35.1
 	github.com/invopop/jsonschema v0.13.0
@@ -18,7 +19,6 @@ require (
 
 require (
 	cloud.google.com/go v0.116.0 // indirect
-	cloud.google.com/go/auth v0.16.1 // indirect
 	cloud.google.com/go/compute/metadata v0.7.0 // indirect
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/buger/jsonparser v1.1.2 // indirect

@@ -37,11 +37,12 @@ func newVertexAIClient(t *testing.T) *google.Client {
 	log := slog.New(slog.NewTextHandler(&tWriter{t}, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
 	return google.NewClient(google.NewClientOptions{
-		Backend:  google.BackendVertexAI,
-		Key:      env.GetStringOrDefault("GOOGLE_VERTEX_KEY", ""),
-		Location: "global",
-		Log:      log,
-		Project:  env.GetStringOrDefault("GOOGLE_VERTEX_PROJECT", ""),
+		Backend:         google.BackendVertexAI,
+		CredentialsPath: env.GetStringOrDefault("GOOGLE_VERTEX_CREDENTIALS_PATH", ""),
+		Key:             env.GetStringOrDefault("GOOGLE_VERTEX_KEY", ""),
+		Location:        "global",
+		Log:             log,
+		Project:         env.GetStringOrDefault("GOOGLE_VERTEX_PROJECT", ""),
 	})
 }
 
