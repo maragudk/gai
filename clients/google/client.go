@@ -29,7 +29,13 @@ type Client struct {
 type NewClientOptions struct {
 	Backend Backend
 	Key     string
-	Log     *slog.Logger
+	// Location is the Vertex AI location (e.g. "global", "us", "eu", "us-central1").
+	// Required for [BackendVertexAI] when authenticating via Application Default Credentials.
+	Location string
+	Log      *slog.Logger
+	// Project is the Google Cloud project ID.
+	// Required for [BackendVertexAI] when authenticating via Application Default Credentials.
+	Project string
 }
 
 func NewClient(opts NewClientOptions) *Client {
@@ -37,18 +43,21 @@ func NewClient(opts NewClientOptions) *Client {
 		opts.Log = slog.New(slog.DiscardHandler)
 	}
 
-	var backend genai.Backend
+	cfg := &genai.ClientConfig{}
 	switch opts.Backend {
 	case BackendVertexAI:
-		backend = genai.BackendVertexAI
+		cfg.Backend = genai.BackendVertexAI
+		cfg.Project = opts.Project
+		cfg.Location = opts.Location
+		if opts.Project == "" && opts.Location == "" {
+			cfg.APIKey = opts.Key
+		}
 	default:
-		backend = genai.BackendGeminiAPI
+		cfg.Backend = genai.BackendGeminiAPI
+		cfg.APIKey = opts.Key
 	}
 
-	client, err := genai.NewClient(context.Background(), &genai.ClientConfig{
-		APIKey:  opts.Key,
-		Backend: backend,
-	})
+	client, err := genai.NewClient(context.Background(), cfg)
 	if err != nil {
 		panic(err)
 	}

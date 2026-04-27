@@ -92,3 +92,23 @@ Ship the SDK-agnostic best-effort classifier now; defer the gai-native error typ
 - False-positive and false-negative risk from string inspection is real but bounded; our regex test covers the common failure patterns.
 - The `robust` package stays a lightweight, zero-transitive-dependency wrapper.
 - Tracked as issue #210: wrap provider SDK errors in a gai-native type that exposes capability interfaces (`StatusCode() int`, etc.), so classifiers can match on interfaces without importing SDKs. Once landed, the regex path can be retired.
+
+## Vertex AI auth via ADC with project + location (2026-04-27)
+
+The Google client originally authenticated to both Gemini API and Vertex AI with an API key. Vertex API keys turn out to be limited: they pin requests to a fixed regional endpoint and silently ignore `GOOGLE_CLOUD_LOCATION`. Newer multi-region-only models like `gemini-embedding-2` (published only at `global`, `us`, `eu`) return 404 on that path.
+
+### Alternatives considered
+
+- **Keep API keys, document the limitation.** Zero work, but blocks Embedding 2 on Vertex and any future multi-region-only models. Punts the problem.
+- **Drop API keys for Vertex entirely; require ADC + explicit project/location.** Forces every Vertex caller to set up a service account, but unlocks all endpoints and aligns with how Google expects production Vertex traffic to authenticate.
+- **Hybrid: keep API key path, add ADC path.** Both work; caller picks. More surface area but smoother migration.
+
+### Decision
+
+Hybrid. `NewClientOptions` gains optional `Project` and `Location` fields. For the Vertex backend: when both are set, the SDK uses ADC (resolved via `GOOGLE_APPLICATION_CREDENTIALS`, attached service account, etc.) and ignores the API key; otherwise the existing API-key path is preserved. Gemini backend is unchanged — API key remains the right mechanism there.
+
+### Tradeoffs
+
+- Vertex callers wanting multi-region models must now provision a GCP service account and grant `roles/aiplatform.user`. One-time setup, but a real operational lift compared to dropping in an API key.
+- For AWS-hosted production workloads, the recommended path is a service account JSON key delivered via existing secrets infrastructure plus `GOOGLE_APPLICATION_CREDENTIALS`. Workload Identity Federation is better long-term but heavier to set up; left to callers to adopt when ready.
+- The library stays unopinionated about credential resolution: ADC handles all of file-based keys, federation, and metadata-server credentials transparently.
