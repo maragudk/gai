@@ -39,7 +39,7 @@ func newVertexAIClient(t *testing.T) *google.Client {
 	return google.NewClient(google.NewClientOptions{
 		Backend:  google.BackendVertexAI,
 		Key:      env.GetStringOrDefault("GOOGLE_VERTEX_KEY", ""),
-		Location: env.GetStringOrDefault("GOOGLE_VERTEX_LOCATION", ""),
+		Location: "global",
 		Log:      log,
 		Project:  env.GetStringOrDefault("GOOGLE_VERTEX_PROJECT", ""),
 	})

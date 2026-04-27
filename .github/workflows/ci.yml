@@ -47,7 +47,6 @@ jobs:
           GOOGLE_KEY: ${{ secrets.GOOGLE_KEY }}
           GOOGLE_VERTEX_KEY: ${{ secrets.GOOGLE_VERTEX_KEY }}
           GOOGLE_VERTEX_PROJECT: ${{ secrets.GOOGLE_VERTEX_PROJECT }}
-          GOOGLE_VERTEX_LOCATION: ${{ secrets.GOOGLE_VERTEX_LOCATION }}
           OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
 
   evaluate:
@@ -82,7 +81,6 @@ jobs:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_KEY }}
           GOOGLE_VERTEX_KEY: ${{ secrets.GOOGLE_VERTEX_KEY }}
           GOOGLE_VERTEX_PROJECT: ${{ secrets.GOOGLE_VERTEX_PROJECT }}
-          GOOGLE_VERTEX_LOCATION: ${{ secrets.GOOGLE_VERTEX_LOCATION }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_KEY }}
 
   lint:

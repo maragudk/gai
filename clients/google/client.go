@@ -47,9 +47,10 @@ func NewClient(opts NewClientOptions) *Client {
 	switch opts.Backend {
 	case BackendVertexAI:
 		cfg.Backend = genai.BackendVertexAI
-		cfg.Project = opts.Project
-		cfg.Location = opts.Location
-		if opts.Project == "" && opts.Location == "" {
+		if opts.Project != "" {
+			cfg.Project = opts.Project
+			cfg.Location = opts.Location
+		} else {
 			cfg.APIKey = opts.Key
 		}
 	default:
