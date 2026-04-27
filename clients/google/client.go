@@ -8,6 +8,7 @@ import (
 	"context"
 	"log/slog"
 
+	"cloud.google.com/go/auth/credentials"
 	"google.golang.org/genai"
 )
 
@@ -28,8 +29,21 @@ type Client struct {
 
 type NewClientOptions struct {
 	Backend Backend
-	Key     string
-	Log     *slog.Logger
+	// CredentialsPath is the path to a service account JSON key file. When set on
+	// [BackendVertexAI], the client authenticates via the service account instead
+	// of Key, the project ID is read from the JSON's project_id field, and Location
+	// is required. Vertex AI API keys pin requests to a fixed regional endpoint and
+	// cannot reach multi-region-only models such as [EmbedModelGeminiEmbedding2],
+	// which is why this path is required for those models.
+	CredentialsPath string
+	// Key is the API key. For [BackendVertexAI] it is ignored when CredentialsPath
+	// is set.
+	Key string
+	// Location is the Vertex AI location (e.g. "global", "us", "eu", "us-central1").
+	// Used only when CredentialsPath is set; ignored on the API-key path because
+	// Vertex AI API keys carry their own routing. Defaults to "global" when empty.
+	Location string
+	Log      *slog.Logger
 }
 
 func NewClient(opts NewClientOptions) *Client {
@@ -37,18 +51,37 @@ func NewClient(opts NewClientOptions) *Client {
 		opts.Log = slog.New(slog.DiscardHandler)
 	}
 
-	var backend genai.Backend
+	cfg := &genai.ClientConfig{}
 	switch opts.Backend {
 	case BackendVertexAI:
-		backend = genai.BackendVertexAI
+		cfg.Backend = genai.BackendVertexAI
+		if opts.CredentialsPath != "" {
+			creds, err := credentials.DetectDefault(&credentials.DetectOptions{
+				CredentialsFile: opts.CredentialsPath,
+				Scopes:          []string{"https://www.googleapis.com/auth/cloud-platform"},
+			})
+			if err != nil {
+				panic(err)
+			}
+			project, err := creds.ProjectID(context.Background())
+			if err != nil {
+				panic(err)
+			}
+			cfg.Credentials = creds
+			cfg.Project = project
+			cfg.Location = opts.Location
+			if cfg.Location == "" {
+				cfg.Location = "global"
+			}
+		} else {
+			cfg.APIKey = opts.Key
+		}
 	default:
-		backend = genai.BackendGeminiAPI
+		cfg.Backend = genai.BackendGeminiAPI
+		cfg.APIKey = opts.Key
 	}
 
-	client, err := genai.NewClient(context.Background(), &genai.ClientConfig{
-		APIKey:  opts.Key,
-		Backend: backend,
-	})
+	client, err := genai.NewClient(context.Background(), cfg)
 	if err != nil {
 		panic(err)
 	}

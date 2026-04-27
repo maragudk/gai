@@ -92,3 +92,28 @@ Ship the SDK-agnostic best-effort classifier now; defer the gai-native error typ
 - False-positive and false-negative risk from string inspection is real but bounded; our regex test covers the common failure patterns.
 - The `robust` package stays a lightweight, zero-transitive-dependency wrapper.
 - Tracked as issue #210: wrap provider SDK errors in a gai-native type that exposes capability interfaces (`StatusCode() int`, etc.), so classifiers can match on interfaces without importing SDKs. Once landed, the regex path can be retired.
+
+## Vertex AI service account auth via explicit credentials path (2026-04-27)
+
+The Google client originally authenticated to both Gemini API and Vertex AI with an API key. Vertex API keys turn out to be limited: they pin requests to a fixed regional endpoint and silently ignore `GOOGLE_CLOUD_LOCATION`. Newer multi-region-only models like `gemini-embedding-2` (published only at `global`, `us`, `eu`) return 404 on that path. We needed a way to reach those models from production without dropping the existing API-key flow that Embedding 001 callers already depend on.
+
+### Alternatives considered
+
+- **Keep API keys, document the limitation.** Zero work, but blocks Embedding 2 on Vertex and any future multi-region-only models. Punts the problem.
+- **Drop API keys for Vertex entirely; require service account auth.** Forces every Vertex caller to migrate, but unlocks all endpoints and aligns with how Google expects production Vertex traffic to authenticate.
+- **Hybrid: keep API key path, add service account path.** Both work; caller picks. More surface area but smoother migration.
+- **Within the SA path, use the GOOGLE_APPLICATION_CREDENTIALS env var (implicit ADC).** Standard Google convention. But ties the library to global process state and makes it awkward to construct multiple clients with different identities.
+- **Within the SA path, accept an explicit credentials file path.** The library loads the JSON via `cloud.google.com/go/auth/credentials.DetectDefault`. No env var dance, and the project ID is read directly from the JSON's `project_id` field — no need for the caller to pass it separately.
+
+### Decision
+
+Hybrid, with an explicit credentials path. `NewClientOptions` gains optional `CredentialsPath` and `Location` fields. For the Vertex backend: when `CredentialsPath` is set, the client loads the service account JSON, infers the project ID from it, and authenticates with those credentials at the given `Location`; otherwise the existing API-key path is preserved. Gemini backend is unchanged — API key remains the right mechanism there.
+
+### Tradeoffs
+
+- Vertex callers wanting multi-region models must provision a GCP service account and grant `roles/aiplatform.user`. One-time setup, but a real operational lift compared to dropping in an API key.
+- For AWS-hosted production workloads, the recommended path is a service account JSON delivered via existing secrets infrastructure plus `CredentialsPath` pointing at it. Workload Identity Federation is better long-term but heavier to set up; left to callers to adopt when ready.
+- Inferring project ID from the JSON works for service account files (which always carry `project_id`) but not for user credentials from `gcloud auth application-default login`. Acceptable: the local-dev gcloud case can fall back to `GOOGLE_CLOUD_PROJECT` env var, and we can always reintroduce an explicit `Project` field later if needed without breaking existing callers.
+- We chose an explicit path over the implicit `GOOGLE_APPLICATION_CREDENTIALS` env var so that constructing a client doesn't depend on global process state — a single call site can configure exactly which credentials it wants.
+- `Location` defaults to `"global"` when empty on the credentials path. The genai SDK already falls back to global internally, but baking the default into our wrapper makes the common case (multi-region models) zero-config and surfaces the choice in our own GoDoc rather than relying on upstream behaviour. Data-residency cases (`us`, `eu`) and single-region values stay possible by setting the field explicitly.
+- Per-auth-path test helpers (`newVertexAIClientWithKey`, `newVertexAIClientWithCredentials`) replaced a single helper that set both fields. The single-helper shape silently routed Vertex tests through the credentials path whenever both were available, hiding a regression in the API-key flow. Splitting forces each test to declare which path it exercises and surfaces auth-path failures in CI.
