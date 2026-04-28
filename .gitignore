@@ -1,3 +1,4 @@
 /.env.*.local
 /cover.out
 /evals.jsonl
+/vertex.json

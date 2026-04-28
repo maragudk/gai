@@ -28,7 +28,7 @@ func TestChatCompleter_ThinkingLevel(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			cc := &ChatCompleter{
 				log:    slog.New(slog.DiscardHandler),
-				model:  ChatCompleteModelClaudeSonnet4Latest,
+				model:  ChatCompleteModelClaudeSonnet4_6Latest,
 				tracer: otel.Tracer("test"),
 			}
 
