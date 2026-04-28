@@ -15,7 +15,7 @@ func TestChatCompleter_ThinkingLevel(t *testing.T) {
 		level       gai.ThinkingLevel
 		shouldPanic bool
 	}{
-		{name: "panics on none", level: gai.ThinkingLevelNone, shouldPanic: true},
+		{name: "accepts none", level: gai.ThinkingLevelNone, shouldPanic: false},
 		{name: "accepts minimal", level: gai.ThinkingLevelMinimal, shouldPanic: false},
 		{name: "accepts low", level: gai.ThinkingLevelLow, shouldPanic: false},
 		{name: "accepts medium", level: gai.ThinkingLevelMedium, shouldPanic: false},

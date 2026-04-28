@@ -254,6 +254,39 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 		is.True(t, rec.Year > 0, "year should be positive")
 	})
 
+	t.Run("yields thought parts when thinking is enabled", func(t *testing.T) {
+		cc := newChatCompleter(t)
+
+		req := gai.ChatCompleteRequest{
+			Messages: []gai.Message{
+				gai.NewUserTextMessage("If a duck and a half lay an egg and a half in a day and a half, how many eggs would six ducks lay in three days? Think briefly, then answer with just a number."),
+			},
+			ThinkingLevel: gai.Ptr(gai.ThinkingLevelMinimal),
+		}
+
+		res, err := cc.ChatComplete(t.Context(), req)
+		is.NotError(t, err)
+
+		var thoughtParts int
+		var textOutput string
+		for part, err := range res.Parts() {
+			is.NotError(t, err)
+
+			switch part.Type {
+			case gai.PartTypeText:
+				textOutput += part.Text()
+			case gai.PartTypeThought:
+				thoughtParts++
+				is.True(t, len(part.Thought()) > 0, "thought content should not be empty")
+			default:
+				t.Fatalf("unexpected part type: %s", part.Type)
+			}
+		}
+
+		is.True(t, thoughtParts > 0, "should have at least one thought part")
+		is.True(t, len(textOutput) > 0, "should also yield text output")
+	})
+
 	t.Run("can use a system prompt", func(t *testing.T) {
 		cc := newChatCompleter(t)
 

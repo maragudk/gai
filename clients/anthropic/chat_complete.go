@@ -67,9 +67,27 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 		panic("no messages")
 	}
 
+	var thinkingConfig anthropic.ThinkingConfigParamUnion
+	thinkingSet := false
 	if req.ThinkingLevel != nil {
 		span.SetAttributes(attribute.String("ai.thinking_level", string(*req.ThinkingLevel)))
-		panic("unsupported thinking level: " + string(*req.ThinkingLevel))
+		switch *req.ThinkingLevel {
+		case gai.ThinkingLevelNone:
+			thinkingConfig = anthropic.ThinkingConfigParamUnion{
+				OfDisabled: &anthropic.ThinkingConfigDisabledParam{},
+			}
+			thinkingSet = true
+		case gai.ThinkingLevelMinimal:
+			thinkingConfig = anthropic.ThinkingConfigParamOfEnabled(1024)
+			thinkingSet = true
+			span.SetAttributes(attribute.Int64("ai.thinking_budget_tokens", 1024))
+		default:
+			// gai does not pre-validate provider constraints; only None and
+			// Minimal map cleanly to Anthropic's extended-thinking surface.
+			// Other levels would be arbitrary calibration pretending to be
+			// portable. See docs/decisions.md.
+			panic("unsupported thinking level: " + string(*req.ThinkingLevel))
+		}
 	}
 
 	var messages []anthropic.MessageParam
@@ -84,6 +102,13 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 						Text: part.Text(),
 					},
 				})
+
+			case gai.PartTypeThought:
+				// Silently dropped on the request side. Multi-turn extended
+				// thinking with tool use requires echoing back the signed
+				// thinking block verbatim, which gai does not surface yet.
+				// Tracked upstream: see docs/decisions.md.
+				continue
 
 			case gai.PartTypeToolCall:
 				toolCall := part.ToolCall()
@@ -229,6 +254,10 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 		Tools:       tools,
 	}
 
+	if thinkingSet {
+		params.Thinking = thinkingConfig
+	}
+
 	if req.ResponseSchema != nil {
 		params.OutputConfig = anthropic.OutputConfigParam{
 			Format: anthropic.JSONOutputFormatParam{
@@ -293,6 +322,10 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 				switch delta := event.Delta.AsAny().(type) {
 				case anthropic.TextDelta:
 					if !yield(gai.TextPart(delta.Text), nil) {
+						return
+					}
+				case anthropic.ThinkingDelta:
+					if !yield(gai.ThoughtPart(delta.Thinking), nil) {
 						return
 					}
 				}

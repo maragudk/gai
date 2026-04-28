@@ -80,23 +80,37 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 		span.SetAttributes(attribute.Int("ai.max_completion_tokens", *req.MaxCompletionTokens))
 	}
 	if req.ThinkingLevel != nil {
-		var level genai.ThinkingLevel
+		span.SetAttributes(attribute.String("ai.thinking_level", string(*req.ThinkingLevel)))
 		switch *req.ThinkingLevel {
+		case gai.ThinkingLevelNone:
+			// Explicit-disable: ask the API not to think rather than letting
+			// the model default. ThinkingBudget=0 is the documented off-switch.
+			config.ThinkingConfig = &genai.ThinkingConfig{
+				ThinkingBudget: genai.Ptr[int32](0),
+			}
 		case gai.ThinkingLevelMinimal:
-			level = genai.ThinkingLevelMinimal
+			config.ThinkingConfig = &genai.ThinkingConfig{
+				IncludeThoughts: true,
+				ThinkingLevel:   genai.ThinkingLevelMinimal,
+			}
 		case gai.ThinkingLevelLow:
-			level = genai.ThinkingLevelLow
+			config.ThinkingConfig = &genai.ThinkingConfig{
+				IncludeThoughts: true,
+				ThinkingLevel:   genai.ThinkingLevelLow,
+			}
 		case gai.ThinkingLevelMedium:
-			level = genai.ThinkingLevelMedium
+			config.ThinkingConfig = &genai.ThinkingConfig{
+				IncludeThoughts: true,
+				ThinkingLevel:   genai.ThinkingLevelMedium,
+			}
 		case gai.ThinkingLevelHigh:
-			level = genai.ThinkingLevelHigh
+			config.ThinkingConfig = &genai.ThinkingConfig{
+				IncludeThoughts: true,
+				ThinkingLevel:   genai.ThinkingLevelHigh,
+			}
 		default:
 			panic("unsupported thinking level: " + string(*req.ThinkingLevel))
 		}
-		config.ThinkingConfig = &genai.ThinkingConfig{
-			ThinkingLevel: level,
-		}
-		span.SetAttributes(attribute.String("ai.thinking_level", string(*req.ThinkingLevel)))
 	}
 
 	if len(req.Tools) > 0 {
@@ -149,6 +163,15 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 			switch part.Type {
 			case gai.PartTypeText:
 				content.Parts = append(content.Parts, &genai.Part{Text: part.Text()})
+
+			case gai.PartTypeThought:
+				// Round-trip a previously-streamed thought back as a
+				// thought-flagged genai part so callers can echo history
+				// without filtering.
+				content.Parts = append(content.Parts, &genai.Part{
+					Text:    part.Thought(),
+					Thought: true,
+				})
 
 			case gai.PartTypeToolCall:
 				toolCall := part.ToolCall()
@@ -260,8 +283,14 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 				recordFirstToken()
 
 				if part.Text != "" {
-					if !yield(gai.TextPart(part.Text), nil) {
-						return
+					if part.Thought {
+						if !yield(gai.ThoughtPart(part.Text), nil) {
+							return
+						}
+					} else {
+						if !yield(gai.TextPart(part.Text), nil) {
+							return
+						}
 					}
 				}
 

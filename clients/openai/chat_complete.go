@@ -86,6 +86,11 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 						OfText: &openai.ChatCompletionContentPartTextParam{Text: part.Text()},
 					})
 
+				case gai.PartTypeThought:
+					// Chat Completions has no concept of inbound reasoning
+					// content, so we silently drop it on the request side.
+					continue
+
 				case gai.PartTypeToolResult:
 					// Even though this is just a part, we append to messages directly
 
@@ -156,6 +161,11 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 					parts = append(parts, openai.ChatCompletionAssistantMessageParamContentArrayOfContentPartUnion{
 						OfText: &openai.ChatCompletionContentPartTextParam{Text: part.Text()},
 					})
+
+				case gai.PartTypeThought:
+					// Chat Completions has no concept of inbound reasoning
+					// content, so we silently drop it on the request side.
+					continue
 
 				case gai.PartTypeToolCall:
 					// Even though this is just a part, we append to messages directly
@@ -344,13 +354,21 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 				continue
 			}
 
+			// The Chat Completions API does not stream reasoning text, so we
+			// cannot yield [gai.PartTypeThought] parts here — only the token
+			// count is reported via CompletionTokensDetails.ReasoningTokens.
+			// Migrating to the Responses API would unlock thought streaming
+			// but is a deliberate non-goal: we keep this client on Chat
+			// Completions for portability across providers.
 			meta.Usage = gai.ChatCompleteResponseUsage{
 				PromptTokens:     int(chunk.Usage.PromptTokens),
+				ThoughtsTokens:   int(chunk.Usage.CompletionTokensDetails.ReasoningTokens),
 				CompletionTokens: int(chunk.Usage.CompletionTokens),
 			}
 			span.SetAttributes(
 				attribute.Int("ai.prompt_tokens", int(chunk.Usage.PromptTokens)),
 				attribute.Int("ai.completion_tokens", int(chunk.Usage.CompletionTokens)),
+				attribute.Int("ai.thoughts_tokens", int(chunk.Usage.CompletionTokensDetails.ReasoningTokens)),
 				attribute.Int("ai.total_tokens", int(chunk.Usage.TotalTokens)),
 				attribute.Int("ai.cache_read_tokens", int(chunk.Usage.PromptTokensDetails.CachedTokens)),
 			)

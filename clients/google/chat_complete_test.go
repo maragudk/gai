@@ -427,6 +427,40 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 		is.True(t, res.Meta.Usage.ThoughtsTokens > 0, "should have thoughts tokens")
 	})
 
+	t.Run("yields thought parts when thinking is enabled", func(t *testing.T) {
+		cc := newChatCompleter(t)
+
+		req := gai.ChatCompleteRequest{
+			Messages: []gai.Message{
+				gai.NewUserTextMessage("If three penguins meet two more penguins, how many penguins are at the party? Think briefly, then answer."),
+			},
+			Temperature:   gai.Ptr(gai.Temperature(0)),
+			ThinkingLevel: gai.Ptr(gai.ThinkingLevelLow),
+		}
+
+		res, err := cc.ChatComplete(t.Context(), req)
+		is.NotError(t, err)
+
+		var thoughtParts int
+		var textOutput string
+		for part, err := range res.Parts() {
+			is.NotError(t, err)
+
+			switch part.Type {
+			case gai.PartTypeText:
+				textOutput += part.Text()
+			case gai.PartTypeThought:
+				thoughtParts++
+				is.True(t, len(part.Thought()) > 0, "thought content should not be empty")
+			default:
+				t.Fatalf("unexpected part type: %s", part.Type)
+			}
+		}
+
+		is.True(t, thoughtParts > 0, "should have at least one thought part")
+		is.True(t, len(textOutput) > 0, "should also yield text output")
+	})
+
 	t.Run("respects max completion tokens", func(t *testing.T) {
 		const maxCompletionTokens = 3
 

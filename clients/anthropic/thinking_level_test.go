@@ -15,8 +15,8 @@ func TestChatCompleter_ThinkingLevel(t *testing.T) {
 		level       gai.ThinkingLevel
 		shouldPanic bool
 	}{
-		{name: "panics on none", level: gai.ThinkingLevelNone, shouldPanic: true},
-		{name: "panics on minimal", level: gai.ThinkingLevelMinimal, shouldPanic: true},
+		{name: "accepts none", level: gai.ThinkingLevelNone, shouldPanic: false},
+		{name: "accepts minimal", level: gai.ThinkingLevelMinimal, shouldPanic: false},
 		{name: "panics on low", level: gai.ThinkingLevelLow, shouldPanic: true},
 		{name: "panics on medium", level: gai.ThinkingLevelMedium, shouldPanic: true},
 		{name: "panics on high", level: gai.ThinkingLevelHigh, shouldPanic: true},
@@ -47,6 +47,13 @@ func TestChatCompleter_ThinkingLevel(t *testing.T) {
 				msg, ok := panicValue.(string)
 				if !ok || msg != "unsupported thinking level: "+string(test.level) {
 					t.Fatalf("expected panic with unsupported thinking level message, got %v", panicValue)
+				}
+			} else {
+				if panicValue != nil {
+					msg, ok := panicValue.(string)
+					if ok && msg == "unsupported thinking level: "+string(test.level) {
+						t.Fatalf("unexpected panic on supported thinking level: %v", panicValue)
+					}
 				}
 			}
 		})

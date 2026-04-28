@@ -117,3 +117,32 @@ Hybrid, with an explicit credentials path. `NewClientOptions` gains optional `Cr
 - We chose an explicit path over the implicit `GOOGLE_APPLICATION_CREDENTIALS` env var so that constructing a client doesn't depend on global process state — a single call site can configure exactly which credentials it wants.
 - `Location` defaults to `"global"` when empty on the credentials path. The genai SDK already falls back to global internally, but baking the default into our wrapper makes the common case (multi-region models) zero-config and surfaces the choice in our own GoDoc rather than relying on upstream behaviour. Data-residency cases (`us`, `eu`) and single-region values stay possible by setting the field explicitly.
 - Per-auth-path test helpers (`newVertexAIClientWithKey`, `newVertexAIClientWithCredentials`) replaced a single helper that set both fields. The single-helper shape silently routed Vertex tests through the credentials path whenever both were available, hiding a regression in the API-key flow. Splitting forces each test to declare which path it exercises and surfaces auth-path failures in CI.
+
+## Anthropic extended-thinking scope: None and Minimal only (2026-04-28)
+
+When extending the gai abstraction with `PartTypeThought`, the Anthropic client originally translated every `gai.ThinkingLevel` into a per-tier `thinking.budget_tokens` (Minimal=1024, Low=2048, Medium=4096, High=8192, XHigh=12288), and silently overrode caller-supplied `Temperature` and `MaxCompletionTokens` to satisfy the API's constraints. QA review surfaced the silent overrides as an API-design footgun; we revisited the entire approach with Markus and tightened the scope.
+
+### Reasoning
+
+- A symbolic level is the wrong abstraction for Anthropic's numeric budget. `gai.ThinkingLevel` is a discrete enum shared across providers; Anthropic's budget is a continuous integer in tokens. Mapping the middle tiers (Low / Medium / High / XHigh) to specific budgets is arbitrary calibration pretending to be cross-provider portability.
+- Of the seven enum values, only two map cleanly to Anthropic's surface: `None` (extended thinking off) and `Minimal` (extended thinking on at the API minimum, 1024 tokens). Everything between is invented.
+- Pre-validation work — silently dropping `Temperature`, auto-bumping `MaxCompletionTokens` past the budget — papered over API constraints rather than letting them surface honestly.
+
+### Decision
+
+Anthropic supports only `ThinkingLevelNone` and `ThinkingLevelMinimal`. Other levels panic with `"unsupported thinking level: <level>"`.
+
+- `ThinkingLevelNone` sends an explicit `{"type":"disabled"}` thinking config. The model will not silently fall back to a default thinking mode.
+- `ThinkingLevelMinimal` sends `{"type":"enabled","budget_tokens":1024}`.
+- The caller's `Temperature` flows through unchanged. If the API rejects it because thinking is enabled, that error surfaces verbatim.
+- The caller's `MaxCompletionTokens` flows through unchanged. If `max_tokens <= budget_tokens` violates the API constraint, that error surfaces verbatim.
+
+### Principle
+
+gai does not pre-validate provider constraints. API errors surface verbatim to the caller. This keeps the abstraction thin, the failure mode honest, and the contract between gai and the SDK obvious.
+
+### Deferred
+
+- A per-request `BudgetTokens` knob on `ChatCompleteRequest` (or a provider-specific options struct) for callers who need more thinking on Anthropic. Out of scope until a real caller asks.
+- Full level coverage on Anthropic. If demand for a non-Minimal default emerges, add a higher fixed tier rather than a doubling table — the principle (single sensible default, not pretend portability) stands.
+- Multi-turn round-trip of signed thinking blocks (Anthropic's extended-thinking-with-tool-use constraint). On the request side `PartTypeThought` is silently dropped; multi-turn agents that combine thinking with tool calls cannot work today. Tracked at https://github.com/maragudk/gai/issues/250 — solving it requires extending `gai.Part` to carry opaque provider metadata (signature, redacted flag).

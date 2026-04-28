@@ -348,6 +348,36 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 		is.True(t, len(output) > 0, "should have output")
 	})
 
+	t.Run("populates thoughts tokens when thinking is enabled", func(t *testing.T) {
+		// Chat Completions does not stream reasoning text — we surface only the
+		// token count via Usage.ThoughtsTokens. See the inline comment in
+		// clients/openai/chat_complete.go for the rationale.
+		cc := newChatCompleter(t)
+
+		req := gai.ChatCompleteRequest{
+			Messages: []gai.Message{
+				gai.NewUserTextMessage("If a duck and a half lay an egg and a half in a day and a half, how many eggs would six ducks lay in three days?"),
+			},
+			ThinkingLevel: gai.Ptr(gai.ThinkingLevelMedium),
+		}
+
+		res, err := cc.ChatComplete(t.Context(), req)
+		is.NotError(t, err)
+
+		var output string
+		for part, err := range res.Parts() {
+			is.NotError(t, err)
+			if part.Type == gai.PartTypeText {
+				output += part.Text()
+			}
+		}
+
+		is.True(t, len(output) > 0, "should have answer text")
+		is.NotNil(t, res.Meta)
+		t.Log("thoughts tokens:", res.Meta.Usage.ThoughtsTokens)
+		is.True(t, res.Meta.Usage.ThoughtsTokens > 0, "should have thoughts tokens when thinking is enabled")
+	})
+
 	t.Run("panics on unsupported MIME type", func(t *testing.T) {
 		cc := newChatCompleter(t)
 

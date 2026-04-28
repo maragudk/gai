@@ -18,6 +18,32 @@ func TestPart_MarshalText(t *testing.T) {
 	})
 }
 
+func TestThoughtPart(t *testing.T) {
+	t.Run("creates a thought part", func(t *testing.T) {
+		part := gai.ThoughtPart("hmm, let me ponder")
+
+		is.Equal(t, gai.PartTypeThought, part.Type)
+		is.Equal(t, "hmm, let me ponder", part.Thought())
+	})
+
+	t.Run("marshals text with the thought content", func(t *testing.T) {
+		part := gai.ThoughtPart("about turtles all the way down")
+
+		text, err := part.MarshalText()
+		is.NotError(t, err)
+		is.Equal(t, "about turtles all the way down", string(text))
+	})
+
+	t.Run("Thought panics if part is not a thought", func(t *testing.T) {
+		defer func() {
+			r := recover()
+			is.Equal(t, "not thought type", r)
+		}()
+
+		gai.TextPart("plain text").Thought()
+	})
+}
+
 func TestDataPart(t *testing.T) {
 	t.Run("creates a data part", func(t *testing.T) {
 		data := []byte("image data")
