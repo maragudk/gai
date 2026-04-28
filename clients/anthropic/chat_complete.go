@@ -23,8 +23,6 @@ import (
 type ChatCompleteModel string
 
 const (
-	ChatCompleteModelClaudeSonnet4Latest   = ChatCompleteModel(anthropic.ModelClaudeSonnet4_0)
-	ChatCompleteModelClaudeOpus4Latest     = ChatCompleteModel(anthropic.ModelClaudeOpus4_0)
 	ChatCompleteModelClaudeOpus4_1Latest   = ChatCompleteModel(anthropic.ModelClaudeOpus4_1)
 	ChatCompleteModelClaudeHaiku4_5Latest  = ChatCompleteModel(anthropic.ModelClaudeHaiku4_5)
 	ChatCompleteModelClaudeSonnet4_5Latest = ChatCompleteModel(anthropic.ModelClaudeSonnet4_5)
