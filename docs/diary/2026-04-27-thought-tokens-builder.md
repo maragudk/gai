@@ -516,7 +516,62 @@ The `ThinkingConfigParamUnion` struct has an `OfDisabled` field that is `*Thinki
 - Resolve issue #250 once a multi-turn-thinking-with-tools caller actually exists.
 - Consider whether OpenAI's silent-drop should also fire a debug log line, for consistency with how other "unexpected input" cases are handled. Currently it really is silent.
 
-## Step 11: Quality gates and handoff
+## Step 11: Markus changed his mind on Anthropic silent-drop; replaced with hard error
+
+### Prompt Context
+
+**Verbatim prompt:** "Pick up task #10. Markus revisited the Anthropic silent-drop decision — it produces a confusing 400 from Anthropic exactly when callers do the natural multi-turn extended-thinking + tool use pattern. Replace silent-drop with a hard error on inbound `PartTypeThought` for the Anthropic client. OpenAI silent-drop stays; Google round-trip stays."
+**Interpretation:** Two-line code change in the request-build switch — return an actionable error instead of `continue`. Update the test, GoDoc, decisions log, and this diary.
+**Inferred intent:** Fail loud and early at the gai boundary, not deep inside Anthropic's API after the request has gone over the wire.
+
+### What I did
+
+In `/clients/anthropic/chat_complete.go`, replaced the `case gai.PartTypeThought: continue` block with an early-return that:
+1. Constructs `fmt.Errorf("anthropic: gai.PartTypeThought is not yet supported in request messages; filter PartTypeThought parts from history before sending. See https://github.com/maragudk/gai/issues/250")` (no `%w` wrap — there is no underlying error).
+2. Records the error on the span and sets the span status to `codes.Error, "unsupported part type"` — matches the pattern at `chat_complete.go:310-311` and elsewhere in the file.
+3. Returns `gai.ChatCompleteResponse{}, err` from `ChatComplete`.
+
+The inline comment explains both halves: why round-tripping is blocked (Anthropic requires the signed block, gai does not surface signatures yet, see #250) and why we error rather than drop (drop produces a confusing API 400 several frames later when the unsigned block reaches the wire; error surfaces at the gai boundary).
+
+Updated `/clients/anthropic/parts_test.go`: renamed `TestChatCompleter_AcceptsInboundThoughtParts` to `TestChatCompleter_RejectsInboundThoughtParts` and replaced the no-panic assertion with an error-substring check (`gai.PartTypeThought is not yet supported`). Confirmed red before the impl change, green after.
+
+Updated `/chat_complete.go` GoDoc on `ThinkingLevel`: appended one line spelling out per-provider round-trip behaviour — Google supports, OpenAI silently drops (Chat Completions has no inbound reasoning concept), Anthropic returns an error. Verified the rendering with `go doc maragu.dev/gai.ThinkingLevel`.
+
+Updated `/docs/decisions.md`: edited the existing "Deferred" bullet about Anthropic multi-turn signature round-trip to mention the hard-error decision and the previous silent-drop behaviour as context.
+
+### Why
+
+Markus's diagnosis was correct: silent-drop broke the natural multi-turn extended-thinking + tool use pattern in a hard-to-debug way. The caller sends a clean-looking request that gai accepts, then the API returns a generic 400 about missing signatures, and the caller has no way to trace the failure back to gai's silent filter. A hard error at the gai boundary trades the same eventual failure for an immediately readable cause.
+
+The error message is deliberately actionable — it names the part type, tells the caller what to do (filter from history), and links to the upstream issue tracking the proper fix. Stable wording so callers can `errors.Is`/string-match on it without surprise churn.
+
+### What worked
+
+The change was tight: one switch arm in the source, one test rewrite, two doc lines. Lint reported `0 issues.` first try. The test went red then green cleanly.
+
+### What didn't work
+
+Nothing.
+
+### What I learned
+
+Silent-drop in a portability layer is almost always wrong when the underlying API has a strict requirement. The "be liberal in what you accept" principle does not apply when "accepting" produces a worse downstream failure. Better to fail at the boundary you control than to delegate failure to the network.
+
+### What was tricky
+
+Deciding whether to wrap the error with `errors.Is` sentinels for programmatic detection. Decided no — the lead's task spec said to use a plain `fmt.Errorf` with the constant string and substring-match in tests. If callers need programmatic detection later, we can add a sentinel without breaking the message format. Adding it speculatively now would expand the public error surface ahead of demand.
+
+### What warrants review
+
+- The error message wording — it is now public API surface. The lead may want to tighten the prose.
+- The decision not to call `span.End()` on the early-return path. Matches the existing pattern in this file and in `clients/google/chat_complete.go`, but it is technically a span leak. If we ever fix that pattern repo-wide, this site is in scope.
+
+### Future work
+
+- When issue #250 is resolved (extending `Part` to carry opaque provider metadata, populating Anthropic signatures on stream-read, emitting `ThinkingBlockParam` on request-build), this hard error becomes a successful round-trip and the test flips back to "accepts inbound thought parts."
+- Consider whether to add an exported sentinel error (e.g. `var ErrThoughtPartUnsupported = errors.New(...)`) so callers can `errors.Is` instead of substring-matching. Defer until a caller asks.
+
+## Step 12: Quality gates and handoff
 
 ### Prompt Context
 

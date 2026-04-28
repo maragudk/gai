@@ -104,11 +104,19 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 				})
 
 			case gai.PartTypeThought:
-				// Silently dropped on the request side. Multi-turn extended
-				// thinking with tool use requires echoing back the signed
-				// thinking block verbatim, which gai does not surface yet.
-				// Tracked upstream: see docs/decisions.md.
-				continue
+				// Anthropic requires extended-thinking blocks to be echoed back
+				// with their cryptographic signature; gai does not yet surface
+				// that signature on PartTypeThought, so round-tripping is
+				// impossible (tracked at https://github.com/maragudk/gai/issues/250).
+				// Returning an error here surfaces the limitation immediately
+				// rather than producing a confusing API 400 several frames later
+				// when the unsigned block reaches Anthropic's wire.
+				err := fmt.Errorf("anthropic: gai.PartTypeThought is not yet supported in request messages; " +
+					"filter PartTypeThought parts from history before sending. " +
+					"See https://github.com/maragudk/gai/issues/250")
+				span.RecordError(err)
+				span.SetStatus(codes.Error, "unsupported part type")
+				return gai.ChatCompleteResponse{}, err
 
 			case gai.PartTypeToolCall:
 				toolCall := part.ToolCall()

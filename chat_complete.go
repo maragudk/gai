@@ -20,6 +20,10 @@ import (
 // does not stream reasoning text, so [PartTypeThought] parts are not yielded for
 // OpenAI), and Anthropic does not populate it (the SDK does not expose a separate
 // thinking-token field).
+// Round-tripping a [PartTypeThought] part as request history is supported on
+// Google, silently dropped on OpenAI (Chat Completions has no inbound reasoning
+// concept), and returns an error on Anthropic — extended-thinking blocks must be
+// echoed back with their cryptographic signature, which gai does not yet surface.
 type ThinkingLevel string
 
 const (
