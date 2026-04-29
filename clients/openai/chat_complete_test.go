@@ -412,13 +412,16 @@ func newChatCompleter(t *testing.T) *openai.ChatCompleter {
 	return cc
 }
 
-// TestChatCompleter_ChatComplete_GPT5_2 exercises the per-client thinking-level mapping
-// against gpt-5.2, the newest chat-completions model. Also confirms thoughts tokens
-// surface on Usage even though Chat Completions does not stream reasoning text as parts.
-func TestChatCompleter_ChatComplete_GPT5_2(t *testing.T) {
+// TestChatCompleter_ChatComplete_GPT5_4 exercises the per-client thinking-level mapping
+// against gpt-5.4, the newest reasoning chat-completions model in openai-go v3.32.0.
+// (gpt-5.3-chat-latest is also newer than 5.2 in version order but is chat-tuned and only
+// accepts `medium`, so it does not exercise the level mapping meaningfully.) Also confirms
+// thoughts tokens surface on Usage even though Chat Completions does not stream reasoning
+// text as parts.
+func TestChatCompleter_ChatComplete_GPT5_4(t *testing.T) {
 	c := newClient(t)
 	cc := c.NewChatCompleter(openai.NewChatCompleterOptions{
-		Model: openai.ChatCompleteModelGPT5_2,
+		Model: openai.ChatCompleteModelGPT5_4,
 	})
 
 	t.Run("populates thoughts tokens at xhigh reasoning effort", func(t *testing.T) {
@@ -426,9 +429,8 @@ func TestChatCompleter_ChatComplete_GPT5_2(t *testing.T) {
 			Messages: []gai.Message{
 				gai.NewUserTextMessage("Solve step by step: a farmer has 17 sheep, all but 9 die. How many remain?"),
 			},
-			// xhigh chosen empirically: gpt-5.2 happily skips reasoning at lower effort levels
-			// on simple problems and returns ReasoningTokens=0, which makes a hard >0 assertion
-			// flaky. xhigh reliably triggers reasoning in our probes.
+			// xhigh reliably triggers reasoning on gpt-5.4 in our probes (88 reasoning tokens
+			// for this prompt). Lower levels work too but are flakier on simple problems.
 			ThinkingLevel: gai.Ptr(openai.ThinkingLevelXHigh),
 		}
 

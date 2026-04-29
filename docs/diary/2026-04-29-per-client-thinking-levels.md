@@ -56,12 +56,15 @@ unverified.
 
 The probe surfaced concrete answers across all three providers:
 
-- OpenAI: `gpt-5.2` is the newest *chat-completions* model and accepts
-  `none/low/medium/high/xhigh` (not `minimal`). `gpt-5.2-pro` is responses-only
-  and 404s on chat-completions. `gpt-5.1` accepts `none/low/medium/high`
-  (no `minimal`, no `xhigh`). `gpt-5` accepts `minimal/low/medium/high` (no
-  `none`, no `xhigh`). The union is exactly the spec's
-  `Minimal/Low/Medium/High/XHigh` plus the universal `none`.
+- OpenAI: at probe time I tested up to `gpt-5.2`, which accepts
+  `none/low/medium/high/xhigh` (not `minimal`). `gpt-5.2-pro` is
+  responses-only and 404s on chat-completions. `gpt-5.1` accepts
+  `none/low/medium/high` (no `minimal`, no `xhigh`). `gpt-5` accepts
+  `minimal/low/medium/high` (no `none`, no `xhigh`). The union is exactly
+  the spec's `Minimal/Low/Medium/High/XHigh` plus the universal `none`.
+  (See Step 4 below: I missed that `gpt-5.3-chat-latest` and `gpt-5.4*`
+  also exist in the pinned SDK; re-probing them was a follow-up. The
+  level union held; the test target moved.)
 - Google: `gemini-3-flash-preview` accepts `ThinkingBudget=0` and the four
   symbolic levels (`MINIMAL/LOW/MEDIUM/HIGH`); the *batch* `Models.GenerateContent`
   endpoint returns `Thought: true` parts on Low/Medium/High, but the
@@ -165,7 +168,7 @@ Touched five surfaces:
 2. `clients/openai/chat_complete.go`: published `ThinkingLevelMinimal/Low/Medium/High/XHigh`; rewired the switch to use the new constants and the typed SDK constants (`shared.ReasoningEffortNone/Minimal/.../Xhigh`); added `Usage.ThoughtsTokens` from `chunk.Usage.CompletionTokensDetails.ReasoningTokens` and the matching `ai.thoughts_tokens` span attribute.
 3. `clients/google/chat_complete.go`: added `ChatCompleteModelGemini3FlashPreview/ProPreview` constants; published `ThinkingLevelMinimal/Low/Medium/High`; mapped `gai.ThinkingLevelNone` to `ThinkingConfig{ThinkingBudget: gai.Ptr(int32(0))}`; routed `genai.Part.Thought=true` parts through `gai.ThoughtPart` instead of `gai.TextPart`.
 4. `clients/anthropic/chat_complete.go`: added `ChatCompleteModelClaudeOpus4_7Latest`; published `ThinkingLevelLow/Medium/High/XHigh/Max`; replaced the panic-on-anything thinking handler with a real switch that sets both `params.Thinking = ...OfAdaptive` and `params.OutputConfig.Effort = ...`. Switched `if req.ResponseSchema != nil` to merge into `params.OutputConfig.Format` rather than overwriting `OutputConfig`. Added a typed `errThoughtRoundTripUnsupported` returned when an inbound `gai.PartTypeThought` is passed (matches PR-251's deferral). Added `anthropic.ThinkingDelta` -> `gai.ThoughtPart` streaming.
-5. Tests: rewrote each `thinking_level_test.go` to assert "client publishes constant X" / "panics on Y", added `TestChatCompleter_ChatComplete_Gemini3` (single-turn, dual-model: Flash 3 covers the off path with `gai.ThinkingLevelNone`, Pro 3 covers the on path and asserts `PartTypeThought` parts stream — Flash doesn't surface thought parts on the streaming endpoint, only on batch), added `TestChatCompleter_AdaptiveThinking` (against Sonnet 4.6), added `TestChatCompleter_ChatComplete_GPT5_2`. Updated the Anthropic spans test for the bumped default model. Held the Google integration default at `gemini-2.5-flash` (Step 3 below).
+5. Tests: rewrote each `thinking_level_test.go` to assert "client publishes constant X" / "panics on Y", added `TestChatCompleter_ChatComplete_Gemini3` (single-turn, dual-model: Flash 3 covers the off path with `gai.ThinkingLevelNone`, Pro 3 covers the on path and asserts `PartTypeThought` parts stream — Flash doesn't surface thought parts on the streaming endpoint, only on batch), added `TestChatCompleter_AdaptiveThinking` (against Sonnet 4.6), added an OpenAI thinking integration test originally named `TestChatCompleter_ChatComplete_GPT5_2` (renamed to `TestChatCompleter_ChatComplete_GPT5_4` in Step 4 once I noticed gpt-5.4 existed). Updated the Anthropic spans test for the bumped default model. Held the Google integration default at `gemini-2.5-flash` (Step 3 below).
 
 `docs/decisions.md` records the architectural choice; this diary holds the empirical narrative.
 
@@ -266,3 +269,58 @@ Just the diff: padding-only changes to two const blocks. No runtime behaviour ch
 ### Future work
 
 Consider adding `gofmt`/`gofumpt` to `.golangci.yml` so this category of issue gets caught in CI rather than human review. Out of scope for this PR.
+
+## Step 4: Add gpt-5.3 / gpt-5.4 constants and re-probe the effort matrix
+
+**Author:** main
+
+### Prompt Context
+
+**Verbatim prompt:** "Markus spotted that gpt-5.2 isn't the newest in the openai-go v3.32.0 SDK we pin — `ChatModelGPT5_4` (and `5_4Mini`, `5_4Nano`, plus `5_3ChatLatest`) exist. Our project constants stop at 5_2, the integration test targets 5.2, and the diary claims 5.2 is the newest. All wrong. Pick up task #5..."
+
+**Interpretation:** I missed four newer constants in the pinned SDK. Add them, re-probe the per-model effort matrix, bump the integration test, update the GoDoc/decisions/diary.
+
+**Inferred intent:** Get the public surface and integration coverage actually targeting the newest reasoning model in the pinned SDK, since the whole point of the per-client redesign was "track what each provider's newest models actually accept."
+
+### What I did
+
+Re-checked `openai-go@v3.32.0/shared/shared.go`: confirmed `ChatModelGPT5_3ChatLatest`, `ChatModelGPT5_4`, `ChatModelGPT5_4Mini`, `ChatModelGPT5_4Nano` exist (plus dated variants I deliberately skipped to match the existing constant convention). Restored the throwaway `internal/probe/main.go` to drive `Chat.Completions.New` against each model with every `ReasoningEffort` value, then deleted the probe before commit (same as Step 1).
+
+Added the four constants to `clients/openai/chat_complete.go` matching the existing block convention. Renamed `TestChatCompleter_ChatComplete_GPT5_2` to `TestChatCompleter_ChatComplete_GPT5_4` and bumped its model to `ChatCompleteModelGPT5_4`. Rewrote the `ThinkingLevel*` GoDoc into a per-model bullet list reflecting probe results. Updated `docs/decisions.md` and the older diary lines to drop the "newest" claim about 5.2.
+
+### Why
+
+The diary's assertion that "gpt-5.2 is the newest chat-completions model" was empirically false the moment I wrote it — the SDK already had 5.3 and 5.4 constants, I just hadn't grepped for them. Markus caught it on his read-through. The fix had to be probe-backed because the SDK enum is just opaque strings; there's no way to know which efforts a given model accepts without asking the API.
+
+### What worked
+
+The probe surfaced concrete answers for the new models:
+
+- `gpt-5.4` / `gpt-5.4-mini` / `gpt-5.4-nano`: accept `none/low/medium/high/xhigh`. No `minimal`. Same matrix as gpt-5.2. gpt-5.4 reliably returns `reasoning_tokens > 0` at every level except `none` (88 tokens at xhigh on the test prompt).
+- `gpt-5.3-chat-latest`: accepts ONLY `medium`. Every other level returns 400 with `Supported values are: 'medium'`. It's a chat-tuned model, not a reasoning model — `reasoning_tokens = 0` even at the one level it accepts.
+
+The xhigh test against gpt-5.4 passes deterministically (88 reasoning tokens for the farmer/sheep prompt — well above the >0 bar), same shape as the previous gpt-5.2 test.
+
+### What didn't work
+
+`gpt-5.3-chat-latest` is a worst-of-both for our test design: it appears in the SDK in the gpt-5.x family, but it's chat-tuned with no reasoning effort range, so it can't exercise the level mapping meaningfully. Considered dropping the constant; kept it because callers will still want a typed reference to that model and the per-level error surfaces are honest ("supported values are: 'medium'").
+
+### What I learned
+
+The openai-go SDK ships every advertised model as a string constant, which means "what's pinned in the SDK" is the right reference for "what's available right now" — but I have to actually read the constant block, not extrapolate from the latest one I happen to remember. A `grep ChatModelGPT5_` would have caught this before the first commit.
+
+The chat-tuned vs reasoning-tuned split inside one version family (5.3-chat-latest vs 5.4) is a new shape — earlier 5.x models were uniformly reasoning-capable across efforts. The GoDoc has to call this out per model now, not per major version.
+
+### What was tricky
+
+Deciding whether to drop `gpt-5.3-chat-latest` from the project constants. Net it stays in: the constant surface is "models you can pass to `NewChatCompleter`", not "models that exercise our level matrix". Documenting the constraint at the level constants is enough.
+
+### What warrants review
+
+- `clients/openai/chat_complete.go:25-38` — the new constants block. Confirm the alignment is gofmt-clean (added one constant longer than the previous max width).
+- `clients/openai/chat_complete.go:37-66` — the rewritten GoDoc; per-model bullets must match probe findings.
+- `clients/openai/chat_complete_test.go:415-422` — the renamed test and the rationale comment for picking gpt-5.4 over gpt-5.3-chat-latest.
+
+### Future work
+
+When openai-go ships a new pinned version, this matrix needs re-probing. Worth a 10-line `TestProbingScript_ManualOnly` (skipped by default) committed alongside the test so the matrix is reproducible without re-reading this diary.
