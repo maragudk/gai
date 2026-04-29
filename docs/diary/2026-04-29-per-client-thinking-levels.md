@@ -385,3 +385,67 @@ Choosing whether to mirror the existing constant block style (which uses `ChatCo
 ### Future work
 
 When `openai-go` ships a typed `ChatModelGPT5_5`, swap the bare string for `ChatCompleteModel(openai.ChatModelGPT5_5)`. No callers should be affected.
+
+## Step 6: Address PR #257 review comments
+
+**Author:** main
+
+### Prompt Context
+
+**Verbatim prompt:** "Pick up task #7 — Markus left 10 inline review comments on PR #257, all triaged with him. Full instructions in the task description."
+
+**Interpretation:** Apply the agreed actions for the 10 review threads, then reply + resolve each thread. The triage already happened — implementation only here.
+
+**Inferred intent:** Get the PR into a shape Markus will merge. Three themes in the comments: (1) link issues fully so URLs are greppable in logs, (2) consolidate test structure so thinking tests live as subtests of the main `TestChatCompleter_ChatComplete` rather than as parallel test functions, (3) make the model × level matrix table-driven and exhaustive — no row cap, "being right is better than being cheap."
+
+### What I did
+
+Three commits on top of the existing PR:
+
+1. `4397cca` — Anthropic `errThoughtRoundTripUnsupported` GoDoc and error string now reference https://github.com/maragudk/gai/issues/250 in full so the URL is greppable; each client's `ChatCompleteModel` type gains a GoDoc with the canonical model-list URL.
+2. `06dbbb1` — Test refactor across all three clients: variadic `newChatCompleter(t, model...)` helper, fold the thinking tests into `TestChatCompleter_ChatComplete` as `*_matrix` table-driven subtests, drop the per-client `thinking_level_test.go` files entirely, move the panic-on-unsupported coverage as its own subtest.
+3. (Coming next) — review-thread acknowledgements + resolution.
+
+For the matrices, re-probed the live APIs to pin assertions to empirical truth. Threw away the throwaway probes after recording findings here.
+
+### Why
+
+The lead's message: "Markus said 'being right is better than being cheap.'" The matrix has to reflect what the API actually does, not what the docs claim, even when that means dozens of integration test rows.
+
+### What worked
+
+The matrices ran green in single passes after a couple of empirical tweaks. Concrete row counts after pruning a-priori inaccessible / unreliable rows:
+
+- OpenAI: 56 rows covering gpt-5/5.1/5.2/5.3-chat-latest/5.4{nano,mini,full}/5.5 × {none, minimal, low, medium, high, xhigh} plus 2 panic rows. Coverage matches the per-model GoDoc bullet list one-to-one.
+- Google: 14 rows covering 2.5 family rejection of symbolic levels, Flash 3 across all 5 levels including off, Pro 3 across the same set, plus 3 panic rows.
+- Anthropic: 12 matrix rows + 1 inbound-thought row + 2 panic rows. Covers Sonnet 4.6 / Opus 4.7 across all 5 levels plus older-model rejection.
+
+### What didn't work
+
+Three empirical findings that contradicted earlier diary steps:
+
+- **Anthropic 4.5 family does not support adaptive thinking at all.** Step 1's matrix probed Sonnet 4.6 / Opus 4.6 / Opus 4.7 and assumed adaptive worked everywhere modern. Re-probing Haiku 4.5, Sonnet 4.5, Opus 4.5 returns 400 `adaptive thinking is not supported on this model` for every level. The lead's task description suggested asserting "older models work too" — the empirical truth is the opposite. Test rows now document the rejection.
+- **Anthropic Opus 4.7 streaming does not reliably emit `ThinkingDelta` events** even when the non-streaming `Messages.New` API returns thinking blocks at max effort. The Step 1 batch probe showed `thinking_blocks=1` consistently at max; the streaming integration test got `thoughtParts=0`. The streaming and batch endpoints disagree on Opus 4.7. The matrix tolerates this — no strict assertion on Opus 4.7 thought parts.
+- **gpt-5.1-mini is in the SDK enum but not accessible with our test API key.** 404 `model_not_found`. Dropped the 6 rows that targeted it; gpt-5.1 itself covers the same effort matrix.
+
+### What I learned
+
+Two things specific to the streaming path:
+
+1. **Anthropic streaming and batch APIs can disagree about whether thoughts are emitted.** The non-streaming `Messages.New` returns aggregated `thinking` blocks; the streaming `Messages.NewStreaming` emits `ThinkingDelta` events only when the model actually streams thinking text. Opus 4.7 sometimes returns thinking blocks via batch but never (in our runs) via stream. Means the diary's Step 1 conclusions about "thinking levels emit thinking blocks" cannot be trusted to extrapolate to the streaming path our client uses.
+
+2. **The "false-positive accept" pattern in the old `thinking_level_test.go` files was hidden test coverage debt.** Each "accept" row called `cc.ChatComplete` against a `ChatCompleter` with no live client, the call panicked on a nil deref, and a type-assertion guard (`msg, ok := r.(string); if ok && msg == "unsupported thinking level: "+levelStr`) silently swallowed every unrelated panic. So the "accepts X" rows passed for any reason at all. Spotting that during the refactor was the most useful single read of the code in this session.
+
+### What was tricky
+
+Choosing where to draw the line on `wantThoughtTokens: true` and `requireThoughts: true`. The temptation was to assert on every level the API accepted, but the empirical data shows non-trivial flake in three places: gpt-5.4-nano at low/medium/high (returns 0 reasoning tokens half the time), Sonnet 4.6 at low (sometimes 0 thinking blocks), Opus 4.7 streaming generally. The honest call was to weaken assertions where probes showed instability — a flaky CI test is worse than a less-strict one. The rows still exist; the assertions just back off.
+
+### What warrants review
+
+- The test-shape refactor is large by line count but is mostly mechanical. The signal-bearing changes are the row tables in each client's `*_matrix` subtest — those reflect probe truth and any reviewer disagreement should land as a row-level diff.
+- `clients/anthropic/spans_test.go` now expects the new Haiku 4.5 default rather than Sonnet 4.6. Worth confirming this is the right model to hard-code.
+
+### Future work
+
+- The new matrices are not cheap to run. CI cost is a real consideration; a `t.Skip` based on an env flag for just the matrix subtests would let local runs stay fast while CI runs the whole thing. Out of scope here.
+- Anthropic Opus 4.7 streaming + thinking blocks is worth filing a Github issue about — either we're missing an SDK setting or the API itself is silent on `ThinkingDelta` for Opus 4.7 streaming. Out of scope here.
