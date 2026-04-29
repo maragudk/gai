@@ -449,3 +449,67 @@ Choosing where to draw the line on `wantThoughtTokens: true` and `requireThought
 
 - The new matrices are not cheap to run. CI cost is a real consideration; a `t.Skip` based on an env flag for just the matrix subtests would let local runs stay fast while CI runs the whole thing. Out of scope here.
 - Anthropic Opus 4.7 streaming + thinking blocks is worth filing a Github issue about — either we're missing an SDK setting or the API itself is silent on `ThinkingDelta` for Opus 4.7 streaming. Out of scope here.
+
+## Step 7: PR #257 round-2 review (Gemini 3.1, gpt-4o cleanup, span recording, multi-provider parts)
+
+**Author:** main
+
+### Prompt Context
+
+**Verbatim prompt:** "Pick up task #8. Round 2 review on PR #257 from Markus (3 inline comments) plus 3 issues my own automated `/code-review` flow surfaced plus 1 doc-correction = 7 actions."
+
+**Interpretation:** Seven cleanup actions across model coverage, test structure, error paths, and docs accuracy. Each one is small; the noteworthy bits are the Gemini 3.1 model swap (Google retired 3.0 Pro on 2026-03-09) and confirming that none of the changes break the public API in unexpected ways.
+
+**Inferred intent:** Get the PR ready to merge. Markus is doing one more review pass once these land.
+
+### What I did
+
+Three commits on top of the existing PR (`01319d5`, `3208b8d`, `586bbc9`) plus review-thread acknowledgements/resolution.
+
+For action A (Google model refresh), probed both new models against every `ThinkingLevel` value before locking the matrix rows:
+- `gemini-3.1-pro-preview`: same accept/reject shape as the retired 3.0 Pro — None and Minimal rejected (`This model only works in thinking mode` / `Thinking level MINIMAL is not supported for this model`); Low/Medium/High accepted, Medium and High emit 1 thought part on the streaming path consistently, Low is 50% (0/0/1/1 across 4 probe runs).
+- `gemini-3.1-flash-lite-preview`: accepts every level. ThoughtsTokens populated from Low onwards. At HIGH the streaming API emits 1 thought part reliably (3/3 stability) — different from the full Flash 3 model which streams none. The matrix gains a new `flash-lite 3.1 + high` row that asserts `requireThoughts`.
+
+For action C (gpt-4o removal), `grep` flagged three callers in `internal/examples`. Notified the lead, then bumped them all to `ChatCompleteModelGPT5Nano` in the same commit that removed the constants.
+
+For actions E and F, kept the error shapes parallel: Anthropic's existing `errThoughtRoundTripUnsupported` pattern (typed error + span recording + wrapped return) is now mirrored exactly in Google with a sibling `errThoughtRoundTripUnsupported` referencing #256 instead of #250. OpenAI silently `continue`s in both the user and assistant branches — Chat Completions has no inbound reasoning concept.
+
+### Why
+
+The empirical surprise here is the same shape as Step 6's: docs and even SDK enums lag the API, and probe results decide what the test rows look like. 3.1 Flash Lite emitting thoughts at HIGH (where Flash 3 emits none) was unexpected — no docs claim that, and we have no theory for why. Test row asserts what we observed.
+
+### What worked
+
+Quality gates green across all three commits. Live integration tests:
+- OpenAI: `145s` for the full suite (gpt-4o removal didn't disturb anything).
+- Anthropic: `48s`, span-recording change passed.
+- Google: passed the 18-row thinking matrix + the new VertexAI subtests.
+
+The gpt-5.4-nano subtest at xhigh briefly threatened to flake on reasoning_tokens but came back green; left as-is.
+
+### What didn't work
+
+Two transient findings during the matrix run:
+- `pro_3.1_+_medium` failed once on `requireThoughts: true` in an early run, then passed 5/5 on retest. Treated as a one-off blip; left strict.
+- `pro_3.1_+_low` was reliably flaky on `requireThoughts: true` (probe: 50% over 4 runs). Relaxed to `wantThoughtTokens: true` only at LOW. ThoughtsTokens are stable from the usage metadata; thought parts are not.
+
+### What I learned
+
+Gemini 3.1 Flash Lite's streaming emits a thought part only at HIGH effort, never at lower levels. That's the inverse of the previous "Flash never streams thoughts" rule we'd documented for Flash 3.0. The streaming endpoint's behaviour for thought parts is per-model and per-effort, not a generic "streaming surfaces fewer thoughts than batch" rule. Matrix rows now reflect this.
+
+Anthropic's error-recording pattern (`span.RecordError(err); span.SetStatus(codes.Error, ...)`) is the right house style — every other error-return in `clients/anthropic/chat_complete.go` does it. PR #257's earlier redesign dropped the calls when re-deriving the path; the round-2 review caught that.
+
+### What was tricky
+
+Choosing between strict thought-part assertions and flake tolerance. The lead's earlier pass said "no row cap, being right is better than being cheap." That points toward strict. But empirical reality on Gemini Pro 3.1 LOW is 50% — strict would mean one in two runs fails. Compromise: assert thoughts_tokens (stable) and skip thought-parts (flaky) at LOW, keep both strict at MEDIUM/HIGH.
+
+### What warrants review
+
+- `clients/google/chat_complete_test.go` matrix rows for the new Flash Lite 3.1 model. Reviewer should sanity-check the `flash-lite 3.1 + high requireThoughts: true` claim — it's based on 3 probe runs.
+- `clients/openai/chat_complete.go` user/assistant branches now silently drop `gai.PartTypeThought` parts. Worth confirming that's the correct call vs returning a typed error. Markus's review mentioned PR #251's earlier shape used `continue`, so we matched that, but the lead should weigh in if multi-provider pipelines should see a stronger signal.
+
+### Future work
+
+Out of scope but worth filing follow-ups:
+- The `internal/examples/evals/evals_test.go` reads `OPENAI_API_KEY` directly (not `OPENAI_KEY` like the client tests). The eval is gated by `-test.run=TestEval` so it doesn't surface in normal CI, but if the eval gate ever opens up, the env-var mismatch will bite. Easy fix: load `.env.test.local` via `env.Load` like the client tests do.
+- The streaming-vs-batch divergence on Anthropic Opus 4.7 (Step 6 finding) and on Gemini Flash 3.0 (Step 1 finding) plus this step's 3.1 Flash Lite quirk all suggest a "streaming surfaces fewer thoughts than batch" trend at the SDK layer that may eventually be worth its own diary or upstream conversation.
