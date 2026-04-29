@@ -20,6 +20,9 @@ import (
 	"maragu.dev/gai"
 )
 
+// ChatCompleteModel is an OpenAI model identifier accepted by the chat-completions
+// surface. See https://developers.openai.com/api/docs/models for the full list and the
+// current availability and capability matrix of each model.
 type ChatCompleteModel string
 
 const (

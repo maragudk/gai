@@ -24,9 +24,12 @@ import (
 // errThoughtRoundTripUnsupported is returned when a caller passes [gai.PartTypeThought]
 // back into the Anthropic client. Multi-turn thinking on Anthropic requires forwarding the
 // per-block signature returned by the API, which is not yet plumbed through [gai.Part].
-// Tracked by issue #250.
-var errThoughtRoundTripUnsupported = errors.New("inbound PartTypeThought not supported (issue #250)")
+// Tracked by https://github.com/maragudk/gai/issues/250.
+var errThoughtRoundTripUnsupported = errors.New("inbound PartTypeThought not supported (https://github.com/maragudk/gai/issues/250)")
 
+// ChatCompleteModel is an Anthropic Claude model identifier accepted by the
+// chat-completions surface. See https://platform.claude.com/docs/en/about-claude/models/overview
+// for the full list and the current availability and capability matrix of each model.
 type ChatCompleteModel string
 
 const (
@@ -108,7 +111,8 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 
 			case gai.PartTypeThought:
 				// Round-tripping thinking blocks back to Anthropic requires preserving the
-				// signature returned with each block, which we don't yet plumb. See issue #250.
+				// signature returned with each block, which we don't yet plumb. See
+				// https://github.com/maragudk/gai/issues/250.
 				return gai.ChatCompleteResponse{}, fmt.Errorf("anthropic: %w", errThoughtRoundTripUnsupported)
 
 			case gai.PartTypeToolCall:

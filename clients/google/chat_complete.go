@@ -19,6 +19,9 @@ import (
 	"maragu.dev/gai/clients/google/internal/schema"
 )
 
+// ChatCompleteModel is a Google Gemini model identifier accepted by the chat-completions
+// surface. See https://ai.google.dev/gemini-api/docs/models for the full list and current
+// availability of each model.
 type ChatCompleteModel string
 
 const (
