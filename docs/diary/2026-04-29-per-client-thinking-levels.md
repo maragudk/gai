@@ -324,3 +324,64 @@ Deciding whether to drop `gpt-5.3-chat-latest` from the project constants. Net i
 ### Future work
 
 When openai-go ships a new pinned version, this matrix needs re-probing. Worth a 10-line `TestProbingScript_ManualOnly` (skipped by default) committed alongside the test so the matrix is reproducible without re-reading this diary.
+
+## Step 5: Add gpt-5.5 (string-literal constant, ahead of SDK)
+
+**Author:** main
+
+### Prompt Context
+
+**Verbatim prompt:** "Markus pointed to https://developers.openai.com/api/docs/models which lists `gpt-5.5` as the new frontier model, top of the GPT-5.x family. The openai-go SDK v3.33.0 doesn't have a `ChatModelGPT5_5` constant yet (SDK lags the API). Since `openai.ChatModel = string`, we can ship by using the bare string. The docs page describes 'Reasoning support: High to extra-high' for gpt-5.5, which suggests it may NOT accept `none/low/medium` like its siblings. Probe to confirm before relying on it."
+
+**Interpretation:** The OpenAI public docs jumped past gpt-5.4 to gpt-5.5 as the frontier. The pinned SDK doesn't have it yet. The "High to extra-high" docs phrasing is suggestive but ambiguous — could be a recommendation or a hard constraint on accepted values. Probe to determine which.
+
+**Inferred intent:** Keep this PR's "newest model" claim accurate by adding gpt-5.5 to the constants block, even though it means wrapping a bare string instead of an SDK enum. Verify against the live API rather than trusting the docs page on the effort range.
+
+### What I did
+
+Re-built `internal/probe/main.go` (deleted again post-commit) targeting just `gpt-5.5` against every `ReasoningEffort` value. Added `ChatCompleteModelGPT5_5 = ChatCompleteModel("gpt-5.5")` to `clients/openai/chat_complete.go` with a comment explaining why it's the bare string and pointing at the SDK upgrade path. Renamed the test from `_GPT5_4` to `_GPT5_5` and bumped the model. Updated the per-model GoDoc bullet list and `docs/decisions.md`.
+
+### Why
+
+The docs phrasing "High to extra-high" was specific enough to deserve verification. If gpt-5.5 actually rejected `none/low/medium`, the test would have to switch to a level that 5.5 accepts (and the GoDoc would have to call out that constraint, similar to gpt-5.3-chat-latest's medium-only quirk).
+
+### What worked
+
+The probe contradicted my reading of the docs:
+
+```
+gpt-5.5:
+  effort=none     -> OK reasoning_tokens=0  completion_tokens=29
+  effort=minimal  -> ERR Supported values are: 'none', 'low', 'medium', 'high', 'xhigh'
+  effort=low      -> OK reasoning_tokens=21
+  effort=medium   -> OK reasoning_tokens=52
+  effort=high     -> OK reasoning_tokens=72
+  effort=xhigh    -> OK reasoning_tokens=118
+```
+
+gpt-5.5 accepts the full `none/low/medium/high/xhigh` set — same matrix as gpt-5.2 and the gpt-5.4* family. Only `minimal` is rejected (consistent with every gpt-5.x model after gpt-5). The "High to extra-high" docs phrasing was descriptive of the recommended use, not the accepted range.
+
+gpt-5.5 also reasons more eagerly than gpt-5.4 at the same level: 118 reasoning tokens at xhigh on the test prompt vs 88 on gpt-5.4. The xhigh assertion stays comfortably above the >0 bar.
+
+### What didn't work
+
+Nothing this round. Build, lint, integration test all green on first run.
+
+### What I learned
+
+OpenAI ships frontier API models slightly ahead of the SDK enum. `openai.ChatModel` being a string alias means we don't strictly need to wait for the typed constant — wrapping a literal in our own typed `ChatCompleteModel` is fine, with a comment pointing at the SDK upgrade path. The pattern works as long as we re-probe each addition rather than guessing the effort matrix.
+
+The docs phrasing about "Reasoning support" describes typical or recommended use, not the API's accepted enum values. Always probe.
+
+### What was tricky
+
+Choosing whether to mirror the existing constant block style (which uses `ChatCompleteModel(openai.ChatModelGPT5_X)`) vs accepting the divergence of a bare-string constant. Went with bare string + an explanatory comment — the alternative was to skip gpt-5.5 entirely until the SDK catches up, which would leave the "newest model" claim wrong again.
+
+### What warrants review
+
+- `clients/openai/chat_complete.go:39-43` — the bare-string `ChatCompleteModelGPT5_5` constant and its explanatory comment. Reviewer should confirm the comment is clear about the upgrade path.
+- `clients/openai/chat_complete_test.go:415-424` — the renamed test docstring and the rationale for keeping xhigh as the assertion level (118 reasoning tokens — well above the >0 bar).
+
+### Future work
+
+When `openai-go` ships a typed `ChatModelGPT5_5`, swap the bare string for `ChatCompleteModel(openai.ChatModelGPT5_5)`. No callers should be affected.

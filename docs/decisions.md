@@ -132,7 +132,7 @@ Hybrid, with an explicit credentials path. `NewClientOptions` gains optional `Cr
 
 Per-client constants of the same `gai.ThinkingLevel` type. Core keeps `type ThinkingLevel string` and exactly one constant: `gai.ThinkingLevelNone` (the universal off semantic). Each client publishes the level set its newest target model speaks:
 
-- `clients/openai`: `Minimal/Low/Medium/High/XHigh` — the union across the gpt-5.x chat-completions family (gpt-5 / 5.1 / 5.2 / 5.4*). gpt-5.3-chat-latest is chat-tuned and accepts only `Medium`; the union still covers it.
+- `clients/openai`: `Minimal/Low/Medium/High/XHigh` — the union across the gpt-5.x chat-completions family (gpt-5 / 5.1 / 5.2 / 5.4* / 5.5). gpt-5.3-chat-latest is chat-tuned and accepts only `Medium`; the union still covers it. The `ChatCompleteModelGPT5_5` constant currently wraps the bare API string `"gpt-5.5"` because openai-go v3.33.0 lags the API and does not yet expose a `ChatModelGPT5_5` enum — switch to the typed constant once the SDK ships it.
 - `clients/google`: `Minimal/Low/Medium/High` — the symbolic `genai.ThinkingLevel` enum used by Gemini 3.x.
 - `clients/anthropic`: `Low/Medium/High/XHigh/Max` — the `output_config.effort` enum on Sonnet 4.6 / Opus 4.6 / Opus 4.7. No `Minimal`; XHigh is Opus-4.7-only by current model coverage.
 

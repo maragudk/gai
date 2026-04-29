@@ -412,16 +412,15 @@ func newChatCompleter(t *testing.T) *openai.ChatCompleter {
 	return cc
 }
 
-// TestChatCompleter_ChatComplete_GPT5_4 exercises the per-client thinking-level mapping
-// against gpt-5.4, the newest reasoning chat-completions model in openai-go v3.32.0.
-// (gpt-5.3-chat-latest is also newer than 5.2 in version order but is chat-tuned and only
-// accepts `medium`, so it does not exercise the level mapping meaningfully.) Also confirms
-// thoughts tokens surface on Usage even though Chat Completions does not stream reasoning
-// text as parts.
-func TestChatCompleter_ChatComplete_GPT5_4(t *testing.T) {
+// TestChatCompleter_ChatComplete_GPT5_5 exercises the per-client thinking-level mapping
+// against gpt-5.5, the newest frontier chat-completions model. The pinned openai-go SDK
+// (v3.33.0) does not yet ship a `ChatModelGPT5_5` enum, so `ChatCompleteModelGPT5_5` wraps
+// the bare API string. Also confirms thoughts tokens surface on Usage even though Chat
+// Completions does not stream reasoning text as parts.
+func TestChatCompleter_ChatComplete_GPT5_5(t *testing.T) {
 	c := newClient(t)
 	cc := c.NewChatCompleter(openai.NewChatCompleterOptions{
-		Model: openai.ChatCompleteModelGPT5_4,
+		Model: openai.ChatCompleteModelGPT5_5,
 	})
 
 	t.Run("populates thoughts tokens at xhigh reasoning effort", func(t *testing.T) {
@@ -429,8 +428,9 @@ func TestChatCompleter_ChatComplete_GPT5_4(t *testing.T) {
 			Messages: []gai.Message{
 				gai.NewUserTextMessage("Solve step by step: a farmer has 17 sheep, all but 9 die. How many remain?"),
 			},
-			// xhigh reliably triggers reasoning on gpt-5.4 in our probes (88 reasoning tokens
-			// for this prompt). Lower levels work too but are flakier on simple problems.
+			// xhigh reliably triggers reasoning on gpt-5.5 in our probes (118 reasoning
+			// tokens for this prompt — gpt-5.5 reasons more eagerly than 5.4 at the same
+			// level). Lower levels work too but are flakier on simple problems.
 			ThinkingLevel: gai.Ptr(openai.ThinkingLevelXHigh),
 		}
 
