@@ -177,8 +177,8 @@ func (m Part) ToolResult() ToolResult {
 type PartType string
 
 const (
-	PartTypeData       PartType = "data"
-	PartTypeText       PartType = "text"
+	PartTypeData PartType = "data"
+	PartTypeText PartType = "text"
 	// PartTypeThought is a streamed thinking/reasoning part. Providers vary in whether they
 	// expose the model's chain-of-thought as text — Google Gemini emits Thought parts when
 	// thinking is enabled, Anthropic surfaces thinking blocks via the streaming API, and

@@ -216,3 +216,49 @@ The diary's `What didn't work` (Step 1 / Step 2) ate ~30 minutes between probe a
 - Plumb `ThoughtSignature` through `gai.Part` so Gemini 3.x and Anthropic adaptive thinking both work for multi-turn tool flows. Same shape of work as issue #250.
 - Consider a typed sentinel error in core (`gai.ErrThoughtRoundTripUnsupported`) so callers can `errors.Is` against it instead of regexing the message — currently `clients/anthropic/chat_complete.go:errThoughtRoundTripUnsupported` is package-private.
 - A pre-existing test failure exists on `main`: `TestNewClient/can_create_a_new_client_with_the_Vertex_AI_backend_and_a_service_account` panics when `GOOGLE_VERTEX_CREDENTIALS_PATH` is not set (the test reads the path from `.env.test.local` but it's not there for me). My branch doesn't touch `client_test.go`. Worth a separate ticket to gate the test with `t.Skip` when the env var is absent.
+
+## Step 3: Address QA findings — gofmt violations
+
+**Author:** main
+
+### Prompt Context
+
+**Verbatim prompt:** "QA review on PR #257 found two files that are not gofmt-formatted. ... Fix: `gofmt -w chat_complete.go clients/google/chat_complete.go`. Push to the same branch. Do NOT amend the existing commit — make a new fixup commit on `per-client-thinking-levels`."
+
+**Interpretation:** Two const blocks in this PR have stale column padding from before I added new entries. `golangci-lint` missed them because the project's `.golangci.yml` doesn't enable the `gofmt`/`gofumpt` linter; `gofmt -l` catches them. Apply `gofmt -w`, new commit, push.
+
+**Inferred intent:** Keep the working tree gofmt-clean even though CI lint isn't catching it, so this PR doesn't introduce a regression that the next PR has to clean up.
+
+### What I did
+
+Ran `gofmt -w chat_complete.go clients/google/chat_complete.go`. Both files re-padded their const blocks: the `PartType` block lost the now-unnecessary extra spaces (the new `PartTypeThought` line is comment-prefixed and doesn't participate in column alignment), and the Google `ChatCompleteModel*` block re-padded the older 2.x entries to match the longer `Gemini3FlashPreview`/`Gemini3ProPreview` names. Verified with `gofmt -l .` that the tree is clean and `go build ./...` still passes.
+
+Committed as a new commit (`Run gofmt on chat_complete.go and clients/google/chat_complete.go`) rather than amending — keeps the QA fix legible in history.
+
+### Why
+
+The fix is mechanical, but recording it ties the diary to the QA loop: whoever reviews the PR sees the same two-step shape (build commit + format commit) reflected in the narrative.
+
+### What worked
+
+Clean diff: 6 lines moved, no semantic change. `go build ./...` and `golangci-lint run ./...` both still pass.
+
+### What didn't work
+
+Nothing this round.
+
+### What I learned
+
+The project's `golangci-lint` config doesn't include `gofmt`/`gofumpt`. Worth noting if I add a const block in a future PR: don't trust the linter alone; run `gofmt -l .` before pushing.
+
+### What was tricky
+
+Nothing — straightforward mechanical fix.
+
+### What warrants review
+
+Just the diff: padding-only changes to two const blocks. No runtime behaviour changes.
+
+### Future work
+
+Consider adding `gofmt`/`gofumpt` to `.golangci.yml` so this category of issue gets caught in CI rather than human review. Out of scope for this PR.
