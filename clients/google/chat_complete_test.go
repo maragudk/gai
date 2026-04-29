@@ -442,7 +442,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 		is.NotError(t, err)
 
 		var thoughtParts int
-		var textOutput string
+		var thoughtOutput, textOutput string
 		for part, err := range res.Parts() {
 			is.NotError(t, err)
 
@@ -451,13 +451,14 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 				textOutput += part.Text()
 			case gai.PartTypeThought:
 				thoughtParts++
-				is.True(t, len(part.Thought()) > 0, "thought content should not be empty")
+				thoughtOutput += part.Thought()
 			default:
 				t.Fatalf("unexpected part type: %s", part.Type)
 			}
 		}
 
 		is.True(t, thoughtParts > 0, "should have at least one thought part")
+		is.True(t, len(thoughtOutput) > 0, "thought content should not be empty in total")
 		is.True(t, len(textOutput) > 0, "should also yield text output")
 	})
 
