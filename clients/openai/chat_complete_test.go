@@ -412,6 +412,66 @@ func newChatCompleter(t *testing.T) *openai.ChatCompleter {
 	return cc
 }
 
+// TestChatCompleter_ChatComplete_GPT5_2 exercises the per-client thinking-level mapping
+// against gpt-5.2, the newest chat-completions model. Also confirms thoughts tokens
+// surface on Usage even though Chat Completions does not stream reasoning text as parts.
+func TestChatCompleter_ChatComplete_GPT5_2(t *testing.T) {
+	c := newClient(t)
+	cc := c.NewChatCompleter(openai.NewChatCompleterOptions{
+		Model: openai.ChatCompleteModelGPT5_2,
+	})
+
+	t.Run("populates thoughts tokens at xhigh reasoning effort", func(t *testing.T) {
+		req := gai.ChatCompleteRequest{
+			Messages: []gai.Message{
+				gai.NewUserTextMessage("Solve step by step: a farmer has 17 sheep, all but 9 die. How many remain?"),
+			},
+			// xhigh chosen empirically: gpt-5.2 happily skips reasoning at lower effort levels
+			// on simple problems and returns ReasoningTokens=0, which makes a hard >0 assertion
+			// flaky. xhigh reliably triggers reasoning in our probes.
+			ThinkingLevel: gai.Ptr(openai.ThinkingLevelXHigh),
+		}
+
+		res, err := cc.ChatComplete(t.Context(), req)
+		is.NotError(t, err)
+
+		var output string
+		for part, err := range res.Parts() {
+			is.NotError(t, err)
+			switch part.Type {
+			case gai.PartTypeText:
+				output += part.Text()
+			case gai.PartTypeThought:
+				t.Fatal("OpenAI Chat Completions should not stream PartTypeThought")
+			default:
+				t.Fatalf("unexpected part type %s", part.Type)
+			}
+		}
+		is.True(t, len(output) > 0, "should have output")
+		is.True(t, res.Meta.Usage.ThoughtsTokens > 0, "thoughts tokens should be populated at xhigh effort")
+	})
+
+	t.Run("disables thinking via gai.ThinkingLevelNone", func(t *testing.T) {
+		req := gai.ChatCompleteRequest{
+			Messages:      []gai.Message{gai.NewUserTextMessage("Reply with just: hello")},
+			ThinkingLevel: gai.Ptr(gai.ThinkingLevelNone),
+		}
+
+		res, err := cc.ChatComplete(t.Context(), req)
+		is.NotError(t, err)
+
+		var output string
+		for part, err := range res.Parts() {
+			is.NotError(t, err)
+			if part.Type == gai.PartTypeText {
+				output += part.Text()
+			}
+		}
+		is.True(t, len(output) > 0, "should have output")
+		is.Equal(t, 0, res.Meta.Usage.ThoughtsTokens, "thoughts tokens should be zero with thinking disabled")
+	})
+}
+
 func requireContainsAll(t *testing.T, got string, want ...string) {
 	t.Helper()
 

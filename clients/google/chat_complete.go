@@ -26,6 +26,24 @@ const (
 	ChatCompleteModelGemini2_5Flash     = ChatCompleteModel("gemini-2.5-flash")
 	ChatCompleteModelGemini2_5FlashLite = ChatCompleteModel("gemini-2.5-flash-lite")
 	ChatCompleteModelGemini2_5Pro       = ChatCompleteModel("gemini-2.5-pro")
+	ChatCompleteModelGemini3FlashPreview = ChatCompleteModel("gemini-3-flash-preview")
+	ChatCompleteModelGemini3ProPreview   = ChatCompleteModel("gemini-3-pro-preview")
+)
+
+// Per-client [gai.ThinkingLevel] constants. These map directly onto the symbolic
+// `genai.ThinkingLevel` enum used by the Gemini 3.x family. Pass [gai.ThinkingLevelNone] to
+// opt out via `ThinkingBudget=0`; this is accepted by `gemini-3-flash-preview` and rejected
+// by `gemini-3-pro-preview` (Pro 3.x only runs in thinking mode). Levels not in this list
+// panic at the client boundary.
+const (
+	// ThinkingLevelMinimal applies the cheapest thinking budget. Rejected by gemini-3-pro-preview.
+	ThinkingLevelMinimal gai.ThinkingLevel = "minimal"
+	// ThinkingLevelLow applies low thinking effort.
+	ThinkingLevelLow gai.ThinkingLevel = "low"
+	// ThinkingLevelMedium applies medium thinking effort.
+	ThinkingLevelMedium gai.ThinkingLevel = "medium"
+	// ThinkingLevelHigh applies high thinking effort.
+	ThinkingLevelHigh gai.ThinkingLevel = "high"
 )
 
 type ChatCompleter struct {
@@ -80,21 +98,20 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 		span.SetAttributes(attribute.Int("ai.max_completion_tokens", *req.MaxCompletionTokens))
 	}
 	if req.ThinkingLevel != nil {
-		var level genai.ThinkingLevel
 		switch *req.ThinkingLevel {
-		case gai.ThinkingLevelMinimal:
-			level = genai.ThinkingLevelMinimal
-		case gai.ThinkingLevelLow:
-			level = genai.ThinkingLevelLow
-		case gai.ThinkingLevelMedium:
-			level = genai.ThinkingLevelMedium
-		case gai.ThinkingLevelHigh:
-			level = genai.ThinkingLevelHigh
+		case gai.ThinkingLevelNone:
+			// Off: budget=0. Accepted by Flash 3.x; rejected by Pro 3.x with a 400.
+			config.ThinkingConfig = &genai.ThinkingConfig{ThinkingBudget: gai.Ptr(int32(0))}
+		case ThinkingLevelMinimal:
+			config.ThinkingConfig = &genai.ThinkingConfig{ThinkingLevel: genai.ThinkingLevelMinimal, IncludeThoughts: true}
+		case ThinkingLevelLow:
+			config.ThinkingConfig = &genai.ThinkingConfig{ThinkingLevel: genai.ThinkingLevelLow, IncludeThoughts: true}
+		case ThinkingLevelMedium:
+			config.ThinkingConfig = &genai.ThinkingConfig{ThinkingLevel: genai.ThinkingLevelMedium, IncludeThoughts: true}
+		case ThinkingLevelHigh:
+			config.ThinkingConfig = &genai.ThinkingConfig{ThinkingLevel: genai.ThinkingLevelHigh, IncludeThoughts: true}
 		default:
 			panic("unsupported thinking level: " + string(*req.ThinkingLevel))
-		}
-		config.ThinkingConfig = &genai.ThinkingConfig{
-			ThinkingLevel: level,
 		}
 		span.SetAttributes(attribute.String("ai.thinking_level", string(*req.ThinkingLevel)))
 	}
@@ -260,8 +277,14 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 				recordFirstToken()
 
 				if part.Text != "" {
-					if !yield(gai.TextPart(part.Text), nil) {
-						return
+					if part.Thought {
+						if !yield(gai.ThoughtPart(part.Text), nil) {
+							return
+						}
+					} else {
+						if !yield(gai.TextPart(part.Text), nil) {
+							return
+						}
 					}
 				}
 

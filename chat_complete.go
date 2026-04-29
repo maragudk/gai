@@ -10,25 +10,17 @@ import (
 )
 
 // ThinkingLevel controls how much reasoning effort the model applies.
-// Not all levels are supported by all providers; unsupported levels will panic.
+// Type-only abstraction: the universal off value [ThinkingLevelNone] is defined here, and
+// every other value is published per client because each provider speaks its own vocabulary.
+// See [maragu.dev/gai/clients/openai], [maragu.dev/gai/clients/google], and
+// [maragu.dev/gai/clients/anthropic] for the constants their target APIs accept; passing a
+// level a given client does not recognise will panic at the client boundary.
 type ThinkingLevel string
 
-const (
-	// ThinkingLevelNone disables thinking entirely.
-	ThinkingLevelNone ThinkingLevel = "none"
-	// ThinkingLevelMinimal applies minimal thinking.
-	ThinkingLevelMinimal ThinkingLevel = "minimal"
-	// ThinkingLevelLow applies low thinking effort.
-	ThinkingLevelLow ThinkingLevel = "low"
-	// ThinkingLevelMedium applies medium thinking effort.
-	ThinkingLevelMedium ThinkingLevel = "medium"
-	// ThinkingLevelHigh applies high thinking effort.
-	ThinkingLevelHigh ThinkingLevel = "high"
-	// ThinkingLevelXHigh applies extra-high thinking effort.
-	ThinkingLevelXHigh ThinkingLevel = "xhigh"
-	// ThinkingLevelMax applies maximum thinking effort.
-	ThinkingLevelMax ThinkingLevel = "max"
-)
+// ThinkingLevelNone disables thinking entirely. This is the only value defined in core because it
+// is the only one with a universal semantic — every provider has some way to opt out of thinking.
+// All other levels are published per client.
+const ThinkingLevelNone ThinkingLevel = "none"
 
 type Temperature float64
 
@@ -130,6 +122,8 @@ func (m Part) MarshalText() ([]byte, error) {
 	switch m.Type {
 	case PartTypeText:
 		return []byte(m.Text()), nil
+	case PartTypeThought:
+		return []byte("[thought: " + m.Thought() + "]"), nil
 	case PartTypeData:
 		return []byte(fmt.Sprintf("[data: %v, %v bytes]", m.MIMEType, len(m.Data))), nil
 	case PartTypeToolCall:
@@ -148,6 +142,17 @@ func (m Part) Text() string {
 	}
 	if m.text == nil {
 		panic("text not set")
+	}
+	return *m.text
+}
+
+// Thought returns the thought content. Panics if the part is not [PartTypeThought].
+func (m Part) Thought() string {
+	if m.Type != PartTypeThought {
+		panic("not thought type")
+	}
+	if m.text == nil {
+		panic("thought not set")
 	}
 	return *m.text
 }
@@ -174,6 +179,11 @@ type PartType string
 const (
 	PartTypeData       PartType = "data"
 	PartTypeText       PartType = "text"
+	// PartTypeThought is a streamed thinking/reasoning part. Providers vary in whether they
+	// expose the model's chain-of-thought as text — Google Gemini emits Thought parts when
+	// thinking is enabled, Anthropic surfaces thinking blocks via the streaming API, and
+	// OpenAI Chat Completions does not stream reasoning text and so never produces this type.
+	PartTypeThought    PartType = "thought"
 	PartTypeToolCall   PartType = "tool_call"
 	PartTypeToolResult PartType = "tool_result"
 )
@@ -205,6 +215,15 @@ func DataMessagePart(mimeType string, data []byte) Part { return DataPart(mimeTy
 func TextPart(text string) Part {
 	return Part{
 		Type: PartTypeText,
+		text: &text,
+	}
+}
+
+// ThoughtPart creates a thought [Part] carrying streamed model reasoning text.
+// See [PartTypeThought] for which providers actually emit these.
+func ThoughtPart(text string) Part {
+	return Part{
+		Type: PartTypeThought,
 		text: &text,
 	}
 }

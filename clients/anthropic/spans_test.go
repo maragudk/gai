@@ -28,7 +28,7 @@ func TestChatCompleter_Spans(t *testing.T) {
 		}
 
 		span := oteltest.FindSpan(t, sr.Ended(), "anthropic.chat_complete")
-		is.True(t, oteltest.HasAttribute(span.Attributes(), attribute.String("ai.model", string(anthropic.ChatCompleteModelClaudeHaiku4_5Latest))))
+		is.True(t, oteltest.HasAttribute(span.Attributes(), attribute.String("ai.model", string(anthropic.ChatCompleteModelClaudeSonnet4_6Latest))))
 		oteltest.RequireAttributePresent(t, span.Attributes(), "ai.time_to_first_token_ms")
 		oteltest.RequirePositiveIntAttribute(t, span.Attributes(), "ai.prompt_tokens")
 		oteltest.RequirePositiveIntAttribute(t, span.Attributes(), "ai.completion_tokens")

@@ -34,6 +34,25 @@ const (
 	ChatCompleteModelGPT5_2Pro  = ChatCompleteModel(openai.ChatModelGPT5_2Pro)
 )
 
+// Per-client [gai.ThinkingLevel] constants. The set covers the union of reasoning_effort
+// values across the gpt-5.x chat-completions family. Individual models accept a subset:
+// gpt-5 is minimal/low/medium/high, gpt-5.1 is none/low/medium/high, gpt-5.2 is
+// none/low/medium/high/xhigh. Pass [gai.ThinkingLevelNone] to opt out (rejected by gpt-5,
+// accepted by gpt-5.1+); using a level a given model does not support surfaces a 400 from
+// the API. Levels not in this list panic at the client boundary.
+const (
+	// ThinkingLevelMinimal applies the cheapest reasoning effort. gpt-5 only.
+	ThinkingLevelMinimal gai.ThinkingLevel = "minimal"
+	// ThinkingLevelLow applies low reasoning effort.
+	ThinkingLevelLow gai.ThinkingLevel = "low"
+	// ThinkingLevelMedium applies medium reasoning effort.
+	ThinkingLevelMedium gai.ThinkingLevel = "medium"
+	// ThinkingLevelHigh applies high reasoning effort.
+	ThinkingLevelHigh gai.ThinkingLevel = "high"
+	// ThinkingLevelXHigh applies extra-high reasoning effort. gpt-5.2+ only.
+	ThinkingLevelXHigh gai.ThinkingLevel = "xhigh"
+)
+
 type ChatCompleter struct {
 	Client openai.Client
 	log    *slog.Logger
@@ -233,17 +252,17 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 	if req.ThinkingLevel != nil {
 		switch *req.ThinkingLevel {
 		case gai.ThinkingLevelNone:
-			params.ReasoningEffort = shared.ReasoningEffort("none")
-		case gai.ThinkingLevelMinimal:
-			params.ReasoningEffort = shared.ReasoningEffort("minimal")
-		case gai.ThinkingLevelLow:
+			params.ReasoningEffort = shared.ReasoningEffortNone
+		case ThinkingLevelMinimal:
+			params.ReasoningEffort = shared.ReasoningEffortMinimal
+		case ThinkingLevelLow:
 			params.ReasoningEffort = shared.ReasoningEffortLow
-		case gai.ThinkingLevelMedium:
+		case ThinkingLevelMedium:
 			params.ReasoningEffort = shared.ReasoningEffortMedium
-		case gai.ThinkingLevelHigh:
+		case ThinkingLevelHigh:
 			params.ReasoningEffort = shared.ReasoningEffortHigh
-		case gai.ThinkingLevelXHigh:
-			params.ReasoningEffort = shared.ReasoningEffort("xhigh")
+		case ThinkingLevelXHigh:
+			params.ReasoningEffort = shared.ReasoningEffortXhigh
 		default:
 			panic("unsupported thinking level: " + string(*req.ThinkingLevel))
 		}
@@ -346,10 +365,12 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 
 			meta.Usage = gai.ChatCompleteResponseUsage{
 				PromptTokens:     int(chunk.Usage.PromptTokens),
+				ThoughtsTokens:   int(chunk.Usage.CompletionTokensDetails.ReasoningTokens),
 				CompletionTokens: int(chunk.Usage.CompletionTokens),
 			}
 			span.SetAttributes(
 				attribute.Int("ai.prompt_tokens", int(chunk.Usage.PromptTokens)),
+				attribute.Int("ai.thoughts_tokens", int(chunk.Usage.CompletionTokensDetails.ReasoningTokens)),
 				attribute.Int("ai.completion_tokens", int(chunk.Usage.CompletionTokens)),
 				attribute.Int("ai.total_tokens", int(chunk.Usage.TotalTokens)),
 				attribute.Int("ai.cache_read_tokens", int(chunk.Usage.PromptTokensDetails.CachedTokens)),

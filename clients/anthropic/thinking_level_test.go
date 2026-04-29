@@ -15,13 +15,13 @@ func TestChatCompleter_ThinkingLevel(t *testing.T) {
 		level       gai.ThinkingLevel
 		shouldPanic bool
 	}{
-		{name: "panics on none", level: gai.ThinkingLevelNone, shouldPanic: true},
-		{name: "panics on minimal", level: gai.ThinkingLevelMinimal, shouldPanic: true},
-		{name: "panics on low", level: gai.ThinkingLevelLow, shouldPanic: true},
-		{name: "panics on medium", level: gai.ThinkingLevelMedium, shouldPanic: true},
-		{name: "panics on high", level: gai.ThinkingLevelHigh, shouldPanic: true},
-		{name: "panics on xhigh", level: gai.ThinkingLevelXHigh, shouldPanic: true},
-		{name: "panics on max", level: gai.ThinkingLevelMax, shouldPanic: true},
+		{name: "accepts gai.ThinkingLevelNone", level: gai.ThinkingLevelNone, shouldPanic: false},
+		{name: "accepts ThinkingLevelLow", level: ThinkingLevelLow, shouldPanic: false},
+		{name: "accepts ThinkingLevelMedium", level: ThinkingLevelMedium, shouldPanic: false},
+		{name: "accepts ThinkingLevelHigh", level: ThinkingLevelHigh, shouldPanic: false},
+		{name: "accepts ThinkingLevelXHigh", level: ThinkingLevelXHigh, shouldPanic: false},
+		{name: "accepts ThinkingLevelMax", level: ThinkingLevelMax, shouldPanic: false},
+		{name: "panics on a level the client does not publish (minimal)", level: gai.ThinkingLevel("minimal"), shouldPanic: true},
 	}
 
 	for _, test := range tests {
@@ -47,6 +47,13 @@ func TestChatCompleter_ThinkingLevel(t *testing.T) {
 				msg, ok := panicValue.(string)
 				if !ok || msg != "unsupported thinking level: "+string(test.level) {
 					t.Fatalf("expected panic with unsupported thinking level message, got %v", panicValue)
+				}
+			} else {
+				if panicValue != nil {
+					msg, ok := panicValue.(string)
+					if ok && msg == "unsupported thinking level: "+string(test.level) {
+						t.Fatalf("unexpected panic on supported thinking level: %v", panicValue)
+					}
 				}
 			}
 		})

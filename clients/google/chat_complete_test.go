@@ -559,7 +559,99 @@ func assertVertexFlashChatComplete(t *testing.T, c *google.Client) {
 func newChatCompleter(t *testing.T) *google.ChatCompleter {
 	c := newClient(t)
 	cc := c.NewChatCompleter(google.NewChatCompleterOptions{
+		// Default test model is held at 2.5 Flash because Gemini 3.x requires
+		// thought_signature round-trip on multi-turn tool flows, which is not yet
+		// plumbed through gai.Part (same deferral as Anthropic signature, issue #250).
+		// 3.x mappings are exercised by TestChatCompleter_ChatComplete_Gemini3 below.
 		Model: google.ChatCompleteModelGemini2_5Flash,
 	})
 	return cc
+}
+
+// TestChatCompleter_ChatComplete_Gemini3 covers the per-client thinking-level mappings on the
+// Gemini 3.x family. Stays single-turn to avoid the thought_signature round-trip requirement
+// that 3.x enforces on tool follow-ups (see issue #251 follow-up).
+//
+// Two models are exercised because their thinking-mode shapes differ:
+//   - gemini-3-flash-preview accepts gai.ThinkingLevelNone (ThinkingBudget=0).
+//   - gemini-3-pro-preview rejects None ("This model only works in thinking mode") but
+//     reliably streams Thought parts via the streaming API, which Flash does not (Flash
+//     surfaces thought summaries only on the batch endpoint).
+func TestChatCompleter_ChatComplete_Gemini3(t *testing.T) {
+	c := newClient(t)
+
+	t.Run("disables thinking via gai.ThinkingLevelNone on Flash 3", func(t *testing.T) {
+		cc := c.NewChatCompleter(google.NewChatCompleterOptions{
+			Model: google.ChatCompleteModelGemini3FlashPreview,
+		})
+
+		req := gai.ChatCompleteRequest{
+			Messages:      []gai.Message{gai.NewUserTextMessage("Reply with just: hello")},
+			Temperature:   gai.Ptr(gai.Temperature(0)),
+			ThinkingLevel: gai.Ptr(gai.ThinkingLevelNone),
+		}
+
+		res, err := cc.ChatComplete(t.Context(), req)
+		is.NotError(t, err)
+
+		var thoughtParts, textParts int
+		var output string
+		for part, err := range res.Parts() {
+			is.NotError(t, err)
+			switch part.Type {
+			case gai.PartTypeText:
+				textParts++
+				output += part.Text()
+			case gai.PartTypeThought:
+				thoughtParts++
+			default:
+				t.Fatalf("unexpected part type %s", part.Type)
+			}
+		}
+		is.True(t, textParts > 0, "should have text parts")
+		is.Equal(t, 0, thoughtParts, "should have no thought parts when thinking is off")
+		is.True(t, len(output) > 0, "should have output")
+		is.Equal(t, 0, res.Meta.Usage.ThoughtsTokens, "thoughts tokens should be zero")
+	})
+
+	t.Run("streams PartTypeThought and populates thoughts tokens on Pro 3", func(t *testing.T) {
+		cc := c.NewChatCompleter(google.NewChatCompleterOptions{
+			Model: google.ChatCompleteModelGemini3ProPreview,
+		})
+
+		// Pro 3 + a thinking-heavy prompt reliably emits at least one Thought part on the
+		// streaming path. "Hi!" is too trivial — empirically the model skips emitting a
+		// thought summary half the time. Flash 3 doesn't surface thought parts via the
+		// streaming API at all (only via the batch endpoint), which is why this subtest
+		// targets Pro.
+		req := gai.ChatCompleteRequest{
+			Messages: []gai.Message{
+				gai.NewUserTextMessage("Solve step by step: a farmer has 17 sheep, all but 9 die. How many remain?"),
+			},
+			Temperature:   gai.Ptr(gai.Temperature(0)),
+			ThinkingLevel: gai.Ptr(google.ThinkingLevelLow),
+		}
+
+		res, err := cc.ChatComplete(t.Context(), req)
+		is.NotError(t, err)
+
+		var thoughtParts, textParts int
+		var output string
+		for part, err := range res.Parts() {
+			is.NotError(t, err)
+			switch part.Type {
+			case gai.PartTypeText:
+				textParts++
+				output += part.Text()
+			case gai.PartTypeThought:
+				thoughtParts++
+			default:
+				t.Fatalf("unexpected part type %s", part.Type)
+			}
+		}
+		is.True(t, textParts > 0, "should have text parts")
+		is.True(t, len(output) > 0, "should have answer text")
+		is.True(t, thoughtParts > 0, "should stream PartTypeThought parts when thinking is on")
+		is.True(t, res.Meta.Usage.ThoughtsTokens > 0, "thoughts tokens should be populated when thinking is on")
+	})
 }

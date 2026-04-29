@@ -15,13 +15,13 @@ func TestChatCompleter_ThinkingLevel(t *testing.T) {
 		level       gai.ThinkingLevel
 		shouldPanic bool
 	}{
-		{name: "accepts none", level: gai.ThinkingLevelNone, shouldPanic: false},
-		{name: "accepts minimal", level: gai.ThinkingLevelMinimal, shouldPanic: false},
-		{name: "accepts low", level: gai.ThinkingLevelLow, shouldPanic: false},
-		{name: "accepts medium", level: gai.ThinkingLevelMedium, shouldPanic: false},
-		{name: "accepts high", level: gai.ThinkingLevelHigh, shouldPanic: false},
-		{name: "accepts xhigh", level: gai.ThinkingLevelXHigh, shouldPanic: false},
-		{name: "panics on max", level: gai.ThinkingLevelMax, shouldPanic: true},
+		{name: "accepts gai.ThinkingLevelNone", level: gai.ThinkingLevelNone, shouldPanic: false},
+		{name: "accepts ThinkingLevelMinimal", level: ThinkingLevelMinimal, shouldPanic: false},
+		{name: "accepts ThinkingLevelLow", level: ThinkingLevelLow, shouldPanic: false},
+		{name: "accepts ThinkingLevelMedium", level: ThinkingLevelMedium, shouldPanic: false},
+		{name: "accepts ThinkingLevelHigh", level: ThinkingLevelHigh, shouldPanic: false},
+		{name: "accepts ThinkingLevelXHigh", level: ThinkingLevelXHigh, shouldPanic: false},
+		{name: "panics on a level the client does not publish", level: gai.ThinkingLevel("max"), shouldPanic: true},
 	}
 
 	for _, test := range tests {

@@ -405,7 +405,60 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 func newChatCompleter(t *testing.T) *anthropic.ChatCompleter {
 	c := newClient(t)
 	cc := c.NewChatCompleter(anthropic.NewChatCompleterOptions{
-		Model: anthropic.ChatCompleteModelClaudeHaiku4_5Latest,
+		Model: anthropic.ChatCompleteModelClaudeSonnet4_6Latest,
 	})
 	return cc
+}
+
+// TestChatCompleter_AdaptiveThinking exercises the adaptive thinking + effort mapping on
+// Sonnet 4.6, plus the inbound-thought hard error.
+func TestChatCompleter_AdaptiveThinking(t *testing.T) {
+	t.Run("streams thought parts and produces an answer at high effort", func(t *testing.T) {
+		cc := newChatCompleter(t)
+
+		req := gai.ChatCompleteRequest{
+			Messages: []gai.Message{
+				gai.NewUserTextMessage("Solve step by step: a farmer has 17 sheep, all but 9 die. How many remain?"),
+			},
+			MaxCompletionTokens: gai.Ptr(4096),
+			ThinkingLevel:       gai.Ptr(anthropic.ThinkingLevelHigh),
+		}
+
+		res, err := cc.ChatComplete(t.Context(), req)
+		is.NotError(t, err)
+
+		var thoughtParts, textParts int
+		var output string
+		for part, err := range res.Parts() {
+			is.NotError(t, err)
+			switch part.Type {
+			case gai.PartTypeText:
+				textParts++
+				output += part.Text()
+			case gai.PartTypeThought:
+				thoughtParts++
+			default:
+				t.Fatalf("unexpected part type %s", part.Type)
+			}
+		}
+		is.True(t, textParts > 0, "should have text parts")
+		is.True(t, len(output) > 0, "should have output")
+		t.Logf("thought parts streamed: %d", thoughtParts)
+	})
+
+	t.Run("rejects inbound PartTypeThought as deferred (issue #250)", func(t *testing.T) {
+		cc := newChatCompleter(t)
+
+		req := gai.ChatCompleteRequest{
+			Messages: []gai.Message{
+				{Role: gai.MessageRoleUser, Parts: []gai.Part{gai.TextPart("Hi!")}},
+				{Role: gai.MessageRoleModel, Parts: []gai.Part{gai.ThoughtPart("the user said hi")}},
+				gai.NewUserTextMessage("And again, hi!"),
+			},
+		}
+
+		_, err := cc.ChatComplete(t.Context(), req)
+		is.True(t, err != nil, "expected an error")
+		is.True(t, strings.Contains(err.Error(), "PartTypeThought"), err.Error())
+	})
 }
