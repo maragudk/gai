@@ -400,53 +400,101 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 		}
 		_, _ = cc.ChatComplete(t.Context(), req)
 	})
-}
 
-func newChatCompleter(t *testing.T) *anthropic.ChatCompleter {
-	c := newClient(t)
-	cc := c.NewChatCompleter(anthropic.NewChatCompleterOptions{
-		Model: anthropic.ChatCompleteModelClaudeSonnet4_6Latest,
-	})
-	return cc
-}
+	// Thinking-level matrix. Each row exercises a real (model, level) combination so the
+	// per-client `ThinkingLevel` mapping is grounded in live API behaviour. The rows below
+	// are pinned to empirical probe results: which models support adaptive thinking, which
+	// effort levels each accepts, and (where stable across multiple runs) whether the model
+	// emits `PartTypeThought` blocks at that level.
+	t.Run("adaptive thinking matrix", func(t *testing.T) {
+		tests := []struct {
+			name            string
+			model           anthropic.ChatCompleteModel
+			level           gai.ThinkingLevel
+			wantErr         bool
+			requireThoughts bool // strict: assert thoughtParts > 0
+		}{
+			// Sonnet 4.6 supports adaptive thinking up to "high"; xhigh is rejected.
+			// "low" is non-deterministic — the model decides whether to surface a thinking
+			// block; we don't strictly assert. Medium/high/max are reliably thoughtful.
+			{name: "sonnet 4.6 + low", model: anthropic.ChatCompleteModelClaudeSonnet4_6Latest, level: anthropic.ThinkingLevelLow},
+			{name: "sonnet 4.6 + medium", model: anthropic.ChatCompleteModelClaudeSonnet4_6Latest, level: anthropic.ThinkingLevelMedium, requireThoughts: true},
+			{name: "sonnet 4.6 + high", model: anthropic.ChatCompleteModelClaudeSonnet4_6Latest, level: anthropic.ThinkingLevelHigh, requireThoughts: true},
+			{name: "sonnet 4.6 + xhigh rejected", model: anthropic.ChatCompleteModelClaudeSonnet4_6Latest, level: anthropic.ThinkingLevelXHigh, wantErr: true},
+			{name: "sonnet 4.6 + max", model: anthropic.ChatCompleteModelClaudeSonnet4_6Latest, level: anthropic.ThinkingLevelMax, requireThoughts: true},
 
-// TestChatCompleter_AdaptiveThinking exercises the adaptive thinking + effort mapping on
-// Sonnet 4.6, plus the inbound-thought hard error.
-func TestChatCompleter_AdaptiveThinking(t *testing.T) {
-	t.Run("streams thought parts and produces an answer at high effort", func(t *testing.T) {
-		cc := newChatCompleter(t)
+			// Opus 4.7 accepts every level including xhigh, but `ThinkingDelta` events
+			// don't reliably arrive on the streaming path at any level: the non-streaming
+			// `Messages.New` API returns `thinking` blocks at max, yet the equivalent
+			// streaming run yields zero `ThinkingDelta`s. Treated as "no strict assertion"
+			// here — the rows still confirm the call doesn't error.
+			{name: "opus 4.7 + low", model: anthropic.ChatCompleteModelClaudeOpus4_7Latest, level: anthropic.ThinkingLevelLow},
+			{name: "opus 4.7 + medium", model: anthropic.ChatCompleteModelClaudeOpus4_7Latest, level: anthropic.ThinkingLevelMedium},
+			{name: "opus 4.7 + high", model: anthropic.ChatCompleteModelClaudeOpus4_7Latest, level: anthropic.ThinkingLevelHigh},
+			{name: "opus 4.7 + xhigh", model: anthropic.ChatCompleteModelClaudeOpus4_7Latest, level: anthropic.ThinkingLevelXHigh},
+			{name: "opus 4.7 + max", model: anthropic.ChatCompleteModelClaudeOpus4_7Latest, level: anthropic.ThinkingLevelMax},
 
-		req := gai.ChatCompleteRequest{
-			Messages: []gai.Message{
-				gai.NewUserTextMessage("Solve step by step: a farmer has 17 sheep, all but 9 die. How many remain?"),
-			},
-			MaxCompletionTokens: gai.Ptr(4096),
-			ThinkingLevel:       gai.Ptr(anthropic.ThinkingLevelHigh),
+			// Older 4.x models: adaptive thinking is not supported. The API returns
+			// `400 adaptive thinking is not supported on this model` for all levels.
+			// Haiku 4.5 confirms the rejection; Sonnet 4.5 confirms it on the older mid-tier.
+			{name: "haiku 4.5 rejects adaptive", model: anthropic.ChatCompleteModelClaudeHaiku4_5Latest, level: anthropic.ThinkingLevelMedium, wantErr: true},
+			{name: "sonnet 4.5 rejects adaptive", model: anthropic.ChatCompleteModelClaudeSonnet4_5Latest, level: anthropic.ThinkingLevelMedium, wantErr: true},
 		}
 
-		res, err := cc.ChatComplete(t.Context(), req)
-		is.NotError(t, err)
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				cc := newChatCompleter(t, test.model)
 
-		var thoughtParts, textParts int
-		var output string
-		for part, err := range res.Parts() {
-			is.NotError(t, err)
-			switch part.Type {
-			case gai.PartTypeText:
-				textParts++
-				output += part.Text()
-			case gai.PartTypeThought:
-				thoughtParts++
-			default:
-				t.Fatalf("unexpected part type %s", part.Type)
-			}
+				req := gai.ChatCompleteRequest{
+					Messages: []gai.Message{
+						gai.NewUserTextMessage("Solve step by step: a farmer has 17 sheep, all but 9 die. How many remain?"),
+					},
+					MaxCompletionTokens: gai.Ptr(4096),
+					ThinkingLevel:       gai.Ptr(test.level),
+				}
+
+				res, err := cc.ChatComplete(t.Context(), req)
+				if test.wantErr {
+					// Anthropic surfaces level/capability rejections during the streaming
+					// pass: the constructor returns nil error but the Parts iterator yields
+					// the API error on the first read.
+					if err != nil {
+						return
+					}
+					streamErr := drainParts(t, res)
+					is.True(t, streamErr != nil, "expected an error from the API")
+					return
+				}
+				is.NotError(t, err)
+
+				var thoughtParts, textParts int
+				for part, partErr := range res.Parts() {
+					is.NotError(t, partErr)
+					switch part.Type {
+					case gai.PartTypeText:
+						textParts++
+					case gai.PartTypeThought:
+						thoughtParts++
+					default:
+						t.Fatalf("unexpected part type %s", part.Type)
+					}
+				}
+				is.True(t, textParts > 0, "should produce text parts")
+				if test.requireThoughts {
+					is.True(t, thoughtParts > 0, "should stream PartTypeThought parts")
+				}
+				// Anthropic does not separately count thinking tokens in the SDK Usage
+				// struct; they're bundled into OutputTokens. So we don't assert on
+				// res.Meta.Usage.ThoughtsTokens here.
+				t.Logf("thoughtParts=%d textParts=%d", thoughtParts, textParts)
+			})
 		}
-		is.True(t, textParts > 0, "should have text parts")
-		is.True(t, len(output) > 0, "should have output")
-		t.Logf("thought parts streamed: %d", thoughtParts)
 	})
 
-	t.Run("rejects inbound PartTypeThought as deferred (issue #250)", func(t *testing.T) {
+	t.Run("rejects inbound PartTypeThought as deferred", func(t *testing.T) {
+		// Multi-turn round-trip of the per-block signature is tracked by
+		// https://github.com/maragudk/gai/issues/250. Until that lands, the client
+		// returns a typed error rather than silently dropping the part.
 		cc := newChatCompleter(t)
 
 		req := gai.ChatCompleteRequest{
@@ -461,4 +509,61 @@ func TestChatCompleter_AdaptiveThinking(t *testing.T) {
 		is.True(t, err != nil, "expected an error")
 		is.True(t, strings.Contains(err.Error(), "PartTypeThought"), err.Error())
 	})
+
+	t.Run("panics on unsupported thinking level", func(t *testing.T) {
+		// The Anthropic client publishes Low/Medium/High/XHigh/Max. Anything outside
+		// that set must panic at the boundary, not silently round-trip to the API.
+		tests := []struct {
+			name  string
+			level gai.ThinkingLevel
+		}{
+			{name: "minimal not published", level: gai.ThinkingLevel("minimal")},
+			{name: "arbitrary string", level: gai.ThinkingLevel("none-i-mean-nothing")},
+		}
+
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				cc := newChatCompleter(t)
+
+				defer func() {
+					r := recover()
+					is.True(t, r != nil, "expected a panic")
+					msg, ok := r.(string)
+					is.True(t, ok, "panic value should be a string")
+					is.Equal(t, "unsupported thinking level: "+string(test.level), msg)
+				}()
+
+				req := gai.ChatCompleteRequest{
+					Messages:      []gai.Message{gai.NewUserTextMessage("Hi!")},
+					ThinkingLevel: gai.Ptr(test.level),
+				}
+				_, _ = cc.ChatComplete(t.Context(), req)
+			})
+		}
+	})
+}
+
+// drainParts iterates the response stream, returning the first error if any.
+func drainParts(t *testing.T, res gai.ChatCompleteResponse) error {
+	t.Helper()
+	for _, err := range res.Parts() {
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// newChatCompleter builds a [anthropic.ChatCompleter] for tests. With no model argument,
+// the default is `claude-haiku-4-5` — the cheapest current model, which keeps the bulk of
+// the integration tests fast and inexpensive. Tests that need a specific capability
+// (Sonnet 4.6 adaptive thinking, Opus 4.7 xhigh effort, etc.) pass the model explicitly.
+func newChatCompleter(t *testing.T, model ...anthropic.ChatCompleteModel) *anthropic.ChatCompleter {
+	t.Helper()
+	m := anthropic.ChatCompleteModelClaudeHaiku4_5Latest
+	if len(model) > 0 {
+		m = model[0]
+	}
+	c := newClient(t)
+	return c.NewChatCompleter(anthropic.NewChatCompleterOptions{Model: m})
 }

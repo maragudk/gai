@@ -402,76 +402,213 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 		}
 		_, _ = cc.ChatComplete(t.Context(), req)
 	})
+
+	// Reasoning-effort matrix. Each row exercises a real (model, level) combination so the
+	// per-client `ThinkingLevel` mapping is grounded in live API behaviour. The matrix
+	// matches the per-model GoDoc bullet list on `clients/openai`'s ThinkingLevel constants:
+	// each row either confirms acceptance or confirms the documented 400 from the API.
+	//
+	// `wantThoughtTokens: true` is asserted only where probe shows the model reliably
+	// returns reasoning tokens at that level. OpenAI Chat Completions never streams
+	// reasoning text, so `PartTypeThought` parts are never expected.
+	t.Run("reasoning effort matrix", func(t *testing.T) {
+		tests := []struct {
+			name              string
+			model             openai.ChatCompleteModel
+			level             gai.ThinkingLevel
+			wantErr           bool
+			wantThoughtTokens bool
+		}{
+			// gpt-5: minimal/low/medium/high accepted, none and xhigh rejected.
+			{name: "gpt-5 + none rejected", model: openai.ChatCompleteModelGPT5, level: gai.ThinkingLevelNone, wantErr: true},
+			{name: "gpt-5 + minimal", model: openai.ChatCompleteModelGPT5, level: openai.ThinkingLevelMinimal},
+			{name: "gpt-5 + low", model: openai.ChatCompleteModelGPT5, level: openai.ThinkingLevelLow},
+			{name: "gpt-5 + medium", model: openai.ChatCompleteModelGPT5, level: openai.ThinkingLevelMedium},
+			{name: "gpt-5 + high", model: openai.ChatCompleteModelGPT5, level: openai.ThinkingLevelHigh},
+			{name: "gpt-5 + xhigh rejected", model: openai.ChatCompleteModelGPT5, level: openai.ThinkingLevelXHigh, wantErr: true},
+
+			// gpt-5-mini: same matrix as gpt-5.
+			{name: "gpt-5-mini + none rejected", model: openai.ChatCompleteModelGPT5Mini, level: gai.ThinkingLevelNone, wantErr: true},
+			{name: "gpt-5-mini + minimal", model: openai.ChatCompleteModelGPT5Mini, level: openai.ThinkingLevelMinimal},
+			{name: "gpt-5-mini + low", model: openai.ChatCompleteModelGPT5Mini, level: openai.ThinkingLevelLow},
+			{name: "gpt-5-mini + medium", model: openai.ChatCompleteModelGPT5Mini, level: openai.ThinkingLevelMedium},
+			{name: "gpt-5-mini + high", model: openai.ChatCompleteModelGPT5Mini, level: openai.ThinkingLevelHigh},
+			{name: "gpt-5-mini + xhigh rejected", model: openai.ChatCompleteModelGPT5Mini, level: openai.ThinkingLevelXHigh, wantErr: true},
+
+			// gpt-5-nano: same matrix as gpt-5.
+			{name: "gpt-5-nano + none rejected", model: openai.ChatCompleteModelGPT5Nano, level: gai.ThinkingLevelNone, wantErr: true},
+			{name: "gpt-5-nano + minimal", model: openai.ChatCompleteModelGPT5Nano, level: openai.ThinkingLevelMinimal},
+			{name: "gpt-5-nano + low", model: openai.ChatCompleteModelGPT5Nano, level: openai.ThinkingLevelLow},
+			{name: "gpt-5-nano + medium", model: openai.ChatCompleteModelGPT5Nano, level: openai.ThinkingLevelMedium},
+			{name: "gpt-5-nano + high", model: openai.ChatCompleteModelGPT5Nano, level: openai.ThinkingLevelHigh},
+			{name: "gpt-5-nano + xhigh rejected", model: openai.ChatCompleteModelGPT5Nano, level: openai.ThinkingLevelXHigh, wantErr: true},
+
+			// gpt-5.1: none/low/medium/high accepted, minimal and xhigh rejected.
+			{name: "gpt-5.1 + none", model: openai.ChatCompleteModelGPT5_1, level: gai.ThinkingLevelNone},
+			{name: "gpt-5.1 + minimal rejected", model: openai.ChatCompleteModelGPT5_1, level: openai.ThinkingLevelMinimal, wantErr: true},
+			{name: "gpt-5.1 + low", model: openai.ChatCompleteModelGPT5_1, level: openai.ThinkingLevelLow},
+			{name: "gpt-5.1 + medium", model: openai.ChatCompleteModelGPT5_1, level: openai.ThinkingLevelMedium},
+			{name: "gpt-5.1 + high", model: openai.ChatCompleteModelGPT5_1, level: openai.ThinkingLevelHigh},
+			{name: "gpt-5.1 + xhigh rejected", model: openai.ChatCompleteModelGPT5_1, level: openai.ThinkingLevelXHigh, wantErr: true},
+
+			// gpt-5.1-mini intentionally omitted: the model is in the SDK enum but not
+			// accessible with our test API key (404 model_not_found). The matrix is the
+			// same as gpt-5.1 above per OpenAI's docs; no level-mapping signal is lost
+			// by skipping it.
+
+			// gpt-5.2: none/low/medium/high/xhigh accepted, minimal rejected.
+			{name: "gpt-5.2 + none", model: openai.ChatCompleteModelGPT5_2, level: gai.ThinkingLevelNone},
+			{name: "gpt-5.2 + minimal rejected", model: openai.ChatCompleteModelGPT5_2, level: openai.ThinkingLevelMinimal, wantErr: true},
+			{name: "gpt-5.2 + low", model: openai.ChatCompleteModelGPT5_2, level: openai.ThinkingLevelLow},
+			{name: "gpt-5.2 + medium", model: openai.ChatCompleteModelGPT5_2, level: openai.ThinkingLevelMedium},
+			{name: "gpt-5.2 + high", model: openai.ChatCompleteModelGPT5_2, level: openai.ThinkingLevelHigh},
+			{name: "gpt-5.2 + xhigh", model: openai.ChatCompleteModelGPT5_2, level: openai.ThinkingLevelXHigh, wantThoughtTokens: true},
+
+			// gpt-5.3-chat-latest: chat-tuned, only `medium` accepted; every other level
+			// rejected with `Supported values are: 'medium'`.
+			{name: "gpt-5.3-chat-latest + none rejected", model: openai.ChatCompleteModelGPT5_3ChatLatest, level: gai.ThinkingLevelNone, wantErr: true},
+			{name: "gpt-5.3-chat-latest + minimal rejected", model: openai.ChatCompleteModelGPT5_3ChatLatest, level: openai.ThinkingLevelMinimal, wantErr: true},
+			{name: "gpt-5.3-chat-latest + low rejected", model: openai.ChatCompleteModelGPT5_3ChatLatest, level: openai.ThinkingLevelLow, wantErr: true},
+			{name: "gpt-5.3-chat-latest + medium", model: openai.ChatCompleteModelGPT5_3ChatLatest, level: openai.ThinkingLevelMedium},
+			{name: "gpt-5.3-chat-latest + high rejected", model: openai.ChatCompleteModelGPT5_3ChatLatest, level: openai.ThinkingLevelHigh, wantErr: true},
+			{name: "gpt-5.3-chat-latest + xhigh rejected", model: openai.ChatCompleteModelGPT5_3ChatLatest, level: openai.ThinkingLevelXHigh, wantErr: true},
+
+			// gpt-5.4: same matrix as gpt-5.2 — none/low/medium/high/xhigh accepted.
+			{name: "gpt-5.4 + none", model: openai.ChatCompleteModelGPT5_4, level: gai.ThinkingLevelNone},
+			{name: "gpt-5.4 + minimal rejected", model: openai.ChatCompleteModelGPT5_4, level: openai.ThinkingLevelMinimal, wantErr: true},
+			{name: "gpt-5.4 + low", model: openai.ChatCompleteModelGPT5_4, level: openai.ThinkingLevelLow},
+			{name: "gpt-5.4 + medium", model: openai.ChatCompleteModelGPT5_4, level: openai.ThinkingLevelMedium, wantThoughtTokens: true},
+			{name: "gpt-5.4 + high", model: openai.ChatCompleteModelGPT5_4, level: openai.ThinkingLevelHigh, wantThoughtTokens: true},
+			{name: "gpt-5.4 + xhigh", model: openai.ChatCompleteModelGPT5_4, level: openai.ThinkingLevelXHigh, wantThoughtTokens: true},
+
+			// gpt-5.4-mini: same matrix as gpt-5.4.
+			{name: "gpt-5.4-mini + none", model: openai.ChatCompleteModelGPT5_4Mini, level: gai.ThinkingLevelNone},
+			{name: "gpt-5.4-mini + minimal rejected", model: openai.ChatCompleteModelGPT5_4Mini, level: openai.ThinkingLevelMinimal, wantErr: true},
+			{name: "gpt-5.4-mini + low", model: openai.ChatCompleteModelGPT5_4Mini, level: openai.ThinkingLevelLow},
+			{name: "gpt-5.4-mini + medium", model: openai.ChatCompleteModelGPT5_4Mini, level: openai.ThinkingLevelMedium},
+			{name: "gpt-5.4-mini + high", model: openai.ChatCompleteModelGPT5_4Mini, level: openai.ThinkingLevelHigh, wantThoughtTokens: true},
+			{name: "gpt-5.4-mini + xhigh", model: openai.ChatCompleteModelGPT5_4Mini, level: openai.ThinkingLevelXHigh, wantThoughtTokens: true},
+
+			// gpt-5.4-nano: same matrix; nano is much more reluctant to reason than the
+			// full-size 5.4 model — probe returned 0 reasoning tokens at low/medium and
+			// flaky non-zero at high. Only assert thought tokens at xhigh, where reasoning
+			// is reliable.
+			{name: "gpt-5.4-nano + none", model: openai.ChatCompleteModelGPT5_4Nano, level: gai.ThinkingLevelNone},
+			{name: "gpt-5.4-nano + minimal rejected", model: openai.ChatCompleteModelGPT5_4Nano, level: openai.ThinkingLevelMinimal, wantErr: true},
+			{name: "gpt-5.4-nano + low", model: openai.ChatCompleteModelGPT5_4Nano, level: openai.ThinkingLevelLow},
+			{name: "gpt-5.4-nano + medium", model: openai.ChatCompleteModelGPT5_4Nano, level: openai.ThinkingLevelMedium},
+			{name: "gpt-5.4-nano + high", model: openai.ChatCompleteModelGPT5_4Nano, level: openai.ThinkingLevelHigh},
+			{name: "gpt-5.4-nano + xhigh", model: openai.ChatCompleteModelGPT5_4Nano, level: openai.ThinkingLevelXHigh, wantThoughtTokens: true},
+
+			// gpt-5.5: frontier model, same matrix as 5.4. Reasons more eagerly than 5.4.
+			{name: "gpt-5.5 + none", model: openai.ChatCompleteModelGPT5_5, level: gai.ThinkingLevelNone},
+			{name: "gpt-5.5 + minimal rejected", model: openai.ChatCompleteModelGPT5_5, level: openai.ThinkingLevelMinimal, wantErr: true},
+			{name: "gpt-5.5 + low", model: openai.ChatCompleteModelGPT5_5, level: openai.ThinkingLevelLow, wantThoughtTokens: true},
+			{name: "gpt-5.5 + medium", model: openai.ChatCompleteModelGPT5_5, level: openai.ThinkingLevelMedium, wantThoughtTokens: true},
+			{name: "gpt-5.5 + high", model: openai.ChatCompleteModelGPT5_5, level: openai.ThinkingLevelHigh, wantThoughtTokens: true},
+			{name: "gpt-5.5 + xhigh", model: openai.ChatCompleteModelGPT5_5, level: openai.ThinkingLevelXHigh, wantThoughtTokens: true},
+		}
+
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				cc := newChatCompleter(t, test.model)
+
+				req := gai.ChatCompleteRequest{
+					Messages: []gai.Message{
+						gai.NewUserTextMessage("Solve step by step: a farmer has 17 sheep, all but 9 die. How many remain?"),
+					},
+					ThinkingLevel: gai.Ptr(test.level),
+				}
+
+				res, err := cc.ChatComplete(t.Context(), req)
+				if test.wantErr {
+					if err != nil {
+						return
+					}
+					streamErr := drainParts(t, res)
+					is.True(t, streamErr != nil, "expected an error from the API")
+					return
+				}
+				is.NotError(t, err)
+
+				var output string
+				for part, partErr := range res.Parts() {
+					is.NotError(t, partErr)
+					switch part.Type {
+					case gai.PartTypeText:
+						output += part.Text()
+					case gai.PartTypeThought:
+						t.Fatal("OpenAI Chat Completions should not stream PartTypeThought")
+					default:
+						t.Fatalf("unexpected part type %s", part.Type)
+					}
+				}
+				is.True(t, len(output) > 0, "should have output")
+				if test.wantThoughtTokens {
+					is.True(t, res.Meta.Usage.ThoughtsTokens > 0, "thoughts tokens should be populated")
+				}
+				t.Logf("thoughtsTokens=%d outputLen=%d", res.Meta.Usage.ThoughtsTokens, len(output))
+			})
+		}
+	})
+
+	t.Run("panics on unsupported thinking level", func(t *testing.T) {
+		// The OpenAI client publishes Minimal/Low/Medium/High/XHigh. Anything outside
+		// that set must panic at the boundary, not silently round-trip to the API.
+		tests := []struct {
+			name  string
+			level gai.ThinkingLevel
+		}{
+			{name: "max not published", level: gai.ThinkingLevel("max")},
+			{name: "arbitrary string", level: gai.ThinkingLevel("nonsense")},
+		}
+
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				cc := newChatCompleter(t)
+
+				defer func() {
+					r := recover()
+					is.True(t, r != nil, "expected a panic")
+					msg, ok := r.(string)
+					is.True(t, ok, "panic value should be a string")
+					is.Equal(t, "unsupported thinking level: "+string(test.level), msg)
+				}()
+
+				req := gai.ChatCompleteRequest{
+					Messages:      []gai.Message{gai.NewUserTextMessage("Hi!")},
+					ThinkingLevel: gai.Ptr(test.level),
+				}
+				_, _ = cc.ChatComplete(t.Context(), req)
+			})
+		}
+	})
 }
 
-func newChatCompleter(t *testing.T) *openai.ChatCompleter {
-	c := newClient(t)
-	cc := c.NewChatCompleter(openai.NewChatCompleterOptions{
-		Model: openai.ChatCompleteModelGPT5Nano,
-	})
-	return cc
+// drainParts iterates the response stream, returning the first error if any.
+func drainParts(t *testing.T, res gai.ChatCompleteResponse) error {
+	t.Helper()
+	for _, err := range res.Parts() {
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
-// TestChatCompleter_ChatComplete_GPT5_5 exercises the per-client thinking-level mapping
-// against gpt-5.5, the newest frontier chat-completions model. The pinned openai-go SDK
-// (v3.33.0) does not yet ship a `ChatModelGPT5_5` enum, so `ChatCompleteModelGPT5_5` wraps
-// the bare API string. Also confirms thoughts tokens surface on Usage even though Chat
-// Completions does not stream reasoning text as parts.
-func TestChatCompleter_ChatComplete_GPT5_5(t *testing.T) {
+// newChatCompleter builds an [openai.ChatCompleter] for tests. With no model argument,
+// the default is `gpt-5-nano` — the cheapest current model, which keeps the bulk of the
+// integration tests fast and inexpensive. Tests that need a specific capability (gpt-5.4
+// reasoning, gpt-5.5 frontier behaviour, gpt-5.3-chat-latest medium-only quirk, etc.)
+// pass the model explicitly.
+func newChatCompleter(t *testing.T, model ...openai.ChatCompleteModel) *openai.ChatCompleter {
+	t.Helper()
+	m := openai.ChatCompleteModelGPT5Nano
+	if len(model) > 0 {
+		m = model[0]
+	}
 	c := newClient(t)
-	cc := c.NewChatCompleter(openai.NewChatCompleterOptions{
-		Model: openai.ChatCompleteModelGPT5_5,
-	})
-
-	t.Run("populates thoughts tokens at xhigh reasoning effort", func(t *testing.T) {
-		req := gai.ChatCompleteRequest{
-			Messages: []gai.Message{
-				gai.NewUserTextMessage("Solve step by step: a farmer has 17 sheep, all but 9 die. How many remain?"),
-			},
-			// xhigh reliably triggers reasoning on gpt-5.5 in our probes (118 reasoning
-			// tokens for this prompt — gpt-5.5 reasons more eagerly than 5.4 at the same
-			// level). Lower levels work too but are flakier on simple problems.
-			ThinkingLevel: gai.Ptr(openai.ThinkingLevelXHigh),
-		}
-
-		res, err := cc.ChatComplete(t.Context(), req)
-		is.NotError(t, err)
-
-		var output string
-		for part, err := range res.Parts() {
-			is.NotError(t, err)
-			switch part.Type {
-			case gai.PartTypeText:
-				output += part.Text()
-			case gai.PartTypeThought:
-				t.Fatal("OpenAI Chat Completions should not stream PartTypeThought")
-			default:
-				t.Fatalf("unexpected part type %s", part.Type)
-			}
-		}
-		is.True(t, len(output) > 0, "should have output")
-		is.True(t, res.Meta.Usage.ThoughtsTokens > 0, "thoughts tokens should be populated at xhigh effort")
-	})
-
-	t.Run("disables thinking via gai.ThinkingLevelNone", func(t *testing.T) {
-		req := gai.ChatCompleteRequest{
-			Messages:      []gai.Message{gai.NewUserTextMessage("Reply with just: hello")},
-			ThinkingLevel: gai.Ptr(gai.ThinkingLevelNone),
-		}
-
-		res, err := cc.ChatComplete(t.Context(), req)
-		is.NotError(t, err)
-
-		var output string
-		for part, err := range res.Parts() {
-			is.NotError(t, err)
-			if part.Type == gai.PartTypeText {
-				output += part.Text()
-			}
-		}
-		is.True(t, len(output) > 0, "should have output")
-		is.Equal(t, 0, res.Meta.Usage.ThoughtsTokens, "thoughts tokens should be zero with thinking disabled")
-	})
+	return c.NewChatCompleter(openai.NewChatCompleterOptions{Model: m})
 }
 
 func requireContainsAll(t *testing.T, got string, want ...string) {
