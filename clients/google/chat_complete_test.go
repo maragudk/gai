@@ -541,15 +541,26 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			{name: "flash 3 + medium", model: google.ChatCompleteModelGemini3FlashPreview, level: google.ThinkingLevelMedium, wantThoughtTokens: true},
 			{name: "flash 3 + high", model: google.ChatCompleteModelGemini3FlashPreview, level: google.ThinkingLevelHigh, wantThoughtTokens: true},
 
-			// Pro 3 rejects the off path entirely: `This model only works in thinking
+			// Flash Lite 3.1 accepts every level too. Streaming behaviour: no thought parts
+			// at None/Minimal/Low/Medium, but at High the streaming API does emit one
+			// PartTypeThought (different from full Flash 3 which never streams thoughts).
+			// thoughts_tokens are populated from Low onwards.
+			{name: "flash-lite 3.1 + none", model: google.ChatCompleteModelGemini3_1FlashLitePreview, level: gai.ThinkingLevelNone},
+			{name: "flash-lite 3.1 + minimal", model: google.ChatCompleteModelGemini3_1FlashLitePreview, level: google.ThinkingLevelMinimal},
+			{name: "flash-lite 3.1 + low", model: google.ChatCompleteModelGemini3_1FlashLitePreview, level: google.ThinkingLevelLow, wantThoughtTokens: true},
+			{name: "flash-lite 3.1 + medium", model: google.ChatCompleteModelGemini3_1FlashLitePreview, level: google.ThinkingLevelMedium, wantThoughtTokens: true},
+			{name: "flash-lite 3.1 + high", model: google.ChatCompleteModelGemini3_1FlashLitePreview, level: google.ThinkingLevelHigh, requireThoughts: true, wantThoughtTokens: true},
+
+			// Pro 3.1 rejects the off path entirely: `This model only works in thinking
 			// mode`. It also rejects MINIMAL: `Thinking level MINIMAL is not supported for
 			// this model`. Low/Medium/High all reliably stream thought parts and populate
-			// the thoughts-tokens count.
-			{name: "pro 3 + none rejected", model: google.ChatCompleteModelGemini3ProPreview, level: gai.ThinkingLevelNone, wantErr: true},
-			{name: "pro 3 + minimal rejected", model: google.ChatCompleteModelGemini3ProPreview, level: google.ThinkingLevelMinimal, wantErr: true},
-			{name: "pro 3 + low", model: google.ChatCompleteModelGemini3ProPreview, level: google.ThinkingLevelLow, requireThoughts: true, wantThoughtTokens: true},
-			{name: "pro 3 + medium", model: google.ChatCompleteModelGemini3ProPreview, level: google.ThinkingLevelMedium, requireThoughts: true, wantThoughtTokens: true},
-			{name: "pro 3 + high", model: google.ChatCompleteModelGemini3ProPreview, level: google.ThinkingLevelHigh, requireThoughts: true, wantThoughtTokens: true},
+			// the thoughts-tokens count. Same shape as the now-shut-down Gemini 3 Pro
+			// Preview, which we used to target until Google retired it on 2026-03-09.
+			{name: "pro 3.1 + none rejected", model: google.ChatCompleteModelGemini3_1ProPreview, level: gai.ThinkingLevelNone, wantErr: true},
+			{name: "pro 3.1 + minimal rejected", model: google.ChatCompleteModelGemini3_1ProPreview, level: google.ThinkingLevelMinimal, wantErr: true},
+			{name: "pro 3.1 + low", model: google.ChatCompleteModelGemini3_1ProPreview, level: google.ThinkingLevelLow, requireThoughts: true, wantThoughtTokens: true},
+			{name: "pro 3.1 + medium", model: google.ChatCompleteModelGemini3_1ProPreview, level: google.ThinkingLevelMedium, requireThoughts: true, wantThoughtTokens: true},
+			{name: "pro 3.1 + high", model: google.ChatCompleteModelGemini3_1ProPreview, level: google.ThinkingLevelHigh, requireThoughts: true, wantThoughtTokens: true},
 		}
 
 		for _, test := range tests {
@@ -631,6 +642,37 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			})
 		}
 	})
+
+	t.Run("can chat-complete via Vertex AI with API key", func(t *testing.T) {
+		c := newVertexAIClientWithKey(t)
+		assertVertexFlashChatComplete(t, c)
+	})
+
+	t.Run("can chat-complete via Vertex AI with service account", func(t *testing.T) {
+		c := newVertexAIClientWithCredentials(t)
+		assertVertexFlashChatComplete(t, c)
+	})
+
+	t.Run("rejects inbound PartTypeThought as deferred", func(t *testing.T) {
+		// Multi-turn round-trip of the per-part `thought_signature` is tracked by
+		// https://github.com/maragudk/gai/issues/256. Until that lands, the client
+		// returns a typed error rather than silently dropping the part. This subtest
+		// runs without making a network call — the error path triggers during the
+		// request-message conversion, before the API is contacted.
+		cc := newChatCompleter(t)
+
+		req := gai.ChatCompleteRequest{
+			Messages: []gai.Message{
+				{Role: gai.MessageRoleUser, Parts: []gai.Part{gai.TextPart("Hi!")}},
+				{Role: gai.MessageRoleModel, Parts: []gai.Part{gai.ThoughtPart("the user said hi")}},
+				gai.NewUserTextMessage("And again, hi!"),
+			},
+		}
+
+		_, err := cc.ChatComplete(t.Context(), req)
+		is.True(t, err != nil, "expected an error")
+		is.True(t, strings.Contains(err.Error(), "PartTypeThought"), err.Error())
+	})
 }
 
 // drainParts iterates the response stream, returning the first error if any.
@@ -642,18 +684,6 @@ func drainParts(t *testing.T, res gai.ChatCompleteResponse) error {
 		}
 	}
 	return nil
-}
-
-func TestChatCompleter_ChatComplete_VertexAI(t *testing.T) {
-	t.Run("can chat-complete with Vertex AI backend and API key", func(t *testing.T) {
-		c := newVertexAIClientWithKey(t)
-		assertVertexFlashChatComplete(t, c)
-	})
-
-	t.Run("can chat-complete with Vertex AI backend and service account", func(t *testing.T) {
-		c := newVertexAIClientWithCredentials(t)
-		assertVertexFlashChatComplete(t, c)
-	})
 }
 
 func assertVertexFlashChatComplete(t *testing.T, c *google.Client) {

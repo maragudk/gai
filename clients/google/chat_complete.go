@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"sort"
@@ -19,27 +20,34 @@ import (
 	"maragu.dev/gai/clients/google/internal/schema"
 )
 
+// errThoughtRoundTripUnsupported is returned when a caller passes [gai.PartTypeThought]
+// back into the Google client. Multi-turn thinking on Gemini 3.x requires forwarding the
+// per-part `thought_signature` returned by the API, which is not yet plumbed through
+// [gai.Part]. Tracked by https://github.com/maragudk/gai/issues/256.
+var errThoughtRoundTripUnsupported = errors.New("inbound PartTypeThought not supported (https://github.com/maragudk/gai/issues/256)")
+
 // ChatCompleteModel is a Google Gemini model identifier accepted by the chat-completions
 // surface. See https://ai.google.dev/gemini-api/docs/models for the full list and current
 // availability of each model.
 type ChatCompleteModel string
 
 const (
-	ChatCompleteModelGemini2_0Flash      = ChatCompleteModel("gemini-2.0-flash")
-	ChatCompleteModelGemini2_5Flash      = ChatCompleteModel("gemini-2.5-flash")
-	ChatCompleteModelGemini2_5FlashLite  = ChatCompleteModel("gemini-2.5-flash-lite")
-	ChatCompleteModelGemini2_5Pro        = ChatCompleteModel("gemini-2.5-pro")
-	ChatCompleteModelGemini3FlashPreview = ChatCompleteModel("gemini-3-flash-preview")
-	ChatCompleteModelGemini3ProPreview   = ChatCompleteModel("gemini-3-pro-preview")
+	ChatCompleteModelGemini2_0Flash            = ChatCompleteModel("gemini-2.0-flash")
+	ChatCompleteModelGemini2_5Flash            = ChatCompleteModel("gemini-2.5-flash")
+	ChatCompleteModelGemini2_5FlashLite        = ChatCompleteModel("gemini-2.5-flash-lite")
+	ChatCompleteModelGemini2_5Pro              = ChatCompleteModel("gemini-2.5-pro")
+	ChatCompleteModelGemini3FlashPreview       = ChatCompleteModel("gemini-3-flash-preview")
+	ChatCompleteModelGemini3_1ProPreview       = ChatCompleteModel("gemini-3.1-pro-preview")
+	ChatCompleteModelGemini3_1FlashLitePreview = ChatCompleteModel("gemini-3.1-flash-lite-preview")
 )
 
 // Per-client [gai.ThinkingLevel] constants. These map directly onto the symbolic
 // `genai.ThinkingLevel` enum used by the Gemini 3.x family. Pass [gai.ThinkingLevelNone] to
-// opt out via `ThinkingBudget=0`; this is accepted by `gemini-3-flash-preview` and rejected
-// by `gemini-3-pro-preview` (Pro 3.x only runs in thinking mode). Levels not in this list
-// panic at the client boundary.
+// opt out via `ThinkingBudget=0`; this is accepted by `gemini-3-flash-preview` and
+// `gemini-3.1-flash-lite-preview` and rejected by `gemini-3.1-pro-preview` (Pro 3.x only
+// runs in thinking mode). Levels not in this list panic at the client boundary.
 const (
-	// ThinkingLevelMinimal applies the cheapest thinking budget. Rejected by gemini-3-pro-preview.
+	// ThinkingLevelMinimal applies the cheapest thinking budget. Rejected by gemini-3.1-pro-preview.
 	ThinkingLevelMinimal gai.ThinkingLevel = "minimal"
 	// ThinkingLevelLow applies low thinking effort.
 	ThinkingLevelLow gai.ThinkingLevel = "low"
@@ -205,6 +213,16 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 						Data:     part.Data,
 					},
 				})
+
+			case gai.PartTypeThought:
+				// Round-tripping thought parts back to Gemini requires preserving the
+				// per-part `thought_signature` returned by the API, which we don't yet
+				// plumb through [gai.Part]. See
+				// https://github.com/maragudk/gai/issues/256.
+				err := fmt.Errorf("google: %w", errThoughtRoundTripUnsupported)
+				span.RecordError(err)
+				span.SetStatus(codes.Error, "unsupported part type")
+				return gai.ChatCompleteResponse{}, err
 
 			default:
 				panic("unknown part type " + part.Type)

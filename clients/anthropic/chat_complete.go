@@ -113,7 +113,10 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 				// Round-tripping thinking blocks back to Anthropic requires preserving the
 				// signature returned with each block, which we don't yet plumb. See
 				// https://github.com/maragudk/gai/issues/250.
-				return gai.ChatCompleteResponse{}, fmt.Errorf("anthropic: %w", errThoughtRoundTripUnsupported)
+				err := fmt.Errorf("anthropic: %w", errThoughtRoundTripUnsupported)
+				span.RecordError(err)
+				span.SetStatus(codes.Error, "unsupported part type")
+				return gai.ChatCompleteResponse{}, err
 
 			case gai.PartTypeToolCall:
 				toolCall := part.ToolCall()

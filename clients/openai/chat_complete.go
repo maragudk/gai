@@ -177,6 +177,14 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 						panic("unsupported MIME type for OpenAI: " + part.MIMEType)
 					}
 
+				case gai.PartTypeThought:
+					// OpenAI Chat Completions has no inbound reasoning concept — the
+					// streaming response never surfaces reasoning text as parts in the
+					// first place, and the API does not accept a reasoning_text input
+					// field. Silently drop so multi-provider pipelines that round-trip
+					// `gai.PartTypeThought` parts don't panic.
+					continue
+
 				default:
 					panic("unknown part type " + string(part.Type))
 				}
@@ -221,6 +229,11 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 							},
 						},
 					})
+					continue
+
+				case gai.PartTypeThought:
+					// Same rationale as the user-message branch: Chat Completions does
+					// not stream reasoning text and does not accept it as input either.
 					continue
 
 				default:
