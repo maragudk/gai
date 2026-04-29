@@ -49,7 +49,7 @@ func main() {
 	})
 
 	cc := c.NewChatCompleter(openai.NewChatCompleterOptions{
-		Model: openai.ChatCompleteModelGPT4o,
+		Model: openai.ChatCompleteModelGPT5Nano,
 	})
 
 	req := gai.ChatCompleteRequest{

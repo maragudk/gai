@@ -26,8 +26,6 @@ import (
 type ChatCompleteModel string
 
 const (
-	ChatCompleteModelGPT4o            = ChatCompleteModel(openai.ChatModelGPT4o)
-	ChatCompleteModelGPT4oMini        = ChatCompleteModel(openai.ChatModelGPT4oMini)
 	ChatCompleteModelGPT5             = ChatCompleteModel(openai.ChatModelGPT5)
 	ChatCompleteModelGPT5Mini         = ChatCompleteModel(openai.ChatModelGPT5Mini)
 	ChatCompleteModelGPT5Nano         = ChatCompleteModel(openai.ChatModelGPT5Nano)
