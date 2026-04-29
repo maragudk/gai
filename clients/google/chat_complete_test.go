@@ -553,12 +553,13 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 
 			// Pro 3.1 rejects the off path entirely: `This model only works in thinking
 			// mode`. It also rejects MINIMAL: `Thinking level MINIMAL is not supported for
-			// this model`. Low/Medium/High all reliably stream thought parts and populate
-			// the thoughts-tokens count. Same shape as the now-shut-down Gemini 3 Pro
-			// Preview, which we used to target until Google retired it on 2026-03-09.
+			// this model`. Low/Medium/High all populate the thoughts-tokens count. Streamed
+			// thought parts are reliable at Medium/High but flaky at Low (probe: ~50%) — at
+			// Low we assert thoughts_tokens only. Same shape as the now-shut-down Gemini 3
+			// Pro Preview, which we used to target until Google retired it on 2026-03-09.
 			{name: "pro 3.1 + none rejected", model: google.ChatCompleteModelGemini3_1ProPreview, level: gai.ThinkingLevelNone, wantErr: true},
 			{name: "pro 3.1 + minimal rejected", model: google.ChatCompleteModelGemini3_1ProPreview, level: google.ThinkingLevelMinimal, wantErr: true},
-			{name: "pro 3.1 + low", model: google.ChatCompleteModelGemini3_1ProPreview, level: google.ThinkingLevelLow, requireThoughts: true, wantThoughtTokens: true},
+			{name: "pro 3.1 + low", model: google.ChatCompleteModelGemini3_1ProPreview, level: google.ThinkingLevelLow, wantThoughtTokens: true},
 			{name: "pro 3.1 + medium", model: google.ChatCompleteModelGemini3_1ProPreview, level: google.ThinkingLevelMedium, requireThoughts: true, wantThoughtTokens: true},
 			{name: "pro 3.1 + high", model: google.ChatCompleteModelGemini3_1ProPreview, level: google.ThinkingLevelHigh, requireThoughts: true, wantThoughtTokens: true},
 		}
