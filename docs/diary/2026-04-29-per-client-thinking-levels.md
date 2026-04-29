@@ -62,12 +62,16 @@ The probe surfaced concrete answers across all three providers:
   (no `minimal`, no `xhigh`). `gpt-5` accepts `minimal/low/medium/high` (no
   `none`, no `xhigh`). The union is exactly the spec's
   `Minimal/Low/Medium/High/XHigh` plus the universal `none`.
-- Google: `gemini-3-flash-preview` accepts `ThinkingBudget=0`, the four
-  symbolic levels (`MINIMAL/LOW/MEDIUM/HIGH`), and even returns `Thought: true`
-  parts on Low/Medium/High. `gemini-3-pro-preview` rejects `ThinkingBudget=0`
-  and `MINIMAL` ("This model only works in thinking mode") but takes
-  `LOW/MEDIUM/HIGH`. Flash 3 is the right default for tests because it
-  exercises every code path including the off-switch.
+- Google: `gemini-3-flash-preview` accepts `ThinkingBudget=0` and the four
+  symbolic levels (`MINIMAL/LOW/MEDIUM/HIGH`); the *batch* `Models.GenerateContent`
+  endpoint returns `Thought: true` parts on Low/Medium/High, but the
+  *streaming* endpoints (`Chats.SendStream` / `Models.GenerateContentStream`)
+  that our client uses do not — Flash surfaces thought summaries only via
+  batch. `gemini-3-pro-preview` rejects `ThinkingBudget=0` and `MINIMAL`
+  ("This model only works in thinking mode") but takes `LOW/MEDIUM/HIGH` and,
+  unlike Flash, *does* reliably emit `Thought: true` parts on the streaming
+  path. That streaming-vs-batch split forced the test design in Step 2:
+  Flash 3 covers the off-switch; Pro 3 covers thought-part streaming.
 - Anthropic: `Effort` lives on `OutputConfigParam`, not on
   `ThinkingConfigAdaptiveParam`. Adaptive enables thinking; Effort sets the
   level. `xhigh` only works on `claude-opus-4-7`; Sonnet 4.6 / Opus 4.6 reject
@@ -161,7 +165,7 @@ Touched five surfaces:
 2. `clients/openai/chat_complete.go`: published `ThinkingLevelMinimal/Low/Medium/High/XHigh`; rewired the switch to use the new constants and the typed SDK constants (`shared.ReasoningEffortNone/Minimal/.../Xhigh`); added `Usage.ThoughtsTokens` from `chunk.Usage.CompletionTokensDetails.ReasoningTokens` and the matching `ai.thoughts_tokens` span attribute.
 3. `clients/google/chat_complete.go`: added `ChatCompleteModelGemini3FlashPreview/ProPreview` constants; published `ThinkingLevelMinimal/Low/Medium/High`; mapped `gai.ThinkingLevelNone` to `ThinkingConfig{ThinkingBudget: gai.Ptr(int32(0))}`; routed `genai.Part.Thought=true` parts through `gai.ThoughtPart` instead of `gai.TextPart`.
 4. `clients/anthropic/chat_complete.go`: added `ChatCompleteModelClaudeOpus4_7Latest`; published `ThinkingLevelLow/Medium/High/XHigh/Max`; replaced the panic-on-anything thinking handler with a real switch that sets both `params.Thinking = ...OfAdaptive` and `params.OutputConfig.Effort = ...`. Switched `if req.ResponseSchema != nil` to merge into `params.OutputConfig.Format` rather than overwriting `OutputConfig`. Added a typed `errThoughtRoundTripUnsupported` returned when an inbound `gai.PartTypeThought` is passed (matches PR-251's deferral). Added `anthropic.ThinkingDelta` -> `gai.ThoughtPart` streaming.
-5. Tests: rewrote each `thinking_level_test.go` to assert "client publishes constant X" / "panics on Y", added `TestChatCompleter_ChatComplete_Gemini3` (single-turn, against `gemini-3-flash-preview`), added `TestChatCompleter_AdaptiveThinking` (against Sonnet 4.6), added `TestChatCompleter_ChatComplete_GPT5_2`. Updated the Anthropic spans test for the bumped default model. Held the Google integration default at `gemini-2.5-flash` (Step 3 below).
+5. Tests: rewrote each `thinking_level_test.go` to assert "client publishes constant X" / "panics on Y", added `TestChatCompleter_ChatComplete_Gemini3` (single-turn, dual-model: Flash 3 covers the off path with `gai.ThinkingLevelNone`, Pro 3 covers the on path and asserts `PartTypeThought` parts stream — Flash doesn't surface thought parts on the streaming endpoint, only on batch), added `TestChatCompleter_AdaptiveThinking` (against Sonnet 4.6), added `TestChatCompleter_ChatComplete_GPT5_2`. Updated the Anthropic spans test for the bumped default model. Held the Google integration default at `gemini-2.5-flash` (Step 3 below).
 
 `docs/decisions.md` records the architectural choice; this diary holds the empirical narrative.
 
@@ -208,7 +212,7 @@ The diary's `What didn't work` (Step 1 / Step 2) ate ~30 minutes between probe a
 ### What warrants review
 
 - `clients/anthropic/chat_complete.go`: confirm the OutputConfig merge keeps `Format` and `Effort` independent. The two integration tests that now run against Sonnet 4.6 cover the both-set, neither-set, and effort-only paths, but the schema-only path (`ResponseSchema set, ThinkingLevel nil`) only re-uses the existing structured-output assertion.
-- `clients/google/chat_complete.go`: the `Thought:true` -> `gai.ThoughtPart` routing is exercised by the new `TestChatCompleter_ChatComplete_Gemini3/populates_thoughts_tokens_and_may_stream_thought_parts_when_thinking_is_on`. The test asserts thoughts tokens; it logs (rather than asserts) whether thought *parts* arrived because Gemini decides per-request.
+- `clients/google/chat_complete.go`: the `Thought:true` -> `gai.ThoughtPart` routing is exercised by the new `TestChatCompleter_ChatComplete_Gemini3/streams_PartTypeThought_and_populates_thoughts_tokens_on_Pro_3`. The subtest hard-asserts `thoughtParts > 0` (along with `Usage.ThoughtsTokens > 0`); the Pro split was chosen exactly because Pro reliably emits thought parts where Flash does not. The off path is asserted by the sibling `disables_thinking_via_gai.ThinkingLevelNone_on_Flash_3` subtest, which asserts zero thought parts and zero thoughts tokens.
 - The probe under `internal/probe/` was deleted before commit per the spec ("don't ship the probe"); the findings live in this diary instead.
 
 ### Future work
