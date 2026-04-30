@@ -20,18 +20,55 @@ import (
 	"maragu.dev/gai"
 )
 
+// ChatCompleteModel is an OpenAI model identifier accepted by the chat-completions
+// surface. See https://developers.openai.com/api/docs/models for the full list and the
+// current availability and capability matrix of each model.
 type ChatCompleteModel string
 
 const (
-	ChatCompleteModelGPT4o      = ChatCompleteModel(openai.ChatModelGPT4o)
-	ChatCompleteModelGPT4oMini  = ChatCompleteModel(openai.ChatModelGPT4oMini)
-	ChatCompleteModelGPT5       = ChatCompleteModel(openai.ChatModelGPT5)
-	ChatCompleteModelGPT5Mini   = ChatCompleteModel(openai.ChatModelGPT5Mini)
-	ChatCompleteModelGPT5Nano   = ChatCompleteModel(openai.ChatModelGPT5Nano)
-	ChatCompleteModelGPT5_1     = ChatCompleteModel(openai.ChatModelGPT5_1)
-	ChatCompleteModelGPT5_1Mini = ChatCompleteModel(openai.ChatModelGPT5_1Mini)
-	ChatCompleteModelGPT5_2     = ChatCompleteModel(openai.ChatModelGPT5_2)
-	ChatCompleteModelGPT5_2Pro  = ChatCompleteModel(openai.ChatModelGPT5_2Pro)
+	ChatCompleteModelGPT5             = ChatCompleteModel(openai.ChatModelGPT5)
+	ChatCompleteModelGPT5Mini         = ChatCompleteModel(openai.ChatModelGPT5Mini)
+	ChatCompleteModelGPT5Nano         = ChatCompleteModel(openai.ChatModelGPT5Nano)
+	ChatCompleteModelGPT5_1           = ChatCompleteModel(openai.ChatModelGPT5_1)
+	ChatCompleteModelGPT5_1Mini       = ChatCompleteModel(openai.ChatModelGPT5_1Mini)
+	ChatCompleteModelGPT5_2           = ChatCompleteModel(openai.ChatModelGPT5_2)
+	ChatCompleteModelGPT5_2Pro        = ChatCompleteModel(openai.ChatModelGPT5_2Pro)
+	ChatCompleteModelGPT5_3ChatLatest = ChatCompleteModel(openai.ChatModelGPT5_3ChatLatest)
+	ChatCompleteModelGPT5_4           = ChatCompleteModel(openai.ChatModelGPT5_4)
+	ChatCompleteModelGPT5_4Mini       = ChatCompleteModel(openai.ChatModelGPT5_4Mini)
+	ChatCompleteModelGPT5_4Nano       = ChatCompleteModel(openai.ChatModelGPT5_4Nano)
+	// ChatCompleteModelGPT5_5 is the frontier gpt-5.5 model. The pinned openai-go SDK
+	// (v3.33.0) does not yet ship a `ChatModelGPT5_5` enum, so the value is the bare
+	// API string. Switch to `ChatModelGPT5_5` once the SDK exposes it.
+	ChatCompleteModelGPT5_5 = ChatCompleteModel("gpt-5.5")
+)
+
+// Per-client [gai.ThinkingLevel] constants. The set covers the union of reasoning_effort
+// values across the gpt-5.x chat-completions family. Individual models accept a subset
+// (probed empirically against the live API):
+//
+//   - gpt-5: minimal/low/medium/high
+//   - gpt-5.1: none/low/medium/high
+//   - gpt-5.2: none/low/medium/high/xhigh
+//   - gpt-5.3-chat-latest: medium only — chat-tuned, rejects every other level
+//   - gpt-5.4 / gpt-5.4-mini / gpt-5.4-nano: none/low/medium/high/xhigh
+//   - gpt-5.5: none/low/medium/high/xhigh — frontier model, reasons eagerly at every
+//     non-`none` level
+//
+// Pass [gai.ThinkingLevelNone] to opt out — accepted by gpt-5.1+, gpt-5.4*, and gpt-5.5;
+// rejected by gpt-5 and by gpt-5.3-chat-latest. Using a level a given model does not
+// support surfaces a 400 from the API. Levels not in this list panic at the client boundary.
+const (
+	// ThinkingLevelMinimal applies the cheapest reasoning effort. gpt-5 only.
+	ThinkingLevelMinimal gai.ThinkingLevel = "minimal"
+	// ThinkingLevelLow applies low reasoning effort. Rejected by gpt-5.3-chat-latest.
+	ThinkingLevelLow gai.ThinkingLevel = "low"
+	// ThinkingLevelMedium applies medium reasoning effort. The only level gpt-5.3-chat-latest accepts.
+	ThinkingLevelMedium gai.ThinkingLevel = "medium"
+	// ThinkingLevelHigh applies high reasoning effort. Rejected by gpt-5.3-chat-latest.
+	ThinkingLevelHigh gai.ThinkingLevel = "high"
+	// ThinkingLevelXHigh applies extra-high reasoning effort. gpt-5.2, gpt-5.4*, and gpt-5.5.
+	ThinkingLevelXHigh gai.ThinkingLevel = "xhigh"
 )
 
 type ChatCompleter struct {
@@ -138,6 +175,14 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 						panic("unsupported MIME type for OpenAI: " + part.MIMEType)
 					}
 
+				case gai.PartTypeThought:
+					// OpenAI Chat Completions has no inbound reasoning concept — the
+					// streaming response never surfaces reasoning text as parts in the
+					// first place, and the API does not accept a reasoning_text input
+					// field. Silently drop so multi-provider pipelines that round-trip
+					// `gai.PartTypeThought` parts don't panic.
+					continue
+
 				default:
 					panic("unknown part type " + string(part.Type))
 				}
@@ -182,6 +227,11 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 							},
 						},
 					})
+					continue
+
+				case gai.PartTypeThought:
+					// Same rationale as the user-message branch: Chat Completions does
+					// not stream reasoning text and does not accept it as input either.
 					continue
 
 				default:
@@ -233,17 +283,17 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 	if req.ThinkingLevel != nil {
 		switch *req.ThinkingLevel {
 		case gai.ThinkingLevelNone:
-			params.ReasoningEffort = shared.ReasoningEffort("none")
-		case gai.ThinkingLevelMinimal:
-			params.ReasoningEffort = shared.ReasoningEffort("minimal")
-		case gai.ThinkingLevelLow:
+			params.ReasoningEffort = shared.ReasoningEffortNone
+		case ThinkingLevelMinimal:
+			params.ReasoningEffort = shared.ReasoningEffortMinimal
+		case ThinkingLevelLow:
 			params.ReasoningEffort = shared.ReasoningEffortLow
-		case gai.ThinkingLevelMedium:
+		case ThinkingLevelMedium:
 			params.ReasoningEffort = shared.ReasoningEffortMedium
-		case gai.ThinkingLevelHigh:
+		case ThinkingLevelHigh:
 			params.ReasoningEffort = shared.ReasoningEffortHigh
-		case gai.ThinkingLevelXHigh:
-			params.ReasoningEffort = shared.ReasoningEffort("xhigh")
+		case ThinkingLevelXHigh:
+			params.ReasoningEffort = shared.ReasoningEffortXhigh
 		default:
 			panic("unsupported thinking level: " + string(*req.ThinkingLevel))
 		}
@@ -346,10 +396,12 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 
 			meta.Usage = gai.ChatCompleteResponseUsage{
 				PromptTokens:     int(chunk.Usage.PromptTokens),
+				ThoughtsTokens:   int(chunk.Usage.CompletionTokensDetails.ReasoningTokens),
 				CompletionTokens: int(chunk.Usage.CompletionTokens),
 			}
 			span.SetAttributes(
 				attribute.Int("ai.prompt_tokens", int(chunk.Usage.PromptTokens)),
+				attribute.Int("ai.thoughts_tokens", int(chunk.Usage.CompletionTokensDetails.ReasoningTokens)),
 				attribute.Int("ai.completion_tokens", int(chunk.Usage.CompletionTokens)),
 				attribute.Int("ai.total_tokens", int(chunk.Usage.TotalTokens)),
 				attribute.Int("ai.cache_read_tokens", int(chunk.Usage.PromptTokensDetails.CachedTokens)),

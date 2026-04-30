@@ -117,3 +117,33 @@ Hybrid, with an explicit credentials path. `NewClientOptions` gains optional `Cr
 - We chose an explicit path over the implicit `GOOGLE_APPLICATION_CREDENTIALS` env var so that constructing a client doesn't depend on global process state — a single call site can configure exactly which credentials it wants.
 - `Location` defaults to `"global"` when empty on the credentials path. The genai SDK already falls back to global internally, but baking the default into our wrapper makes the common case (multi-region models) zero-config and surfaces the choice in our own GoDoc rather than relying on upstream behaviour. Data-residency cases (`us`, `eu`) and single-region values stay possible by setting the field explicitly.
 - Per-auth-path test helpers (`newVertexAIClientWithKey`, `newVertexAIClientWithCredentials`) replaced a single helper that set both fields. The single-helper shape silently routed Vertex tests through the credentials path whenever both were available, hiding a regression in the API-key flow. Splitting forces each test to declare which path it exercises and surfaces auth-path failures in CI.
+
+## Per-client ThinkingLevel constants (2026-04-29)
+
+`gai.ThinkingLevel` started as a shared lowest-common-denominator enum (`Minimal/Low/Medium/High/XHigh/Max`) defined in the core package, with each client mapping the union onto whatever its API actually accepts. As provider effort enums drifted apart on the newest models — OpenAI gpt-5.x is a moving target, Gemini 3.x dropped budget-based thinking in favour of symbolic levels, Anthropic Sonnet 4.6 / Opus 4.7 introduced adaptive thinking with an `output_config.effort` enum — that shared enum stopped reflecting any single provider faithfully and silently allowed unsupported levels through to a remote 400.
+
+### Alternatives considered
+
+- **Keep the shared enum.** Lowest churn, but hides per-provider capability differences and forces every client to implement a fuzzy "approximate this level" mapping. PR-251 takes this shape.
+- **Per-client constants of `gai.ThinkingLevel`.** The type stays in core for the universal off-switch and for `ChatCompleteRequest.ThinkingLevel *gai.ThinkingLevel`; concrete level constants move to each client package and only exist for values the targeted models actually accept. Unsupported levels panic at the boundary instead of round-tripping to the API.
+- **One typed enum per provider.** Maximum type safety, but breaks the symmetry of `ChatCompleteRequest.ThinkingLevel` being a single field across all clients and makes provider-agnostic code (the `robust` wrapper, evals) much more painful to write.
+
+### Decision
+
+Per-client constants of the same `gai.ThinkingLevel` type. Core keeps `type ThinkingLevel string` and exactly one constant: `gai.ThinkingLevelNone` (the universal off semantic). Each client publishes the level set its newest target model speaks:
+
+- `clients/openai`: `Minimal/Low/Medium/High/XHigh` — the union across the gpt-5.x chat-completions family (gpt-5 / 5.1 / 5.2 / 5.4* / 5.5). gpt-5.3-chat-latest is chat-tuned and accepts only `Medium`; the union still covers it. The `ChatCompleteModelGPT5_5` constant currently wraps the bare API string `"gpt-5.5"` because openai-go v3.33.0 lags the API and does not yet expose a `ChatModelGPT5_5` enum — switch to the typed constant once the SDK ships it.
+- `clients/google`: `Minimal/Low/Medium/High` — the symbolic `genai.ThinkingLevel` enum used by Gemini 3.x.
+- `clients/anthropic`: `Low/Medium/High/XHigh/Max` — the `output_config.effort` enum on Sonnet 4.6 / Opus 4.6 / Opus 4.7. No `Minimal`; XHigh is Opus-4.7-only by current model coverage.
+
+Unsupported levels at the client boundary panic with `"unsupported thinking level: <value>"`. Provider-side rejections (e.g. gpt-5 has no `none`, gpt-5.1 has no `minimal`, Gemini 3.1 Pro rejects `budget=0` and `MINIMAL`, Sonnet 4.5 / Opus 4.5 reject adaptive thinking entirely) surface as 400s — the spec's "let it surface" stance — so callers see real provider errors instead of silently-degraded behaviour.
+
+The model surface is also tightened to current non-deprecated models: `clients/openai` drops `ChatCompleteModelGPT4o` and `_GPT4oMini` (gai's OpenAI exposure is gpt-5.x only); `clients/google` drops `ChatCompleteModelGemini3ProPreview` (Google shut it down 2026-03-09) and adds `_Gemini3_1ProPreview` and `_Gemini3_1FlashLitePreview` as successors.
+
+Inbound `gai.PartTypeThought` parts in request messages get distinct per-client handling matching the round-trip semantics each provider supports today: `clients/openai` silently drops them (Chat Completions has no inbound reasoning concept), while `clients/google` and `clients/anthropic` return a typed error pointing at the deferred multi-turn signature work (issues #256 and #250 respectively). All three error returns record on the OTel span for trace visibility.
+
+### Tradeoffs
+
+- Provider-agnostic callers (the `robust` wrapper, evals, anything that targets multiple clients with one config) lose a single canonical "Medium" constant. They must pick a per-client constant or pass `gai.ThinkingLevelNone`. Acceptable for now: the inputs that caused this redesign were concrete provider configs anyway.
+- Anthropic adaptive thinking requires two SDK fields together: `Thinking.Adaptive` enables thinking, `OutputConfig.Effort` sets the level. The probe confirmed that `Effort` alone on Sonnet 4.6 returns no thinking blocks. The client always sets both for non-`None` levels, which means `OutputConfig` may already be populated by `ResponseSchema` and the Effort assignment must merge into it rather than overwrite `OutputConfig.Format`.
+- Test helpers across all three clients are now variadic with cheap defaults: `newChatCompleter(t)` returns a Haiku 4.5 / Gemini 2.5 Flash / GPT-5 Nano completer respectively, and rows that need a specific capability pass the model explicitly (`newChatCompleter(t, anthropic.ChatCompleteModelClaudeSonnet4_6Latest)`, etc.). The default Google test model is held at `gemini-2.5-flash` rather than the latest 3.x because Gemini 3.x enforces a `thought_signature` round-trip on tool follow-ups that `gai.Part` does not yet preserve — see #256 for the deferred plumbing work and #250 for the equivalent Anthropic deferral. New 3.x mappings (3 Flash, 3.1 Pro, 3.1 Flash Lite) are exercised by the table-driven `thinking level matrix` subtest of `TestChatCompleter_ChatComplete`, which stays single-turn so it does not need to round-trip a signature.

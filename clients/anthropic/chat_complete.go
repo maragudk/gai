@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"sort"
@@ -20,6 +21,15 @@ import (
 	"maragu.dev/gai"
 )
 
+// errThoughtRoundTripUnsupported is returned when a caller passes [gai.PartTypeThought]
+// back into the Anthropic client. Multi-turn thinking on Anthropic requires forwarding the
+// per-block signature returned by the API, which is not yet plumbed through [gai.Part].
+// Tracked by https://github.com/maragudk/gai/issues/250.
+var errThoughtRoundTripUnsupported = errors.New("inbound PartTypeThought not supported (https://github.com/maragudk/gai/issues/250)")
+
+// ChatCompleteModel is an Anthropic Claude model identifier accepted by the
+// chat-completions surface. See https://platform.claude.com/docs/en/about-claude/models/overview
+// for the full list and the current availability and capability matrix of each model.
 type ChatCompleteModel string
 
 const (
@@ -29,6 +39,27 @@ const (
 	ChatCompleteModelClaudeOpus4_5Latest   = ChatCompleteModel(anthropic.ModelClaudeOpus4_5)
 	ChatCompleteModelClaudeSonnet4_6Latest = ChatCompleteModel(anthropic.ModelClaudeSonnet4_6)
 	ChatCompleteModelClaudeOpus4_6Latest   = ChatCompleteModel(anthropic.ModelClaudeOpus4_6)
+	ChatCompleteModelClaudeOpus4_7Latest   = ChatCompleteModel(anthropic.ModelClaudeOpus4_7)
+)
+
+// Per-client [gai.ThinkingLevel] constants. These map onto the `output_config.effort` enum
+// used by Sonnet 4.6 / Opus 4.6 / Opus 4.7. The API expects two coupled fields for adaptive
+// thinking — `thinking.type=adaptive` enables thinking, `output_config.effort` sets the
+// level — so non-`None` levels populate both. There is no Minimal: the Anthropic enum starts
+// at Low. XHigh is currently Opus-4.7-only; Sonnet 4.6 and Opus 4.6 reject it with a 400.
+// Pass [gai.ThinkingLevelNone] to opt out of thinking entirely (no fields set). Levels not
+// in this list panic at the client boundary.
+const (
+	// ThinkingLevelLow applies low reasoning effort.
+	ThinkingLevelLow gai.ThinkingLevel = "low"
+	// ThinkingLevelMedium applies medium reasoning effort.
+	ThinkingLevelMedium gai.ThinkingLevel = "medium"
+	// ThinkingLevelHigh applies high reasoning effort.
+	ThinkingLevelHigh gai.ThinkingLevel = "high"
+	// ThinkingLevelXHigh applies extra-high reasoning effort. Opus 4.7+ only.
+	ThinkingLevelXHigh gai.ThinkingLevel = "xhigh"
+	// ThinkingLevelMax applies maximum reasoning effort.
+	ThinkingLevelMax gai.ThinkingLevel = "max"
 )
 
 type ChatCompleter struct {
@@ -65,11 +96,6 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 		panic("no messages")
 	}
 
-	if req.ThinkingLevel != nil {
-		span.SetAttributes(attribute.String("ai.thinking_level", string(*req.ThinkingLevel)))
-		panic("unsupported thinking level: " + string(*req.ThinkingLevel))
-	}
-
 	var messages []anthropic.MessageParam
 	for _, m := range req.Messages {
 		var parts []anthropic.ContentBlockParamUnion
@@ -82,6 +108,15 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 						Text: part.Text(),
 					},
 				})
+
+			case gai.PartTypeThought:
+				// Round-tripping thinking blocks back to Anthropic requires preserving the
+				// signature returned with each block, which we don't yet plumb. See
+				// https://github.com/maragudk/gai/issues/250.
+				err := fmt.Errorf("anthropic: %w", errThoughtRoundTripUnsupported)
+				span.RecordError(err)
+				span.SetStatus(codes.Error, "unsupported part type")
+				return gai.ChatCompleteResponse{}, err
 
 			case gai.PartTypeToolCall:
 				toolCall := part.ToolCall()
@@ -228,12 +263,35 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 	}
 
 	if req.ResponseSchema != nil {
-		params.OutputConfig = anthropic.OutputConfigParam{
-			Format: anthropic.JSONOutputFormatParam{
-				Schema: schemaToMap(req.ResponseSchema),
-			},
+		params.OutputConfig.Format = anthropic.JSONOutputFormatParam{
+			Schema: schemaToMap(req.ResponseSchema),
 		}
 		span.SetAttributes(attribute.Bool("ai.has_response_schema", true))
+	}
+
+	if req.ThinkingLevel != nil {
+		switch *req.ThinkingLevel {
+		case gai.ThinkingLevelNone:
+			// Off: no Thinking field, no Effort. Adaptive thinking is opt-in.
+		case ThinkingLevelLow:
+			params.Thinking = anthropic.ThinkingConfigParamUnion{OfAdaptive: &anthropic.ThinkingConfigAdaptiveParam{}}
+			params.OutputConfig.Effort = anthropic.OutputConfigEffortLow
+		case ThinkingLevelMedium:
+			params.Thinking = anthropic.ThinkingConfigParamUnion{OfAdaptive: &anthropic.ThinkingConfigAdaptiveParam{}}
+			params.OutputConfig.Effort = anthropic.OutputConfigEffortMedium
+		case ThinkingLevelHigh:
+			params.Thinking = anthropic.ThinkingConfigParamUnion{OfAdaptive: &anthropic.ThinkingConfigAdaptiveParam{}}
+			params.OutputConfig.Effort = anthropic.OutputConfigEffortHigh
+		case ThinkingLevelXHigh:
+			params.Thinking = anthropic.ThinkingConfigParamUnion{OfAdaptive: &anthropic.ThinkingConfigAdaptiveParam{}}
+			params.OutputConfig.Effort = anthropic.OutputConfigEffortXhigh
+		case ThinkingLevelMax:
+			params.Thinking = anthropic.ThinkingConfigParamUnion{OfAdaptive: &anthropic.ThinkingConfigAdaptiveParam{}}
+			params.OutputConfig.Effort = anthropic.OutputConfigEffortMax
+		default:
+			panic("unsupported thinking level: " + string(*req.ThinkingLevel))
+		}
+		span.SetAttributes(attribute.String("ai.thinking_level", string(*req.ThinkingLevel)))
 	}
 
 	stream := c.Client.Messages.NewStreaming(ctx, params)
@@ -291,6 +349,10 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 				switch delta := event.Delta.AsAny().(type) {
 				case anthropic.TextDelta:
 					if !yield(gai.TextPart(delta.Text), nil) {
+						return
+					}
+				case anthropic.ThinkingDelta:
+					if !yield(gai.ThoughtPart(delta.Thinking), nil) {
 						return
 					}
 				}
