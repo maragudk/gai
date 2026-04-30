@@ -47,6 +47,7 @@ func sampleText(parts []gai.Part) string {
 // Score between 0 and 1.
 type Score float64
 
+// IsValid panics if the [Score] is outside the inclusive range [0, 1], and returns normally otherwise.
 func (s Score) IsValid() {
 	if s < 0 || s > 1 {
 		panic(fmt.Sprintf("score is %v, must be between 0 and 1", s))
