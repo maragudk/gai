@@ -13,7 +13,7 @@ import (
 	"maragu.dev/gai"
 )
 
-// ExecArgs holds the arguments for the Exec tool
+// ExecArgs holds the arguments for the Exec tool.
 type ExecArgs struct {
 	Command string   `json:"command" jsonschema_description:"The command to execute."`
 	Args    []string `json:"args,omitempty" jsonschema_description:"Arguments to pass to the command."`
@@ -21,7 +21,7 @@ type ExecArgs struct {
 	Timeout int      `json:"timeout,omitempty" jsonschema_description:"Optional timeout in seconds. Default is 30 seconds."`
 }
 
-// NewExec creates a new tool for executing shell commands
+// NewExec creates a new tool for executing shell commands.
 func NewExec() gai.Tool {
 	return gai.Tool{
 		Name: "exec",
