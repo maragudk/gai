@@ -24,7 +24,8 @@ const ThinkingLevelNone ThinkingLevel = "none"
 
 // Temperature controls the randomness of model sampling, where lower values are more
 // deterministic and higher values more varied. The accepted range and exact behaviour
-// are provider-specific; see each client's chat_complete.go for how the value is forwarded.
+// are provider-specific; see [maragu.dev/gai/clients/openai], [maragu.dev/gai/clients/google],
+// and [maragu.dev/gai/clients/anthropic] for how each forwards the value.
 type Temperature float64
 
 // String satisfies [fmt.Stringer].
@@ -32,8 +33,7 @@ func (t Temperature) String() string {
 	return fmt.Sprintf("%.2f", t)
 }
 
-// Float64 returns the temperature as a plain float64, for passing to provider SDKs that
-// expect a float64 option value.
+// Float64 returns the temperature as a plain float64, for use with APIs that take a float64.
 func (t Temperature) Float64() float64 {
 	return float64(t)
 }
