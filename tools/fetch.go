@@ -73,13 +73,13 @@ func (c *chatCompleterConverter) ConvertHTMLToMarkdown(ctx context.Context, html
 	return markdown.String(), nil
 }
 
-// FetchArgs holds the arguments for the Fetch tool
+// FetchArgs holds the arguments for the Fetch tool.
 type FetchArgs struct {
 	URL          string `json:"url" jsonschema_description:"The URL to fetch."`
 	OutputFormat string `json:"output_format,omitempty" jsonschema_description:"Format for the output: 'html' or 'markdown' (default is markdown if a converter is available, otherwise html)."`
 }
 
-// NewFetch creates a new tool for fetching content from a URL
+// NewFetch creates a new tool for fetching content from a URL.
 // If completer is provided, it will be used to convert HTML to Markdown when requested.
 func NewFetch(client *http.Client, completer gai.ChatCompleter) gai.Tool {
 	// If no client is provided, create one with default settings
