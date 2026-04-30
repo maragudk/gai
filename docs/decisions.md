@@ -136,7 +136,11 @@ Per-client constants of the same `gai.ThinkingLevel` type. Core keeps `type Thin
 - `clients/google`: `Minimal/Low/Medium/High` — the symbolic `genai.ThinkingLevel` enum used by Gemini 3.x.
 - `clients/anthropic`: `Low/Medium/High/XHigh/Max` — the `output_config.effort` enum on Sonnet 4.6 / Opus 4.6 / Opus 4.7. No `Minimal`; XHigh is Opus-4.7-only by current model coverage.
 
-Unsupported levels at the client boundary panic with `"unsupported thinking level: <value>"`. Provider-side rejections (e.g. gpt-5 has no `none`, Gemini 3 Pro rejects budget=0, Sonnet 4.6 rejects `xhigh`) surface as 400s — the spec's "let it surface" stance — so callers see real provider errors instead of silently-degraded behaviour.
+Unsupported levels at the client boundary panic with `"unsupported thinking level: <value>"`. Provider-side rejections (e.g. gpt-5 has no `none`, gpt-5.1 has no `minimal`, Gemini 3.1 Pro rejects `budget=0` and `MINIMAL`, Sonnet 4.5 / Opus 4.5 reject adaptive thinking entirely) surface as 400s — the spec's "let it surface" stance — so callers see real provider errors instead of silently-degraded behaviour.
+
+The model surface is also tightened to current non-deprecated models: `clients/openai` drops `ChatCompleteModelGPT4o` and `_GPT4oMini` (gai's OpenAI exposure is gpt-5.x only); `clients/google` drops `ChatCompleteModelGemini3ProPreview` (Google shut it down 2026-03-09) and adds `_Gemini3_1ProPreview` and `_Gemini3_1FlashLitePreview` as successors.
+
+Inbound `gai.PartTypeThought` parts in request messages get distinct per-client handling matching the round-trip semantics each provider supports today: `clients/openai` silently drops them (Chat Completions has no inbound reasoning concept), while `clients/google` and `clients/anthropic` return a typed error pointing at the deferred multi-turn signature work (issues #256 and #250 respectively). All three error returns record on the OTel span for trace visibility.
 
 ### Tradeoffs
 
