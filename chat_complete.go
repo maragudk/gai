@@ -22,6 +22,7 @@ type ThinkingLevel string
 // All other levels are published per client.
 const ThinkingLevelNone ThinkingLevel = "none"
 
+// Temperature for sampling, where higher values produce more varied output.
 type Temperature float64
 
 // String satisfies [fmt.Stringer].
@@ -29,6 +30,7 @@ func (t Temperature) String() string {
 	return fmt.Sprintf("%.2f", t)
 }
 
+// Float64 returns the temperature as a float64.
 func (t Temperature) Float64() float64 {
 	return float64(t)
 }
