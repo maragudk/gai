@@ -368,3 +368,65 @@ func TestGenerateSchema(t *testing.T) {
 		is.NotNil(t, schema.Properties["LastName"])
 	})
 }
+
+func TestToolChoiceValidate(t *testing.T) {
+	tools := []gai.Tool{
+		{Name: "get_weather"},
+		{Name: "get_time"},
+	}
+
+	t.Run("nil tool choice is valid", func(t *testing.T) {
+		var tc *gai.ToolChoice
+		is.NotError(t, tc.Validate(tools))
+	})
+
+	t.Run("auto mode without name is valid", func(t *testing.T) {
+		tc := &gai.ToolChoice{Mode: gai.ToolChoiceModeAuto}
+		is.NotError(t, tc.Validate(tools))
+	})
+
+	t.Run("any mode without name is valid", func(t *testing.T) {
+		tc := &gai.ToolChoice{Mode: gai.ToolChoiceModeAny}
+		is.NotError(t, tc.Validate(tools))
+	})
+
+	t.Run("tool mode with matching name is valid", func(t *testing.T) {
+		tc := &gai.ToolChoice{Mode: gai.ToolChoiceModeTool, Name: "get_weather"}
+		is.NotError(t, tc.Validate(tools))
+	})
+
+	t.Run("auto mode with name is rejected", func(t *testing.T) {
+		tc := &gai.ToolChoice{Mode: gai.ToolChoiceModeAuto, Name: "get_weather"}
+		err := tc.Validate(tools)
+		is.True(t, err != nil)
+		is.Equal(t, `tool choice name "get_weather" is only valid with mode "tool"`, err.Error())
+	})
+
+	t.Run("any mode with name is rejected", func(t *testing.T) {
+		tc := &gai.ToolChoice{Mode: gai.ToolChoiceModeAny, Name: "get_weather"}
+		err := tc.Validate(tools)
+		is.True(t, err != nil)
+		is.Equal(t, `tool choice name "get_weather" is only valid with mode "tool"`, err.Error())
+	})
+
+	t.Run("tool mode without name is rejected", func(t *testing.T) {
+		tc := &gai.ToolChoice{Mode: gai.ToolChoiceModeTool}
+		err := tc.Validate(tools)
+		is.True(t, err != nil)
+		is.Equal(t, `tool choice mode "tool" requires a tool name`, err.Error())
+	})
+
+	t.Run("tool mode with unknown name is rejected", func(t *testing.T) {
+		tc := &gai.ToolChoice{Mode: gai.ToolChoiceModeTool, Name: "missing"}
+		err := tc.Validate(tools)
+		is.True(t, err != nil)
+		is.Equal(t, `tool choice name "missing" does not match any provided tool`, err.Error())
+	})
+
+	t.Run("unknown mode is rejected", func(t *testing.T) {
+		tc := &gai.ToolChoice{Mode: gai.ToolChoiceMode("nonsense")}
+		err := tc.Validate(tools)
+		is.True(t, err != nil)
+		is.Equal(t, `unknown tool choice mode "nonsense"`, err.Error())
+	})
+}
