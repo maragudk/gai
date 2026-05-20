@@ -131,3 +131,72 @@ there is no `TOOL`/single-function mode — so forcing a specific tool is "ANY c
 ### Future work
 None required for #269. If desired later, the validation helper could also reject duplicate tool
 names, but that is out of scope here.
+
+## Step 3: Apply two review fixes (fold tests into per-client test, soften GoDoc wording)
+
+**Author:** builder (fabrik:go)
+
+### Prompt Context
+
+**Verbatim prompt:** (team-lead handoff) Apply two agreed code-review fixes to the ToolChoice work.
+FIX 1: fold the new top-level `TestChatCompleter_ChatCompleteToolChoice` in each of the three client
+test files into the existing `TestChatCompleter_ChatComplete` as subtests, then delete the standalone
+function; preserve all assertions and the three scenarios; leave the core `TestToolChoiceValidate`
+as-is. FIX 2: in `chat_complete.go`, change "All three clients translate it identically:" to
+"...equivalently:" on the `ToolChoice` doc comment, that one word only.
+**Interpretation:** Restructure the live per-client tests to match the maintainer's convention of one
+capability test per client (subtests under `TestChatCompleter_ChatComplete`), and soften one word of
+GoDoc, with no other changes.
+**Inferred intent:** Bring the ToolChoice work in line with the maintainer's established test layout
+(PR #257 feedback) and avoid implying the three providers share an identical translation mechanism.
+
+### What I did
+- Folded the three tool-choice scenarios from each standalone `TestChatCompleter_ChatCompleteToolChoice`
+  into the existing `TestChatCompleter_ChatComplete` as a single `t.Run("tool choice", ...)` block that
+  holds the shared `weather` tool definition plus the three original sub-subtests, then deleted the
+  now-empty top-level function. Done in `clients/anthropic/chat_complete_test.go`,
+  `clients/google/chat_complete_test.go`, `clients/openai/chat_complete_test.go`. Preserved every
+  assertion verbatim, including Google's `// See #269` comment on the named-tool subtest.
+- `chat_complete.go`: changed "translate it identically:" to "translate it equivalently:" on the
+  `ToolChoice` doc comment — the single-word swap, nothing else.
+- Left the core `TestToolChoiceValidate` top-level function untouched.
+
+### Why
+The maintainer's convention (PR #257 review) is one capability test per client, with scenarios as
+subtests, rather than a separate top-level test function per capability. The wording swap reflects that
+Google emulates `tool` mode via `ANY` + `AllowedFunctionNames` (Step 2), so the mechanism isn't
+identical across providers even though the observable behavior is equivalent.
+
+### What worked
+`make lint` reported 0 issues. The three folded `tool choice` subtests pass against live OpenAI,
+Anthropic, and Google APIs when run on their own, and `go build ./...` plus the core
+`TestToolChoiceValidate` pass.
+
+### What didn't work
+A full `make test` run showed an Anthropic failure: `TestChatCompleter_ChatComplete/tool_choice/
+any_mode_forces_a_tool_call` returned `200 OK ... {"type":"error","error":{"type":"overloaded_error",
+"message":"Overloaded"}}` from `api.anthropic.com`. It is a transient server-side overload, not a code
+defect — the same subtest passes in isolation (`go test -run
+'TestChatCompleter_ChatComplete$/tool_choice' ./clients/anthropic/...` -> PASS), and on the failing
+full run several untouched subtests (`can chat-complete`, `can use a tool`, `can describe a PDF`) failed
+the same way, consistent with rate-limited/overloaded responses while the thinking-level matrix hammered
+the API.
+
+### What I learned
+Anthropic surfaces an `overloaded_error` as an HTTP 200 with an error body on the streaming path, so it
+shows up as a non-nil error from the Parts iterator rather than a 429/529 status — easy to mistake for a
+test defect.
+
+### What was tricky
+Distinguishing the transient Anthropic overload from a real regression. Confirmed it was transient by
+re-running the tool-choice subtests in isolation (PASS) and noting that untouched subtests failed
+identically in the full run.
+
+### What warrants review
+- The folded `t.Run("tool choice", ...)` block in each of the three client test files — confirm it
+  matches the maintainer's preferred subtest layout and that no assertion was dropped.
+- The pre-existing Vertex service-account `make test` failure (Step 2) still occurs and is still
+  unrelated.
+
+### Future work
+None. The two review fixes are self-contained.

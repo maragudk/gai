@@ -65,7 +65,7 @@ const (
 )
 
 // ToolChoice constrains the model's tool-calling behaviour for a [ChatCompleteRequest].
-// All three clients translate it identically: [ToolChoiceModeAuto] leaves the choice to the
+// All three clients translate it equivalently: [ToolChoiceModeAuto] leaves the choice to the
 // model, [ToolChoiceModeAny] forces some tool call, and [ToolChoiceModeTool] forces a call to
 // the tool named in [ToolChoice.Name]. Validate with [ToolChoice.Validate].
 type ToolChoice struct {
