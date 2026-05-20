@@ -94,6 +94,13 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 		panic("last message must have user role")
 	}
 
+	if err := req.ToolChoice.Validate(req.Tools); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "invalid tool choice")
+		span.End()
+		return gai.ChatCompleteResponse{}, err
+	}
+
 	var config genai.GenerateContentConfig
 	if req.Temperature != nil {
 		config.Temperature = gai.Ptr(float32(*req.Temperature))
@@ -146,6 +153,20 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 			attribute.Int("ai.tool_count", len(req.Tools)),
 			attribute.StringSlice("ai.tools", toolNames),
 		)
+	}
+
+	switch req.ToolChoice.Mode {
+	case gai.ToolChoiceModeAny:
+		config.ToolConfig = &genai.ToolConfig{FunctionCallingConfig: &genai.FunctionCallingConfig{
+			Mode: genai.FunctionCallingConfigModeAny,
+		}}
+		span.SetAttributes(attribute.String("ai.tool_choice", string(req.ToolChoice.Mode)))
+	case gai.ToolChoiceModeTool:
+		config.ToolConfig = &genai.ToolConfig{FunctionCallingConfig: &genai.FunctionCallingConfig{
+			Mode:                 genai.FunctionCallingConfigModeAny,
+			AllowedFunctionNames: []string{req.ToolChoice.Name},
+		}}
+		span.SetAttributes(attribute.String("ai.tool_choice", string(req.ToolChoice.Mode)))
 	}
 
 	if req.ResponseSchema != nil {
