@@ -551,6 +551,19 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			{name: "flash-lite 3.1 + medium", model: google.ChatCompleteModelGemini3_1FlashLitePreview, level: google.ThinkingLevelMedium, wantThoughtTokens: true},
 			{name: "flash-lite 3.1 + high", model: google.ChatCompleteModelGemini3_1FlashLitePreview, level: google.ThinkingLevelHigh, requireThoughts: true, wantThoughtTokens: true},
 
+			// Flash 3.5 is a thinking-capable Flash model (version 3.5-flash-05-2026) and,
+			// like the rest of the 3.x Flash line, accepts every level including
+			// `gai.ThinkingLevelNone` (mapped to ThinkingBudget=0). thoughts_tokens are
+			// populated from the usage metadata at non-trivial levels. The streaming API
+			// does surface a thought summary from Low upward (unlike full Flash 3, which
+			// never streams thoughts), but we keep the assertion to thoughts_tokens to stay
+			// robust against streaming variability.
+			{name: "flash 3.5 + none", model: google.ChatCompleteModelGemini3_5Flash, level: gai.ThinkingLevelNone},
+			{name: "flash 3.5 + minimal", model: google.ChatCompleteModelGemini3_5Flash, level: google.ThinkingLevelMinimal},
+			{name: "flash 3.5 + low", model: google.ChatCompleteModelGemini3_5Flash, level: google.ThinkingLevelLow, wantThoughtTokens: true},
+			{name: "flash 3.5 + medium", model: google.ChatCompleteModelGemini3_5Flash, level: google.ThinkingLevelMedium, wantThoughtTokens: true},
+			{name: "flash 3.5 + high", model: google.ChatCompleteModelGemini3_5Flash, level: google.ThinkingLevelHigh, wantThoughtTokens: true},
+
 			// Pro 3.1 rejects the off path entirely: `This model only works in thinking
 			// mode`. It also rejects MINIMAL: `Thinking level MINIMAL is not supported for
 			// this model`. Low/Medium/High all populate the thoughts-tokens count. Streamed
