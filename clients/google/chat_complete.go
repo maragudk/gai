@@ -32,20 +32,20 @@ var errThoughtRoundTripUnsupported = errors.New("inbound PartTypeThought not sup
 type ChatCompleteModel string
 
 const (
-	ChatCompleteModelGemini2_0Flash            = ChatCompleteModel("gemini-2.0-flash")
-	ChatCompleteModelGemini2_5Flash            = ChatCompleteModel("gemini-2.5-flash")
-	ChatCompleteModelGemini2_5FlashLite        = ChatCompleteModel("gemini-2.5-flash-lite")
-	ChatCompleteModelGemini2_5Pro              = ChatCompleteModel("gemini-2.5-pro")
-	ChatCompleteModelGemini3FlashPreview       = ChatCompleteModel("gemini-3-flash-preview")
-	ChatCompleteModelGemini3_1ProPreview       = ChatCompleteModel("gemini-3.1-pro-preview")
-	ChatCompleteModelGemini3_1FlashLitePreview = ChatCompleteModel("gemini-3.1-flash-lite-preview")
-	ChatCompleteModelGemini3_5Flash            = ChatCompleteModel("gemini-3.5-flash")
+	ChatCompleteModelGemini2_0Flash      = ChatCompleteModel("gemini-2.0-flash")
+	ChatCompleteModelGemini2_5Flash      = ChatCompleteModel("gemini-2.5-flash")
+	ChatCompleteModelGemini2_5FlashLite  = ChatCompleteModel("gemini-2.5-flash-lite")
+	ChatCompleteModelGemini2_5Pro        = ChatCompleteModel("gemini-2.5-pro")
+	ChatCompleteModelGemini3FlashPreview = ChatCompleteModel("gemini-3-flash-preview")
+	ChatCompleteModelGemini3_1ProPreview = ChatCompleteModel("gemini-3.1-pro-preview")
+	ChatCompleteModelGemini3_1FlashLite  = ChatCompleteModel("gemini-3.1-flash-lite")
+	ChatCompleteModelGemini3_5Flash      = ChatCompleteModel("gemini-3.5-flash")
 )
 
 // Per-client [gai.ThinkingLevel] constants. These map directly onto the symbolic
 // `genai.ThinkingLevel` enum used by the Gemini 3.x family. Pass [gai.ThinkingLevelNone] to
 // opt out via `ThinkingBudget=0`; this is accepted by the Flash models (`gemini-3-flash-preview`,
-// `gemini-3.1-flash-lite-preview`, `gemini-3.5-flash`) and rejected by `gemini-3.1-pro-preview`
+// `gemini-3.1-flash-lite`, `gemini-3.5-flash`) and rejected by `gemini-3.1-pro-preview`
 // (Pro 3.x only runs in thinking mode). Levels not in this list panic at the client boundary.
 const (
 	// ThinkingLevelMinimal applies the cheapest thinking budget. Rejected by gemini-3.1-pro-preview.

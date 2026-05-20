@@ -545,11 +545,11 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			// at None/Minimal/Low/Medium, but at High the streaming API does emit one
 			// PartTypeThought (different from full Flash 3 which never streams thoughts).
 			// thoughts_tokens are populated from Low onwards.
-			{name: "flash-lite 3.1 + none", model: google.ChatCompleteModelGemini3_1FlashLitePreview, level: gai.ThinkingLevelNone},
-			{name: "flash-lite 3.1 + minimal", model: google.ChatCompleteModelGemini3_1FlashLitePreview, level: google.ThinkingLevelMinimal},
-			{name: "flash-lite 3.1 + low", model: google.ChatCompleteModelGemini3_1FlashLitePreview, level: google.ThinkingLevelLow, wantThoughtTokens: true},
-			{name: "flash-lite 3.1 + medium", model: google.ChatCompleteModelGemini3_1FlashLitePreview, level: google.ThinkingLevelMedium, wantThoughtTokens: true},
-			{name: "flash-lite 3.1 + high", model: google.ChatCompleteModelGemini3_1FlashLitePreview, level: google.ThinkingLevelHigh, requireThoughts: true, wantThoughtTokens: true},
+			{name: "flash-lite 3.1 + none", model: google.ChatCompleteModelGemini3_1FlashLite, level: gai.ThinkingLevelNone},
+			{name: "flash-lite 3.1 + minimal", model: google.ChatCompleteModelGemini3_1FlashLite, level: google.ThinkingLevelMinimal},
+			{name: "flash-lite 3.1 + low", model: google.ChatCompleteModelGemini3_1FlashLite, level: google.ThinkingLevelLow, wantThoughtTokens: true},
+			{name: "flash-lite 3.1 + medium", model: google.ChatCompleteModelGemini3_1FlashLite, level: google.ThinkingLevelMedium, wantThoughtTokens: true},
+			{name: "flash-lite 3.1 + high", model: google.ChatCompleteModelGemini3_1FlashLite, level: google.ThinkingLevelHigh, requireThoughts: true, wantThoughtTokens: true},
 
 			// Flash 3.5 is a thinking-capable Flash model (version 3.5-flash-05-2026) and,
 			// like the rest of the 3.x Flash line, accepts every level including
