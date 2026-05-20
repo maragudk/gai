@@ -269,15 +269,12 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 		Tools:       tools,
 	}
 
-	if req.ToolChoice != nil {
-		switch req.ToolChoice.Mode {
-		case gai.ToolChoiceModeAuto:
-			params.ToolChoice = anthropic.ToolChoiceUnionParam{OfAuto: &anthropic.ToolChoiceAutoParam{}}
-		case gai.ToolChoiceModeAny:
-			params.ToolChoice = anthropic.ToolChoiceUnionParam{OfAny: &anthropic.ToolChoiceAnyParam{}}
-		case gai.ToolChoiceModeTool:
-			params.ToolChoice = anthropic.ToolChoiceParamOfTool(req.ToolChoice.Name)
-		}
+	switch req.ToolChoice.Mode {
+	case gai.ToolChoiceModeAny:
+		params.ToolChoice = anthropic.ToolChoiceUnionParam{OfAny: &anthropic.ToolChoiceAnyParam{}}
+		span.SetAttributes(attribute.String("ai.tool_choice", string(req.ToolChoice.Mode)))
+	case gai.ToolChoiceModeTool:
+		params.ToolChoice = anthropic.ToolChoiceParamOfTool(req.ToolChoice.Name)
 		span.SetAttributes(attribute.String("ai.tool_choice", string(req.ToolChoice.Mode)))
 	}
 

@@ -46,13 +46,13 @@ type ChatCompleteRequest struct {
 	System              *string
 	Temperature         *Temperature
 	ThinkingLevel       *ThinkingLevel
-	ToolChoice          *ToolChoice
+	ToolChoice          ToolChoice
 	Tools               []Tool
 }
 
 // ToolChoiceMode constrains how the model decides whether to call a tool.
-// A nil [ChatCompleteRequest.ToolChoice] preserves each provider's default behaviour,
-// which is equivalent to [ToolChoiceModeAuto].
+// The zero value of [ChatCompleteRequest.ToolChoice] preserves each provider's default
+// behaviour, which is equivalent to [ToolChoiceModeAuto].
 type ToolChoiceMode string
 
 const (
@@ -67,7 +67,8 @@ const (
 // ToolChoice constrains the model's tool-calling behaviour for a [ChatCompleteRequest].
 // All three clients translate it equivalently: [ToolChoiceModeAuto] leaves the choice to the
 // model, [ToolChoiceModeAny] forces some tool call, and [ToolChoiceModeTool] forces a call to
-// the tool named in [ToolChoice.Name]. Validate with [ToolChoice.Validate].
+// the tool named in [ToolChoice.Name]. The zero value preserves each provider's default
+// behaviour, equivalent to [ToolChoiceModeAuto]. Validate with [ToolChoice.Validate].
 type ToolChoice struct {
 	Mode ToolChoiceMode
 	// Name is the tool to force, required when Mode is [ToolChoiceModeTool] and rejected otherwise.
@@ -75,22 +76,18 @@ type ToolChoice struct {
 }
 
 // Validate checks the ToolChoice against the request's tools and reports the first problem,
-// or nil if the choice is well-formed. A nil receiver is valid and validates trivially, so
-// that clients can call it unconditionally before forwarding a request. The rules are:
+// or nil if the choice is well-formed. The zero value validates trivially as auto, so that
+// clients can call it unconditionally before forwarding a request. The rules are:
 //
 //   - [ToolChoiceModeTool] requires a non-empty Name that matches one of tools.
-//   - [ToolChoiceModeAuto] and [ToolChoiceModeAny] reject a non-empty Name.
+//   - The zero Mode, [ToolChoiceModeAuto], and [ToolChoiceModeAny] reject a non-empty Name.
 //   - Any other Mode value is rejected.
 //
 // Bad input is caller data rather than a programming error, so violations are returned as
 // errors instead of panicking — unlike unrecognised library constants such as [ThinkingLevel].
-func (tc *ToolChoice) Validate(tools []Tool) error {
-	if tc == nil {
-		return nil
-	}
-
+func (tc ToolChoice) Validate(tools []Tool) error {
 	switch tc.Mode {
-	case ToolChoiceModeAuto, ToolChoiceModeAny:
+	case "", ToolChoiceModeAuto, ToolChoiceModeAny:
 		if tc.Name != "" {
 			return fmt.Errorf("tool choice name %q is only valid with mode %q", tc.Name, ToolChoiceModeTool)
 		}

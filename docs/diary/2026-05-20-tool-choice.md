@@ -200,3 +200,89 @@ identically in the full run.
 
 ### Future work
 None. The two review fixes are self-contained.
+
+## Step 4: Apply two more review fixes (README collapse, value-type ToolChoice)
+
+**Author:** builder (fabrik:go)
+
+### Prompt Context
+
+**Verbatim prompt:** (team-lead handoff) Two more review fixes for the ToolChoice work, both agreed
+with the maintainer. CHANGE 1: in all three client READMEs collapse the two checklist lines `- [x] Tool
+use` / `- [x] Tool choice` into a single `- [x] Tool use (including tool choice)`. CHANGE 2: make
+`gai.ToolChoice` a value type instead of a pointer — change the field to `ToolChoice ToolChoice`, treat
+the zero value (Mode == "") as auto, give `Validate` a value receiver, drop the nil handling, remove
+the `if req.ToolChoice != nil` guard and the `ToolChoiceModeAuto` branch from each client (auto/zero
+leaves the provider default untouched), reword the GoDoc to refer to the zero value, and update tests
+to value types including a zero-value-validates-as-auto case. Run `make test` + `make lint`; don't
+commit.
+**Interpretation:** Drop the pointer indirection now that the zero value carries the "auto" default,
+and tighten the READMEs to one line. Auto/zero must produce exactly the prior nil behaviour — no
+provider tool_choice field set at all.
+**Inferred intent:** A simpler public API (`ToolChoice` is always present, zero == auto) that still
+preserves each provider's untouched default when the caller doesn't constrain tool choice.
+
+### What I did
+- READMEs: collapsed the two checklist lines into `- [x] Tool use (including tool choice)` in
+  `/clients/openai/README.md`, `/clients/google/README.md`, `/clients/anthropic/README.md`.
+- Core (`/chat_complete.go`): changed the field to `ToolChoice ToolChoice` (value, same alphabetical
+  slot). Kept the three mode constants and their literals. Reworded the `ToolChoiceMode` and
+  `ToolChoice` GoDoc to describe the zero value as auto-equivalent, keeping the "translate it
+  equivalently" wording. Changed `Validate` to a value receiver, removed the nil branch, and made the
+  zero Mode (`""`) share the auto/any case (`case "", ToolChoiceModeAuto, ToolChoiceModeAny:`).
+- Clients: each already called `req.ToolChoice.Validate(req.Tools)` unconditionally, so the value
+  receiver needed no call-site change. In each translation block I removed the outer
+  `if req.ToolChoice != nil` guard and the `gai.ToolChoiceModeAuto` case, leaving only `any` and `tool`.
+  Each surviving case sets the provider field plus the `ai.tool_choice` span attribute; auto/zero now
+  falls through the switch and leaves the provider default untouched (OpenAI `params.ToolChoice`,
+  Anthropic `params.ToolChoice`, Google `config.ToolConfig` all stay unset).
+- Tests: rewrote `TestToolChoiceValidate` to value types, replaced the `nil tool choice` case with a
+  `zero value is valid as auto` case (`var tc gai.ToolChoice`), and added a `zero value with name is
+  rejected` case. Updated all nine per-client `tool choice` subtest request literals from
+  `ToolChoice: &gai.ToolChoice{...}` to `ToolChoice: gai.ToolChoice{...}`.
+
+### Why
+With the zero value meaning auto, a pointer adds a redundant third state (nil vs `&{Mode:""}` vs
+`&{Mode:"auto"}`) that all mean the same thing. Collapsing to a value removes that ambiguity. Dropping
+the `ToolChoiceModeAuto` provider branch (rather than explicitly sending the SDK's "auto") keeps the
+exact prior nil behaviour: when the caller doesn't constrain choice, gai sends nothing and the provider
+applies its own default.
+
+### What worked
+`make lint`: 0 issues. `go build ./...` and `go vet ./...` clean. Core `TestToolChoiceValidate` passes,
+and the three live per-client `tool choice` subtests pass in isolation against OpenAI, Anthropic, and
+Google. A grep confirms no `*ToolChoice`, `&gai.ToolChoice`, or `ToolChoice != nil` remain anywhere.
+
+### What didn't work
+Two `make test` failures, both unrelated to this change. (1) Google panics in the Vertex
+service-account test (`project/location or API key must be set`) — the same pre-existing
+missing-credentials failure noted in Steps 2-3; this run it surfaced via `TestEmbedder_Embed` rather
+than the chat-complete test, but it's the identical cause. (2) Anthropic
+`TestChatCompleter_ChatComplete/can_chat-complete` failed under full-suite load — an untouched subtest
+that passes in isolation (`go test -run 'TestChatCompleter_ChatComplete$/can_chat-complete'
+./clients/anthropic/...` -> PASS), i.e. the same transient overload flakiness from Step 3, not a
+regression.
+
+### What I learned
+The clients already invoked `Validate` unconditionally (`if err := req.ToolChoice.Validate(...)`), so
+switching from pointer to value receiver was a no-op at the call sites — Go promotes the value method
+set automatically. The only client edits needed were in the translation switch, where the nil guard and
+auto branch lived.
+
+### What was tricky
+Making sure auto/zero produces byte-for-byte the prior nil behaviour. The requirement is explicit: do
+NOT set the provider tool_choice field for auto. Removing the `ToolChoiceModeAuto` case entirely (so the
+switch simply doesn't match) achieves that, whereas adding an explicit "send the SDK auto value" branch
+would have changed the wire request.
+
+### What warrants review
+- The three translation switches — confirm auto/zero leaves each provider's tool_choice/tool_config
+  unset (no `ToolChoiceModeAuto` case), and that the `ai.tool_choice` span attribute now fires only for
+  `any`/`tool`.
+- `TestToolChoiceValidate`'s new `zero value is valid as auto` and `zero value with name is rejected`
+  cases.
+- The two unrelated `make test` failures above (pre-existing Vertex creds; transient Anthropic
+  overload).
+
+### Future work
+None. The two review fixes are self-contained.

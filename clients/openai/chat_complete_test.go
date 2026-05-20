@@ -602,7 +602,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 				// A greeting wouldn't normally trigger a tool call; ToolChoiceModeAny forces one.
 				Messages:   []gai.Message{gai.NewUserTextMessage("Hello there!")},
 				Tools:      []gai.Tool{weather},
-				ToolChoice: &gai.ToolChoice{Mode: gai.ToolChoiceModeAny},
+				ToolChoice: gai.ToolChoice{Mode: gai.ToolChoiceModeAny},
 			}
 
 			res, err := cc.ChatComplete(t.Context(), req)
@@ -624,7 +624,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			req := gai.ChatCompleteRequest{
 				Messages:   []gai.Message{gai.NewUserTextMessage("What is the weather in Paris?")},
 				Tools:      []gai.Tool{weather},
-				ToolChoice: &gai.ToolChoice{Mode: gai.ToolChoiceModeTool, Name: "get_weather"},
+				ToolChoice: gai.ToolChoice{Mode: gai.ToolChoiceModeTool, Name: "get_weather"},
 			}
 
 			res, err := cc.ChatComplete(t.Context(), req)
@@ -646,7 +646,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			req := gai.ChatCompleteRequest{
 				Messages:   []gai.Message{gai.NewUserTextMessage("Hi!")},
 				Tools:      []gai.Tool{weather},
-				ToolChoice: &gai.ToolChoice{Mode: gai.ToolChoiceModeTool, Name: "missing"},
+				ToolChoice: gai.ToolChoice{Mode: gai.ToolChoiceModeTool, Name: "missing"},
 			}
 
 			_, err := cc.ChatComplete(t.Context(), req)

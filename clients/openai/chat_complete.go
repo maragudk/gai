@@ -283,24 +283,19 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 		},
 	}
 
-	if req.ToolChoice != nil {
-		switch req.ToolChoice.Mode {
-		case gai.ToolChoiceModeAuto:
-			params.ToolChoice = openai.ChatCompletionToolChoiceOptionUnionParam{
-				OfAuto: openai.String(string(openai.ChatCompletionToolChoiceOptionAutoAuto)),
-			}
-		case gai.ToolChoiceModeAny:
-			params.ToolChoice = openai.ChatCompletionToolChoiceOptionUnionParam{
-				OfAuto: openai.String(string(openai.ChatCompletionToolChoiceOptionAutoRequired)),
-			}
-		case gai.ToolChoiceModeTool:
-			params.ToolChoice = openai.ChatCompletionToolChoiceOptionUnionParam{
-				OfFunctionToolChoice: &openai.ChatCompletionNamedToolChoiceParam{
-					Function: openai.ChatCompletionNamedToolChoiceFunctionParam{
-						Name: req.ToolChoice.Name,
-					},
+	switch req.ToolChoice.Mode {
+	case gai.ToolChoiceModeAny:
+		params.ToolChoice = openai.ChatCompletionToolChoiceOptionUnionParam{
+			OfAuto: openai.String(string(openai.ChatCompletionToolChoiceOptionAutoRequired)),
+		}
+		span.SetAttributes(attribute.String("ai.tool_choice", string(req.ToolChoice.Mode)))
+	case gai.ToolChoiceModeTool:
+		params.ToolChoice = openai.ChatCompletionToolChoiceOptionUnionParam{
+			OfFunctionToolChoice: &openai.ChatCompletionNamedToolChoiceParam{
+				Function: openai.ChatCompletionNamedToolChoiceFunctionParam{
+					Name: req.ToolChoice.Name,
 				},
-			}
+			},
 		}
 		span.SetAttributes(attribute.String("ai.tool_choice", string(req.ToolChoice.Mode)))
 	}

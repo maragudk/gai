@@ -155,18 +155,17 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 		)
 	}
 
-	if req.ToolChoice != nil {
-		fcc := &genai.FunctionCallingConfig{}
-		switch req.ToolChoice.Mode {
-		case gai.ToolChoiceModeAuto:
-			fcc.Mode = genai.FunctionCallingConfigModeAuto
-		case gai.ToolChoiceModeAny:
-			fcc.Mode = genai.FunctionCallingConfigModeAny
-		case gai.ToolChoiceModeTool:
-			fcc.Mode = genai.FunctionCallingConfigModeAny
-			fcc.AllowedFunctionNames = []string{req.ToolChoice.Name}
-		}
-		config.ToolConfig = &genai.ToolConfig{FunctionCallingConfig: fcc}
+	switch req.ToolChoice.Mode {
+	case gai.ToolChoiceModeAny:
+		config.ToolConfig = &genai.ToolConfig{FunctionCallingConfig: &genai.FunctionCallingConfig{
+			Mode: genai.FunctionCallingConfigModeAny,
+		}}
+		span.SetAttributes(attribute.String("ai.tool_choice", string(req.ToolChoice.Mode)))
+	case gai.ToolChoiceModeTool:
+		config.ToolConfig = &genai.ToolConfig{FunctionCallingConfig: &genai.FunctionCallingConfig{
+			Mode:                 genai.FunctionCallingConfigModeAny,
+			AllowedFunctionNames: []string{req.ToolChoice.Name},
+		}}
 		span.SetAttributes(attribute.String("ai.tool_choice", string(req.ToolChoice.Mode)))
 	}
 
