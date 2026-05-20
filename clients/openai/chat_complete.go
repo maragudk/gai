@@ -101,6 +101,13 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 		),
 	)
 
+	if err := req.ToolChoice.Validate(req.Tools); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "invalid tool choice")
+		span.End()
+		return gai.ChatCompleteResponse{}, err
+	}
+
 	var messages []openai.ChatCompletionMessageParamUnion
 
 	if req.System != nil {
@@ -274,6 +281,23 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 		StreamOptions: openai.ChatCompletionStreamOptionsParam{
 			IncludeUsage: openai.Bool(true),
 		},
+	}
+
+	switch req.ToolChoice.Mode {
+	case gai.ToolChoiceModeAny:
+		params.ToolChoice = openai.ChatCompletionToolChoiceOptionUnionParam{
+			OfAuto: openai.String(string(openai.ChatCompletionToolChoiceOptionAutoRequired)),
+		}
+		span.SetAttributes(attribute.String("ai.tool_choice", string(req.ToolChoice.Mode)))
+	case gai.ToolChoiceModeTool:
+		params.ToolChoice = openai.ChatCompletionToolChoiceOptionUnionParam{
+			OfFunctionToolChoice: &openai.ChatCompletionNamedToolChoiceParam{
+				Function: openai.ChatCompletionNamedToolChoiceFunctionParam{
+					Name: req.ToolChoice.Name,
+				},
+			},
+		}
+		span.SetAttributes(attribute.String("ai.tool_choice", string(req.ToolChoice.Mode)))
 	}
 
 	if req.Temperature != nil {

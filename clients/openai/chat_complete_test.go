@@ -583,6 +583,77 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			})
 		}
 	})
+
+	t.Run("tool choice", func(t *testing.T) {
+		weather := gai.Tool{
+			Name:        "get_weather",
+			Description: "Get the current weather for a city.",
+			Schema: gai.ToolSchema{
+				Properties: map[string]*gai.Schema{
+					"city": {Type: gai.SchemaTypeString, Description: "The city to look up."},
+				},
+			},
+		}
+
+		t.Run("any mode forces a tool call", func(t *testing.T) {
+			cc := newChatCompleter(t)
+
+			req := gai.ChatCompleteRequest{
+				// A greeting wouldn't normally trigger a tool call; ToolChoiceModeAny forces one.
+				Messages:   []gai.Message{gai.NewUserTextMessage("Hello there!")},
+				Tools:      []gai.Tool{weather},
+				ToolChoice: gai.ToolChoice{Mode: gai.ToolChoiceModeAny},
+			}
+
+			res, err := cc.ChatComplete(t.Context(), req)
+			is.NotError(t, err)
+
+			var calledTool bool
+			for part, err := range res.Parts() {
+				is.NotError(t, err)
+				if part.Type == gai.PartTypeToolCall {
+					calledTool = true
+				}
+			}
+			is.True(t, calledTool, "expected a forced tool call")
+		})
+
+		t.Run("tool mode forces the named tool", func(t *testing.T) {
+			cc := newChatCompleter(t)
+
+			req := gai.ChatCompleteRequest{
+				Messages:   []gai.Message{gai.NewUserTextMessage("What is the weather in Paris?")},
+				Tools:      []gai.Tool{weather},
+				ToolChoice: gai.ToolChoice{Mode: gai.ToolChoiceModeTool, Name: "get_weather"},
+			}
+
+			res, err := cc.ChatComplete(t.Context(), req)
+			is.NotError(t, err)
+
+			var calledName string
+			for part, err := range res.Parts() {
+				is.NotError(t, err)
+				if part.Type == gai.PartTypeToolCall {
+					calledName = part.ToolCall().Name
+				}
+			}
+			is.Equal(t, "get_weather", calledName)
+		})
+
+		t.Run("invalid tool choice is rejected before the API call", func(t *testing.T) {
+			cc := newChatCompleter(t)
+
+			req := gai.ChatCompleteRequest{
+				Messages:   []gai.Message{gai.NewUserTextMessage("Hi!")},
+				Tools:      []gai.Tool{weather},
+				ToolChoice: gai.ToolChoice{Mode: gai.ToolChoiceModeTool, Name: "missing"},
+			}
+
+			_, err := cc.ChatComplete(t.Context(), req)
+			is.True(t, err != nil, "expected an error")
+			is.Equal(t, `tool choice name "missing" does not match any provided tool`, err.Error())
+		})
+	})
 }
 
 // drainParts iterates the response stream, returning the first error if any.

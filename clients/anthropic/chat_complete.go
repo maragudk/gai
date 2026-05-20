@@ -96,6 +96,13 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 		panic("no messages")
 	}
 
+	if err := req.ToolChoice.Validate(req.Tools); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "invalid tool choice")
+		span.End()
+		return gai.ChatCompleteResponse{}, err
+	}
+
 	var messages []anthropic.MessageParam
 	for _, m := range req.Messages {
 		var parts []anthropic.ContentBlockParamUnion
@@ -260,6 +267,15 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 		System:      system,
 		Temperature: temperature,
 		Tools:       tools,
+	}
+
+	switch req.ToolChoice.Mode {
+	case gai.ToolChoiceModeAny:
+		params.ToolChoice = anthropic.ToolChoiceUnionParam{OfAny: &anthropic.ToolChoiceAnyParam{}}
+		span.SetAttributes(attribute.String("ai.tool_choice", string(req.ToolChoice.Mode)))
+	case gai.ToolChoiceModeTool:
+		params.ToolChoice = anthropic.ToolChoiceParamOfTool(req.ToolChoice.Name)
+		span.SetAttributes(attribute.String("ai.tool_choice", string(req.ToolChoice.Mode)))
 	}
 
 	if req.ResponseSchema != nil {
