@@ -12,11 +12,12 @@ import (
 )
 
 func TestChatCompleter_Spans(t *testing.T) {
-	t.Run("records standard attributes on the chat-complete span for a simple text prompt", func(t *testing.T) {
+	t.Run("records standard attributes on the chat-complete span", func(t *testing.T) {
 		sr := oteltest.NewSpanRecorder(t)
 		cc := newChatCompleter(t)
 
 		res, err := cc.ChatComplete(t.Context(), gai.ChatCompleteRequest{
+			System:   gai.Ptr("You are a robot of few words."),
 			Messages: []gai.Message{gai.NewUserTextMessage("Reply with a single word.")},
 		})
 		is.NotError(t, err)
@@ -26,6 +27,7 @@ func TestChatCompleter_Spans(t *testing.T) {
 
 		span := oteltest.FindSpan(t, sr.Ended(), "google.chat_complete")
 		is.True(t, oteltest.HasAttribute(span.Attributes(), attribute.String("ai.model", string(google.ChatCompleteModelGemini2_5Flash))))
+		is.True(t, oteltest.HasAttribute(span.Attributes(), attribute.Bool("ai.has_system_prompt", true)))
 		oteltest.RequireAttributePresent(t, span.Attributes(), "ai.time_to_first_token_ms")
 		oteltest.RequirePositiveIntAttribute(t, span.Attributes(), "ai.prompt_tokens")
 		oteltest.RequirePositiveIntAttribute(t, span.Attributes(), "ai.completion_tokens")
