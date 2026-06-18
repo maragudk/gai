@@ -248,10 +248,7 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 				Text: *req.System,
 			},
 		}
-		span.SetAttributes(
-			attribute.Bool("ai.has_system_prompt", true),
-			attribute.String("ai.system_prompt", *req.System),
-		)
+		span.SetAttributes(attribute.Bool("ai.has_system_prompt", true))
 	}
 
 	maxTokens := 16_384

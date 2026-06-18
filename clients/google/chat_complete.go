@@ -110,7 +110,6 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 	if req.System != nil {
 		config.SystemInstruction = genai.NewContentFromText(*req.System, genai.RoleUser)
 		span.SetAttributes(attribute.Bool("ai.has_system_prompt", true))
-		span.SetAttributes(attribute.String("ai.system_prompt", *req.System))
 	}
 	if req.MaxCompletionTokens != nil {
 		config.MaxOutputTokens = int32(*req.MaxCompletionTokens)
