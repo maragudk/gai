@@ -3,10 +3,12 @@ package google_test
 import (
 	"testing"
 
+	"go.opentelemetry.io/otel/attribute"
 	"maragu.dev/is"
 
 	"maragu.dev/gai"
 	"maragu.dev/gai/clients/google"
+	"maragu.dev/gai/internal/oteltest"
 )
 
 func TestEmbedder_Embed(t *testing.T) {
@@ -220,6 +222,23 @@ func TestEmbedder_Embed(t *testing.T) {
 		is.NotError(t, err)
 
 		is.Equal(t, 768, len(res.Embedding))
+	})
+
+	t.Run("records standard attributes on the embed span", func(t *testing.T) {
+		sr := oteltest.NewSpanRecorder(t)
+		c := newClient(t)
+		e := c.NewEmbedder(google.NewEmbedderOptions{
+			Model:      google.EmbedModelGeminiEmbedding001,
+			Dimensions: 768,
+		})
+
+		_, err := e.Embed(t.Context(), gai.NewTextEmbedRequest("Embed this, please."))
+		is.NotError(t, err)
+
+		span := oteltest.FindSpan(t, sr.Ended(), "google.embed")
+		is.True(t, oteltest.HasAttribute(span.Attributes(), attribute.String("ai.model", string(google.EmbedModelGeminiEmbedding001))))
+		is.True(t, oteltest.HasAttribute(span.Attributes(), attribute.Int("ai.dimensions", 768)))
+		is.True(t, oteltest.HasAttribute(span.Attributes(), attribute.Int("ai.input_length", len("Embed this, please."))))
 	})
 }
 

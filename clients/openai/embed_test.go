@@ -3,10 +3,12 @@ package openai_test
 import (
 	"testing"
 
+	"go.opentelemetry.io/otel/attribute"
 	"maragu.dev/is"
 
 	"maragu.dev/gai"
 	"maragu.dev/gai/clients/openai"
+	"maragu.dev/gai/internal/oteltest"
 )
 
 func TestEmbedder_Embed(t *testing.T) {
@@ -74,5 +76,24 @@ func TestEmbedder_Embed(t *testing.T) {
 		_, _ = e.Embed(t.Context(), gai.EmbedRequest{
 			Parts: []gai.Part{gai.TextPart("one"), gai.TextPart("two")},
 		})
+	})
+
+	t.Run("records standard attributes on the embed span", func(t *testing.T) {
+		sr := oteltest.NewSpanRecorder(t)
+		c := newClient(t)
+		e := c.NewEmbedder(openai.NewEmbedderOptions{
+			Model:      openai.EmbedModelTextEmbedding3Small,
+			Dimensions: 1536,
+		})
+
+		_, err := e.Embed(t.Context(), gai.NewTextEmbedRequest("Embed this, please."))
+		is.NotError(t, err)
+
+		span := oteltest.FindSpan(t, sr.Ended(), "openai.embed")
+		is.True(t, oteltest.HasAttribute(span.Attributes(), attribute.String("ai.model", string(openai.EmbedModelTextEmbedding3Small))))
+		is.True(t, oteltest.HasAttribute(span.Attributes(), attribute.Int("ai.dimensions", 1536)))
+		is.True(t, oteltest.HasAttribute(span.Attributes(), attribute.Int("ai.input_length", len("Embed this, please."))))
+		oteltest.RequirePositiveIntAttribute(t, span.Attributes(), "ai.prompt_tokens")
+		oteltest.RequirePositiveIntAttribute(t, span.Attributes(), "ai.total_tokens")
 	})
 }
