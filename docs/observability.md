@@ -56,14 +56,14 @@ only when the request carries the matching field.
 | `ai.message_count` | int | — | Number of request messages | all |
 | `ai.temperature` | double | — | Sampling temperature; set only when the request specifies one | all |
 | `ai.thinking_level` | string | — | Reasoning effort; set only when the request specifies one | all |
-| `ai.max_completion_tokens` | int | tokens | Completion-token cap, including the client default | anthropic, google |
+| `ai.max_completion_tokens` | int | tokens | Completion-token cap. Anthropic always emits it (default 16384); Google only when the request sets one | anthropic, google |
 | `ai.tool_count` | int | — | Number of tools offered | all |
 | `ai.tools` | string[] | — | Sorted tool names | all |
 | `ai.tool_choice` | string | — | Forced tool-choice mode (`any` or `tool`); set only when forcing | all |
 | `ai.has_system_prompt` | bool | — | Whether a system prompt was sent. The prompt text is **not** recorded | all |
 | `ai.has_response_schema` | bool | — | Whether the request asked for structured output | all |
 | `ai.time_to_first_token_ms` | int | ms | Latency from the streaming call to the first part yielded | all |
-| `ai.prompt_tokens` | int | tokens | Input tokens, normalised to include cache-read and cache-creation tokens | all |
+| `ai.prompt_tokens` | int | tokens | Input tokens, including cache-read and cache-creation tokens (gai sums Anthropic's split; OpenAI and Google already report the combined count) | all |
 | `ai.completion_tokens` | int | tokens | Output tokens | all |
 | `ai.cache_read_tokens` | int | tokens | Input tokens served from the provider cache; a subset of `ai.prompt_tokens` | all |
 | `ai.cache_creation_tokens` | int | tokens | Input tokens written to the provider cache | anthropic |
