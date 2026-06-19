@@ -7,9 +7,11 @@ import (
 	"testing/synctest"
 	"time"
 
+	"go.opentelemetry.io/otel/attribute"
 	"maragu.dev/is"
 
 	"maragu.dev/gai"
+	"maragu.dev/gai/internal/oteltest"
 	"maragu.dev/gai/robust"
 )
 
@@ -324,5 +326,87 @@ func TestEmbedder_Embed(t *testing.T) {
 		res, err := e.Embed(t.Context(), gai.NewTextEmbedRequest("hi"))
 		is.NotError(t, err)
 		is.EqualSlice(t, []float64{0.1, 0.2}, res.Embedding)
+	})
+
+	t.Run("emits a root span with config and one success attempt span on first-try success", func(t *testing.T) {
+		sr := oteltest.NewSpanRecorder(t)
+
+		primary := newFakeEmbedder(t, "primary", []fakeEmbedResponse[float32]{
+			{embedding: []float32{0.1, 0.2}},
+		})
+
+		e := robust.NewEmbedder[float32](robust.NewEmbedderOptions[float32]{
+			Embedders:   []gai.Embedder[float32]{primary},
+			MaxAttempts: 2,
+			BaseDelay:   time.Millisecond,
+			MaxDelay:    time.Second,
+		})
+
+		_, err := e.Embed(t.Context(), gai.NewTextEmbedRequest("hi"))
+		is.NotError(t, err)
+
+		root := oteltest.FindSpan(t, sr.Ended(), "robust.embed")
+		is.True(t, oteltest.HasAttribute(root.Attributes(), attribute.Int("ai.robust.embedder_count", 1)))
+		is.True(t, oteltest.HasAttribute(root.Attributes(), attribute.Int("ai.robust.max_attempts", 2)))
+		is.True(t, oteltest.HasAttribute(root.Attributes(), attribute.Int64("ai.robust.base_delay_ms", 1)))
+		is.True(t, oteltest.HasAttribute(root.Attributes(), attribute.Int64("ai.robust.max_delay_ms", 1000)))
+
+		attempts := oteltest.SpansByName(sr.Ended(), "robust.embed_attempt")
+		is.Equal(t, 1, len(attempts))
+		is.True(t, oteltest.HasAttribute(attempts[0].Attributes(), attribute.Int("ai.robust.embedder_index", 0)))
+		is.True(t, oteltest.HasAttribute(attempts[0].Attributes(), attribute.Int("ai.robust.attempt_number", 1)))
+		is.True(t, oteltest.HasAttribute(attempts[0].Attributes(), attribute.String("ai.robust.action", "success")))
+	})
+
+	t.Run("records a fallback action on the primary attempt and success on the secondary", func(t *testing.T) {
+		sr := oteltest.NewSpanRecorder(t)
+
+		fallbackErr := errors.New("confetti jam")
+		primary := newFakeEmbedder(t, "primary", []fakeEmbedResponse[float32]{{err: fallbackErr}})
+		secondary := newFakeEmbedder(t, "secondary", []fakeEmbedResponse[float32]{{embedding: []float32{4, 2}}})
+
+		e := robust.NewEmbedder[float32](robust.NewEmbedderOptions[float32]{
+			Embedders: []gai.Embedder[float32]{primary, secondary},
+			BaseDelay: time.Nanosecond,
+			MaxDelay:  time.Nanosecond,
+			ErrorClassifier: func(err error) robust.Action {
+				if errors.Is(err, fallbackErr) {
+					return robust.ActionFallback
+				}
+				return robust.ActionRetry
+			},
+		})
+
+		_, err := e.Embed(t.Context(), gai.EmbedRequest{})
+		is.NotError(t, err)
+
+		attempts := oteltest.SpansByName(sr.Ended(), "robust.embed_attempt")
+		is.Equal(t, 2, len(attempts))
+		is.True(t, oteltest.HasAttribute(attempts[0].Attributes(), attribute.Int("ai.robust.embedder_index", 0)))
+		is.True(t, oteltest.HasAttribute(attempts[0].Attributes(), attribute.String("ai.robust.action", "fallback")))
+		is.True(t, oteltest.HasAttribute(attempts[1].Attributes(), attribute.Int("ai.robust.embedder_index", 1)))
+		is.True(t, oteltest.HasAttribute(attempts[1].Attributes(), attribute.String("ai.robust.action", "success")))
+	})
+
+	t.Run("marks the root span as an error when all embedders are exhausted", func(t *testing.T) {
+		sr := oteltest.NewSpanRecorder(t)
+
+		primary := newFakeEmbedder(t, "primary", []fakeEmbedResponse[float32]{
+			{err: errors.New("p1")},
+			{err: errors.New("p2")},
+		})
+
+		e := robust.NewEmbedder[float32](robust.NewEmbedderOptions[float32]{
+			Embedders:   []gai.Embedder[float32]{primary},
+			MaxAttempts: 2,
+			BaseDelay:   time.Nanosecond,
+			MaxDelay:    time.Nanosecond,
+		})
+
+		_, err := e.Embed(t.Context(), gai.EmbedRequest{})
+		is.True(t, err != nil)
+
+		root := oteltest.FindSpan(t, sr.Ended(), "robust.embed")
+		is.Equal(t, "all embedders exhausted", root.Status().Description)
 	})
 }

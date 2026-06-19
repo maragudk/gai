@@ -7,10 +7,12 @@ import (
 	"strings"
 	"testing"
 
+	"go.opentelemetry.io/otel/attribute"
 	"maragu.dev/is"
 
 	"maragu.dev/gai"
 	"maragu.dev/gai/clients/google"
+	"maragu.dev/gai/internal/oteltest"
 	"maragu.dev/gai/tools"
 )
 
@@ -759,6 +761,28 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			is.True(t, err != nil, "expected an error")
 			is.Equal(t, `tool choice name "missing" does not match any provided tool`, err.Error())
 		})
+	})
+
+	t.Run("records standard attributes on the chat-complete span", func(t *testing.T) {
+		sr := oteltest.NewSpanRecorder(t)
+		cc := newChatCompleter(t)
+
+		res, err := cc.ChatComplete(t.Context(), gai.ChatCompleteRequest{
+			System:   gai.Ptr("You are a robot of few words."),
+			Messages: []gai.Message{gai.NewUserTextMessage("Reply with a single word.")},
+		})
+		is.NotError(t, err)
+		for _, err := range res.Parts() {
+			is.NotError(t, err)
+		}
+
+		span := oteltest.FindSpan(t, sr.Ended(), "google.chat_complete")
+		is.True(t, oteltest.HasAttribute(span.Attributes(), attribute.String("ai.model", string(google.ChatCompleteModelGemini2_5Flash))))
+		is.True(t, oteltest.HasAttribute(span.Attributes(), attribute.Bool("ai.has_system_prompt", true)))
+		oteltest.RequireAttributePresent(t, span.Attributes(), "ai.time_to_first_token_ms")
+		oteltest.RequirePositiveIntAttribute(t, span.Attributes(), "ai.prompt_tokens")
+		oteltest.RequirePositiveIntAttribute(t, span.Attributes(), "ai.completion_tokens")
+		oteltest.RequireCacheReadSubsetOfPromptTokens(t, span.Attributes())
 	})
 }
 

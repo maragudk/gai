@@ -112,10 +112,7 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 
 	if req.System != nil {
 		messages = append(messages, openai.SystemMessage(*req.System))
-		span.SetAttributes(
-			attribute.Bool("ai.has_system_prompt", true),
-			attribute.String("ai.system_prompt", *req.System),
-		)
+		span.SetAttributes(attribute.Bool("ai.has_system_prompt", true))
 	}
 
 	for _, m := range req.Messages {
