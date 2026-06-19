@@ -28,9 +28,8 @@ Subpackage `maragu.dev/gai/robust`:
 - `embedder.go` — generic `Embedder[T]` type, constructor, `Embed`.
 - `classify.go` — private `defaultErrorClassifier` and status-code helper.
 - `backoff.go` — private `sleep` and `nextDelay` helpers shared between wrappers.
-- `chat_completer_test.go`, `embedder_test.go` — external (`package robust_test`) tests against the public API.
+- `chat_completer_test.go`, `embedder_test.go` — external (`package robust_test`) tests against the public API, including the OpenTelemetry span shape each wrapper emits.
 - `classify_test.go` — internal (`package robust`) tests for unexported helpers.
-- `spans_test.go` — external (`package robust_test`) tests asserting the OpenTelemetry span shape emitted by both wrappers.
 
 ## Shared policy types
 
@@ -59,6 +58,7 @@ type NewChatCompleterOptions struct {
     MaxAttempts     int                 // 0 → default 3; 1 disables retry
     BaseDelay       time.Duration       // 0 → default 500ms
     MaxDelay        time.Duration       // 0 → default 30s
+    AttemptTimeout  time.Duration       // 0 → no per-attempt timeout; bounds time-to-first-part
     ErrorClassifier ErrorClassifierFunc // nil → default classifier
     Log             *slog.Logger        // nil → discard
 }
@@ -77,6 +77,7 @@ type NewEmbedderOptions[T gai.VectorComponent] struct {
     MaxAttempts     int                 // 0 → default 3; 1 disables retry
     BaseDelay       time.Duration       // 0 → default 100ms
     MaxDelay        time.Duration       // 0 → default 5s
+    AttemptTimeout  time.Duration       // 0 → no per-attempt timeout
     ErrorClassifier ErrorClassifierFunc // nil → default classifier
     Log             *slog.Logger        // nil → discard
 }
@@ -87,7 +88,7 @@ func NewEmbedder[T gai.VectorComponent](opts NewEmbedderOptions[T]) *Embedder[T]
 func (e *Embedder[T]) Embed(ctx context.Context, req gai.EmbedRequest) (gai.EmbedResponse[T], error)
 ```
 
-Both constructors panic on invalid inputs: empty list, negative `MaxAttempts`/`BaseDelay`/`MaxDelay`, `MaxDelay == math.MaxInt64`, or `BaseDelay > MaxDelay`. Defaults differ: embeddings are typically 50-200ms, so the backoff scale is one order of magnitude tighter.
+Both constructors panic on invalid inputs: empty list, negative `MaxAttempts`/`BaseDelay`/`MaxDelay`/`AttemptTimeout`, `MaxDelay == math.MaxInt64`, or `BaseDelay > MaxDelay`. `AttemptTimeout` has no upper bound, since the loop never shifts it the way it shifts `MaxDelay`. Defaults differ: embeddings are typically 50-200ms, so the backoff scale is one order of magnitude tighter.
 
 ## Behavior
 
@@ -105,6 +106,22 @@ Both wrappers follow the same cascading retry-then-fallback pattern:
    - Any other value, including the unexported zero sentinel → panic. Classifiers must return one of the three exported `Action` constants.
 5. On success for `Embedder`: return the response immediately. For `ChatCompleter`: peek the first streamed part (see streaming below).
 6. When all implementations are exhausted, return the final error.
+
+### Per-attempt timeout
+
+A hung backend — slow or stuck rather than erroring — is the one failure the wrapper otherwise can't handle. The caller's overall deadline is the only bound, and the default classifier maps it to `ActionFail`, so the first hang consumes the whole budget and the wrapper returns without retrying or falling over. `AttemptTimeout` fixes this by bounding a single attempt.
+
+When `AttemptTimeout` is zero, behaviour is identical to having no timeout: no context wrapping, no timer. When set, `tryOnce` derives a sub-context with that timeout from the caller's context and runs the attempt against it.
+
+A fired per-attempt timeout is **retryable, handled out of band**. The classifier never sees it. After the underlying call returns, `tryOnce` checks whether our sub-context's deadline fired while the parent context is still live; if so, it returns `ActionRetry` directly. Everything else flows through the classifier as before. The predicate is the crux: a per-attempt timeout and a caller cancellation both surface as `context.DeadlineExceeded`, so the only way to tell them apart is the parent context's liveness. The sub-context's own state — not `errors.Is` on the returned error — is the authoritative signal that *our* deadline fired.
+
+A timeout-driven `ActionRetry` runs through the normal jittered backoff, then retries the same backend up to `MaxAttempts` (each retry gets a fresh clock) before falling over to the next. Returning `ActionRetry` is enough; the loop already does the rest.
+
+The caller's own cancellation or deadline stays a hard stop. If the parent context is done, the error flows through the classifier — fatal by default — and the loop returns at once. The overall deadline therefore acts as a backstop ceiling above the per-attempt timeout.
+
+For `Embedder` the mechanics are simple: `context.WithTimeout(ctx, AttemptTimeout)`, `defer cancel()`, detect via `attemptCtx.Err() == context.DeadlineExceeded && ctx.Err() == nil`.
+
+For `ChatCompleter` the per-attempt timeout bounds **time-to-first-part only** — the `ChatComplete` call plus the first iterator pull — not the whole stream. After commit, the wrapped iterator keeps reading from the attempt context for the rest of the stream, so a timer left running would cancel a healthy long stream mid-flight. `tryOnce` instead uses `context.WithCancel` plus a `time.AfterFunc` that records its firing in an `atomic.Bool` (the AfterFunc runs on its own goroutine) and cancels the sub-context. At commit the timer is stopped and ownership of the cancel transfers to the wrapped iterator, which cancels exactly once at stream end. On the failure paths the timer is stopped and the context cancelled before returning. If the timer fires right at commit, the committed first part still returns; the rest of the stream may then error through, consistent with the commit-on-first-part contract. Detection here keys off the timer-fired flag, not the returned error, because the cancel surfaces as `context.Canceled` rather than `context.DeadlineExceeded`.
 
 ### Streaming: commit on first part (ChatCompleter only)
 
@@ -146,15 +163,16 @@ Tracer: `otel.Tracer("maragu.dev/gai/robust")`. Child spans automatically parent
 
 - `ChatCompleter` spans: root `robust.chat_complete`, child `robust.chat_complete_attempt`. Root attributes: `ai.robust.completer_count`, `ai.robust.max_attempts`, `ai.robust.base_delay_ms`, `ai.robust.max_delay_ms`. Per-attempt attributes: `ai.robust.completer_index`, `ai.robust.attempt_number`, `ai.robust.action`.
 - `Embedder` spans: root `robust.embed`, child `robust.embed_attempt`. Root attributes: `ai.robust.embedder_count`, `ai.robust.max_attempts`, `ai.robust.base_delay_ms`, `ai.robust.max_delay_ms`. Per-attempt attributes: `ai.robust.embedder_index`, `ai.robust.attempt_number`, `ai.robust.action`.
-- `ai.robust.action` is `"success"` on the successful attempt, or the classified action on failures.
-- Errors recorded on attempt spans via `RecordError` and `SetStatus(codes.Error, ...)`.
+- `ai.robust.action` is `"success"` on the successful attempt, or the action taken on failures. A timeout-driven retry records `"retry"`, the same as any other retryable error.
+- `ai.robust.attempt_timed_out` (bool) marks the timeout-driven path. It is set to `true` only on an attempt that timed out, and omitted otherwise, so operators can distinguish a timeout-driven retry from an error-driven one.
+- Errors recorded on attempt spans via `RecordError` and `SetStatus(codes.Error, ...)`, including the deadline error on the timeout path.
 - For `ChatCompleter` on the committed path, both the attempt span and the root span stay open until the wrapped iterator terminates. For `Embedder` the spans close at `Embed` return.
 
 Logging: `slog.Debug` only, on failover transitions and final exhaustion. Silent in production by default.
 
 ## Testing
 
-External tests exercise end-to-end behavior via queue-driven fakes (`fakeChatCompleter`, `fakeEmbedder[T]`) that fail the test rather than panic when the queue is exhausted. Subtests have sentence-style names. Coverage includes happy path, retries, classifier-driven fallback, retry exhaustion then fallback, context cancellation (immediate and mid-backoff), full exhaustion, defaults, `MaxAttempts=1`, constructor panics, and unknown-Action panics. ChatCompleter additionally covers streaming commit, mid-stream passthrough, iterator-error-before-first-part retry, empty-stream retry, and `Meta` pointer forwarding.
+External tests exercise end-to-end behavior via queue-driven fakes (`fakeChatCompleter`, `fakeEmbedder[T]`) that fail the test rather than panic when the queue is exhausted. The fakes can hang on the attempt context to simulate a stuck backend. Subtests have sentence-style names. Coverage includes happy path, retries, classifier-driven fallback, retry exhaustion then fallback, context cancellation (immediate and mid-backoff), full exhaustion, defaults, `MaxAttempts=1`, constructor panics, and unknown-Action panics. Per-attempt timeout coverage includes a hung backend retrying then falling over, exhausting `MaxAttempts` on one backend, the caller's own deadline staying fatal, the classifier never being invoked for the synthetic timeout, and the timeout-path span attributes. ChatCompleter additionally covers streaming commit, mid-stream passthrough, iterator-error-before-first-part retry, empty-stream retry, `Meta` pointer forwarding, and — the key streaming regression — a stream that commits quickly then runs past `AttemptTimeout` without being killed.
 
 Internal tests cover the unexported `defaultErrorClassifier`, `findStatusCode` regex (table-driven with positive and negative cases), and `nextDelay` jitter bounds.
 
