@@ -268,3 +268,91 @@ None. One reviewer noted the embedder's predicate (`attemptCtx.Err() == Deadline
 could, in a sub-microsecond race, treat a genuine error arriving exactly at the deadline as a
 timeout-retry; both reviewers judged this benign (the outcome is still retry-then-fallover, the
 safe direction) and it matches the predicate the brief specified, so I left it.
+
+## Step 4: Convert the timing tests to `testing/synctest`
+
+**Author:** builder-synctest
+
+### Prompt Context
+
+**Verbatim prompt:** "convert the timing-sensitive tests to Go 1.25's stable `testing/synctest`
+so they're deterministic and flake-free. This folds into the same PR. [...] Convert ONLY the
+timing-sensitive subtests [...] Leave the non-timing tests [...] untouched."
+**Interpretation:** Wrap each subtest that depends on real durations — per-attempt timeout,
+backoff sleep, caller deadline, slow-stream — in a `synctest.Test` bubble so the fake clock
+drives them, and leave constructor/classifier/happy-path tests alone. Test-only; no production
+changes.
+**Inferred intent:** Kill wall-clock flake and the load-bearing real-time safety margins (the
+20ms-vs-50ms slow-stream test in particular), making the ordering exact under the fake clock.
+
+### What I did
+Converted thirteen timing subtests to `synctest.Test(t, func(t *testing.T) { ... })` — eight in
+`chat_completer_test.go`, five in `embedder_test.go`. (The two "interrupts the backoff sleep
+mid-sleep" subtests were already bubbled in Step 2 and are not counted here.) The converted
+ChatCompleter subtests: hang-before-stream retry-then-fallover, hung backend to `MaxAttempts`,
+in-stream stall, the slow-stream regression, the caller-deadline-stays-fatal test, the
+no-classifier-for-timeout test, and the two timeout-path span-attribute tests. The Embedder
+subtests: the matching hang, `MaxAttempts`, caller-deadline, no-classifier, and span-attribute
+tests.
+
+For the two caller-deadline subtests I moved the `context.WithTimeout(...)` derivation inside
+the bubble so it builds off the bubble's `t.Context()` and runs on the fake clock, rather than
+capturing a context created outside the bubble. I left the `defer cancel()` in place inside the
+bubble.
+
+I updated two comments to match the new reality: the slow-stream regression test's comment now
+explains the ordering is exact under the fake clock (the timer is stopped at commit before the
+clock can advance to either the 20ms timeout or the 50ms part delay) instead of relying on a
+real-time scheduling margin; and the embedder caller-deadline test's comment notes the deadline
+runs on the fake clock. Durations were left readable (10ms/20ms/50ms/1h) — under the fake clock
+they cost nothing.
+
+I did not touch any non-timing test, the fakes, or any production code. I added the
+`testing/synctest` note to the Testing section of `docs/design/robust.md`.
+
+### Why
+The brief calls out the slow-stream regression as the key one: under real time its safety came
+from a wide 20ms-vs-50ms margin; under the fake clock the commit-stops-timer ordering is exact,
+so determinism replaces the margin. Bubbling the rest removes every real `time.Sleep`/`After`
+from the suite's hot timing paths, so the package's timing tests now run at 0.00s and can't
+flake on a loaded CI box.
+
+### What worked
+Every converted test passed on the first run. The full package went green under
+`go test -shuffle on -race ./robust/` and stayed green under `-race -count=20`. The timing
+subtests all report 0.00s in `-v` output, confirming the fake clock (no real waits). `go vet
+./...` and `golangci-lint run` are both clean (`0 issues.`).
+
+### What didn't work
+Nothing broke. I had braced for the drain-contract deadlock the brief warned about (point 1):
+`synctest.Test` does not return until ALL bubble goroutines exit, including the `iter.Pull2`
+goroutine and the `time.AfterFunc` timer goroutine on the ChatCompleter path, so a committed
+stream that isn't fully drained hangs the bubble forever. Every ChatCompleter timing subtest
+already ranges its response to completion via `collectParts`, so this never bit — but it is the
+first thing to check if one of these tests ever hangs.
+
+### What I learned
+The `oteltest.NewSpanRecorder` helper is bubble-safe: its `tracetest.SpanRecorder` is a
+synchronous span processor (no background goroutine), and its `t.Cleanup` (`tp.Shutdown` +
+restore provider) runs after the bubble returns, by which point every goroutine has exited. Its
+documented ordering requirement — construct the client under test AFTER `NewSpanRecorder` —
+holds naturally inside the bubble, since both the recorder and `robust.NewChatCompleter` are
+constructed there in source order.
+
+### What was tricky
+Deciding which subtests are genuinely timing-sensitive versus merely using
+`BaseDelay/MaxDelay: time.Nanosecond`. The nanosecond-delay tests (e.g. "retries a pre-stream
+error") resolve instantly and don't depend on wall-clock ordering, so per the brief I left them
+on real durations — bubbling them would add noise without buying determinism.
+
+### What warrants review
+The two moved `context.WithTimeout` derivations (chat and embed caller-deadline tests): confirm
+they read from the bubble's `t.Context()` and that the deadline-before-attempt-timeout ordering
+still holds under the fake clock (it does — both tests assert `context.DeadlineExceeded` and one
+primary call, zero secondary). Also worth a glance: the slow-stream regression still genuinely
+exercises commit-then-slow-stream (first part at t=0 commits and stops the timer; later parts at
++50ms each arrive after the 20ms timeout would have fired) and completes with three parts and no
+context-cancelled error.
+
+### Future work
+None.

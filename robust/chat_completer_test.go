@@ -597,230 +597,250 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 	})
 
 	t.Run("retries a primary that hangs before the first part under AttemptTimeout then falls over", func(t *testing.T) {
-		primary := newFakeChatCompleter(t, "primary", []fakeResponse{
-			{hangBeforeStream: true},
-			{hangBeforeStream: true},
-		})
-		secondary := newFakeChatCompleter(t, "secondary", []fakeResponse{
-			{parts: []gai.Part{gai.TextPart("saved")}},
-		})
+		synctest.Test(t, func(t *testing.T) {
+			primary := newFakeChatCompleter(t, "primary", []fakeResponse{
+				{hangBeforeStream: true},
+				{hangBeforeStream: true},
+			})
+			secondary := newFakeChatCompleter(t, "secondary", []fakeResponse{
+				{parts: []gai.Part{gai.TextPart("saved")}},
+			})
 
-		cc := robust.NewChatCompleter(robust.NewChatCompleterOptions{
-			Completers:     []gai.ChatCompleter{primary, secondary},
-			MaxAttempts:    2,
-			BaseDelay:      time.Millisecond,
-			MaxDelay:       time.Millisecond,
-			AttemptTimeout: 10 * time.Millisecond,
-		})
+			cc := robust.NewChatCompleter(robust.NewChatCompleterOptions{
+				Completers:     []gai.ChatCompleter{primary, secondary},
+				MaxAttempts:    2,
+				BaseDelay:      time.Millisecond,
+				MaxDelay:       time.Millisecond,
+				AttemptTimeout: 10 * time.Millisecond,
+			})
 
-		res, err := cc.ChatComplete(t.Context(), gai.ChatCompleteRequest{})
-		is.NotError(t, err)
-		parts, err := collectParts(t, res)
-		is.NotError(t, err)
-		is.Equal(t, 1, len(parts))
-		is.Equal(t, "saved", parts[0].Text())
-		is.Equal(t, 2, primary.calls)
-		is.Equal(t, 1, secondary.calls)
+			res, err := cc.ChatComplete(t.Context(), gai.ChatCompleteRequest{})
+			is.NotError(t, err)
+			parts, err := collectParts(t, res)
+			is.NotError(t, err)
+			is.Equal(t, 1, len(parts))
+			is.Equal(t, "saved", parts[0].Text())
+			is.Equal(t, 2, primary.calls)
+			is.Equal(t, 1, secondary.calls)
+		})
 	})
 
 	t.Run("retries a hung backend up to MaxAttempts with a fresh clock each time then falls over", func(t *testing.T) {
-		primary := newFakeChatCompleter(t, "primary", []fakeResponse{
-			{hangBeforeStream: true},
-			{hangBeforeStream: true},
-			{hangBeforeStream: true},
-		})
-		secondary := newFakeChatCompleter(t, "secondary", []fakeResponse{
-			{parts: []gai.Part{gai.TextPart("saved")}},
-		})
+		synctest.Test(t, func(t *testing.T) {
+			primary := newFakeChatCompleter(t, "primary", []fakeResponse{
+				{hangBeforeStream: true},
+				{hangBeforeStream: true},
+				{hangBeforeStream: true},
+			})
+			secondary := newFakeChatCompleter(t, "secondary", []fakeResponse{
+				{parts: []gai.Part{gai.TextPart("saved")}},
+			})
 
-		cc := robust.NewChatCompleter(robust.NewChatCompleterOptions{
-			Completers:     []gai.ChatCompleter{primary, secondary},
-			MaxAttempts:    3,
-			BaseDelay:      time.Millisecond,
-			MaxDelay:       time.Millisecond,
-			AttemptTimeout: 10 * time.Millisecond,
-		})
+			cc := robust.NewChatCompleter(robust.NewChatCompleterOptions{
+				Completers:     []gai.ChatCompleter{primary, secondary},
+				MaxAttempts:    3,
+				BaseDelay:      time.Millisecond,
+				MaxDelay:       time.Millisecond,
+				AttemptTimeout: 10 * time.Millisecond,
+			})
 
-		res, err := cc.ChatComplete(t.Context(), gai.ChatCompleteRequest{})
-		is.NotError(t, err)
-		parts, err := collectParts(t, res)
-		is.NotError(t, err)
-		is.Equal(t, "saved", parts[0].Text())
-		is.Equal(t, 3, primary.calls)
-		is.Equal(t, 1, secondary.calls)
+			res, err := cc.ChatComplete(t.Context(), gai.ChatCompleteRequest{})
+			is.NotError(t, err)
+			parts, err := collectParts(t, res)
+			is.NotError(t, err)
+			is.Equal(t, "saved", parts[0].Text())
+			is.Equal(t, 3, primary.calls)
+			is.Equal(t, 1, secondary.calls)
+		})
 	})
 
 	t.Run("retries a primary that stalls in the stream before the first part then falls over", func(t *testing.T) {
-		primary := newFakeChatCompleter(t, "primary", []fakeResponse{
-			{hangInStream: true},
-		})
-		secondary := newFakeChatCompleter(t, "secondary", []fakeResponse{
-			{parts: []gai.Part{gai.TextPart("saved")}},
-		})
+		synctest.Test(t, func(t *testing.T) {
+			primary := newFakeChatCompleter(t, "primary", []fakeResponse{
+				{hangInStream: true},
+			})
+			secondary := newFakeChatCompleter(t, "secondary", []fakeResponse{
+				{parts: []gai.Part{gai.TextPart("saved")}},
+			})
 
-		cc := robust.NewChatCompleter(robust.NewChatCompleterOptions{
-			Completers:     []gai.ChatCompleter{primary, secondary},
-			MaxAttempts:    1,
-			BaseDelay:      time.Millisecond,
-			MaxDelay:       time.Millisecond,
-			AttemptTimeout: 10 * time.Millisecond,
-		})
+			cc := robust.NewChatCompleter(robust.NewChatCompleterOptions{
+				Completers:     []gai.ChatCompleter{primary, secondary},
+				MaxAttempts:    1,
+				BaseDelay:      time.Millisecond,
+				MaxDelay:       time.Millisecond,
+				AttemptTimeout: 10 * time.Millisecond,
+			})
 
-		res, err := cc.ChatComplete(t.Context(), gai.ChatCompleteRequest{})
-		is.NotError(t, err)
-		parts, err := collectParts(t, res)
-		is.NotError(t, err)
-		is.Equal(t, "saved", parts[0].Text())
-		is.Equal(t, 1, primary.calls)
-		is.Equal(t, 1, secondary.calls)
+			res, err := cc.ChatComplete(t.Context(), gai.ChatCompleteRequest{})
+			is.NotError(t, err)
+			parts, err := collectParts(t, res)
+			is.NotError(t, err)
+			is.Equal(t, "saved", parts[0].Text())
+			is.Equal(t, 1, primary.calls)
+			is.Equal(t, 1, secondary.calls)
+		})
 	})
 
 	t.Run("does not kill a healthy backend that delivers the first part quickly then streams slowly past AttemptTimeout", func(t *testing.T) {
-		// The first part arrives immediately (no delay), committing the stream and stopping
-		// the per-attempt timer. The remaining parts each take longer than AttemptTimeout; the
-		// stream must complete because the timer no longer bounds it after commit. The margin
-		// (20ms timeout vs 50ms part delay) is wide enough that scheduling jitter at commit
-		// can't fire the timer before it is stopped.
-		primary := newFakeChatCompleter(t, "primary", []fakeResponse{{
-			parts:     []gai.Part{gai.TextPart("first"), gai.TextPart("second"), gai.TextPart("third")},
-			partDelay: 50 * time.Millisecond,
-		}})
+		synctest.Test(t, func(t *testing.T) {
+			// The first part arrives immediately (no delay), committing the stream and stopping
+			// the per-attempt timer. The remaining parts each take longer than AttemptTimeout; the
+			// stream must complete because the timer no longer bounds it after commit. Under the
+			// fake clock the 20ms-timeout-vs-50ms-part-delay ordering is exact: the first part
+			// commits and stops the timer before the clock can advance to either deadline, so the
+			// stream finishes with all three parts and no context-cancelled error.
+			primary := newFakeChatCompleter(t, "primary", []fakeResponse{{
+				parts:     []gai.Part{gai.TextPart("first"), gai.TextPart("second"), gai.TextPart("third")},
+				partDelay: 50 * time.Millisecond,
+			}})
 
-		cc := robust.NewChatCompleter(robust.NewChatCompleterOptions{
-			Completers:     []gai.ChatCompleter{primary},
-			MaxAttempts:    1,
-			BaseDelay:      time.Millisecond,
-			MaxDelay:       time.Millisecond,
-			AttemptTimeout: 20 * time.Millisecond,
+			cc := robust.NewChatCompleter(robust.NewChatCompleterOptions{
+				Completers:     []gai.ChatCompleter{primary},
+				MaxAttempts:    1,
+				BaseDelay:      time.Millisecond,
+				MaxDelay:       time.Millisecond,
+				AttemptTimeout: 20 * time.Millisecond,
+			})
+
+			res, err := cc.ChatComplete(t.Context(), gai.ChatCompleteRequest{})
+			is.NotError(t, err)
+			parts, err := collectParts(t, res)
+			is.NotError(t, err)
+			is.Equal(t, 3, len(parts))
+			is.Equal(t, "first", parts[0].Text())
+			is.Equal(t, "second", parts[1].Text())
+			is.Equal(t, "third", parts[2].Text())
+			is.Equal(t, 1, primary.calls)
 		})
-
-		res, err := cc.ChatComplete(t.Context(), gai.ChatCompleteRequest{})
-		is.NotError(t, err)
-		parts, err := collectParts(t, res)
-		is.NotError(t, err)
-		is.Equal(t, 3, len(parts))
-		is.Equal(t, "first", parts[0].Text())
-		is.Equal(t, "second", parts[1].Text())
-		is.Equal(t, "third", parts[2].Text())
-		is.Equal(t, 1, primary.calls)
 	})
 
 	t.Run("treats the caller's own deadline as fatal even when AttemptTimeout is set", func(t *testing.T) {
-		primary := newFakeChatCompleter(t, "primary", []fakeResponse{
-			{hangBeforeStream: true},
-		})
-		secondary := newFakeChatCompleter(t, "secondary", []fakeResponse{
-			{parts: []gai.Part{gai.TextPart("should not happen")}},
-		})
+		synctest.Test(t, func(t *testing.T) {
+			primary := newFakeChatCompleter(t, "primary", []fakeResponse{
+				{hangBeforeStream: true},
+			})
+			secondary := newFakeChatCompleter(t, "secondary", []fakeResponse{
+				{parts: []gai.Part{gai.TextPart("should not happen")}},
+			})
 
-		ctx, cancel := context.WithTimeout(t.Context(), 10*time.Millisecond)
-		defer cancel()
+			// Build the caller deadline from the bubble's context so it runs on the fake clock.
+			// With a 10ms caller deadline and a 1h AttemptTimeout, the clock advances to the
+			// caller deadline first; that must be fatal (classifier returns ActionFail).
+			ctx, cancel := context.WithTimeout(t.Context(), 10*time.Millisecond)
+			defer cancel()
 
-		cc := robust.NewChatCompleter(robust.NewChatCompleterOptions{
-			Completers:     []gai.ChatCompleter{primary, secondary},
-			MaxAttempts:    3,
-			BaseDelay:      time.Nanosecond,
-			MaxDelay:       time.Nanosecond,
-			AttemptTimeout: time.Hour,
+			cc := robust.NewChatCompleter(robust.NewChatCompleterOptions{
+				Completers:     []gai.ChatCompleter{primary, secondary},
+				MaxAttempts:    3,
+				BaseDelay:      time.Nanosecond,
+				MaxDelay:       time.Nanosecond,
+				AttemptTimeout: time.Hour,
+			})
+
+			_, err := cc.ChatComplete(ctx, gai.ChatCompleteRequest{})
+			is.Error(t, context.DeadlineExceeded, err)
+			is.Equal(t, 1, primary.calls)
+			is.Equal(t, 0, secondary.calls)
 		})
-
-		_, err := cc.ChatComplete(ctx, gai.ChatCompleteRequest{})
-		is.Error(t, context.DeadlineExceeded, err)
-		is.Equal(t, 1, primary.calls)
-		is.Equal(t, 0, secondary.calls)
 	})
 
 	t.Run("retries a per-attempt timeout without invoking the custom classifier", func(t *testing.T) {
-		var classifierCalls int
-		primary := newFakeChatCompleter(t, "primary", []fakeResponse{
-			{hangBeforeStream: true},
-		})
-		secondary := newFakeChatCompleter(t, "secondary", []fakeResponse{
-			{parts: []gai.Part{gai.TextPart("saved")}},
-		})
+		synctest.Test(t, func(t *testing.T) {
+			var classifierCalls int
+			primary := newFakeChatCompleter(t, "primary", []fakeResponse{
+				{hangBeforeStream: true},
+			})
+			secondary := newFakeChatCompleter(t, "secondary", []fakeResponse{
+				{parts: []gai.Part{gai.TextPart("saved")}},
+			})
 
-		cc := robust.NewChatCompleter(robust.NewChatCompleterOptions{
-			Completers:     []gai.ChatCompleter{primary, secondary},
-			MaxAttempts:    1,
-			BaseDelay:      time.Millisecond,
-			MaxDelay:       time.Millisecond,
-			AttemptTimeout: 10 * time.Millisecond,
-			ErrorClassifier: func(error) robust.Action {
-				classifierCalls++
-				return robust.ActionFail
-			},
-		})
+			cc := robust.NewChatCompleter(robust.NewChatCompleterOptions{
+				Completers:     []gai.ChatCompleter{primary, secondary},
+				MaxAttempts:    1,
+				BaseDelay:      time.Millisecond,
+				MaxDelay:       time.Millisecond,
+				AttemptTimeout: 10 * time.Millisecond,
+				ErrorClassifier: func(error) robust.Action {
+					classifierCalls++
+					return robust.ActionFail
+				},
+			})
 
-		res, err := cc.ChatComplete(t.Context(), gai.ChatCompleteRequest{})
-		is.NotError(t, err)
-		parts, err := collectParts(t, res)
-		is.NotError(t, err)
-		is.Equal(t, "saved", parts[0].Text())
-		is.Equal(t, 0, classifierCalls)
-		is.Equal(t, 1, primary.calls)
-		is.Equal(t, 1, secondary.calls)
+			res, err := cc.ChatComplete(t.Context(), gai.ChatCompleteRequest{})
+			is.NotError(t, err)
+			parts, err := collectParts(t, res)
+			is.NotError(t, err)
+			is.Equal(t, "saved", parts[0].Text())
+			is.Equal(t, 0, classifierCalls)
+			is.Equal(t, 1, primary.calls)
+			is.Equal(t, 1, secondary.calls)
+		})
 	})
 
 	t.Run("records a retry action and attempt_timed_out when the call hangs before the stream", func(t *testing.T) {
-		sr := oteltest.NewSpanRecorder(t)
+		synctest.Test(t, func(t *testing.T) {
+			sr := oteltest.NewSpanRecorder(t)
 
-		primary := newFakeChatCompleter(t, "primary", []fakeResponse{
-			{hangBeforeStream: true},
+			primary := newFakeChatCompleter(t, "primary", []fakeResponse{
+				{hangBeforeStream: true},
+			})
+			secondary := newFakeChatCompleter(t, "secondary", []fakeResponse{
+				{parts: []gai.Part{gai.TextPart("saved")}},
+			})
+
+			cc := robust.NewChatCompleter(robust.NewChatCompleterOptions{
+				Completers:     []gai.ChatCompleter{primary, secondary},
+				MaxAttempts:    1,
+				BaseDelay:      time.Millisecond,
+				MaxDelay:       time.Millisecond,
+				AttemptTimeout: 10 * time.Millisecond,
+			})
+
+			res, err := cc.ChatComplete(t.Context(), gai.ChatCompleteRequest{})
+			is.NotError(t, err)
+			_, err = collectParts(t, res)
+			is.NotError(t, err)
+
+			attempts := oteltest.SpansByName(sr.Ended(), "robust.chat_complete_attempt")
+			is.Equal(t, 2, len(attempts))
+			is.True(t, oteltest.HasAttribute(attempts[0].Attributes(), attribute.String("ai.robust.action", "retry")))
+			is.True(t, oteltest.HasAttribute(attempts[0].Attributes(), attribute.Bool("ai.robust.attempt_timed_out", true)))
+			is.True(t, oteltest.HasAttribute(attempts[1].Attributes(), attribute.String("ai.robust.action", "success")))
 		})
-		secondary := newFakeChatCompleter(t, "secondary", []fakeResponse{
-			{parts: []gai.Part{gai.TextPart("saved")}},
-		})
-
-		cc := robust.NewChatCompleter(robust.NewChatCompleterOptions{
-			Completers:     []gai.ChatCompleter{primary, secondary},
-			MaxAttempts:    1,
-			BaseDelay:      time.Millisecond,
-			MaxDelay:       time.Millisecond,
-			AttemptTimeout: 10 * time.Millisecond,
-		})
-
-		res, err := cc.ChatComplete(t.Context(), gai.ChatCompleteRequest{})
-		is.NotError(t, err)
-		_, err = collectParts(t, res)
-		is.NotError(t, err)
-
-		attempts := oteltest.SpansByName(sr.Ended(), "robust.chat_complete_attempt")
-		is.Equal(t, 2, len(attempts))
-		is.True(t, oteltest.HasAttribute(attempts[0].Attributes(), attribute.String("ai.robust.action", "retry")))
-		is.True(t, oteltest.HasAttribute(attempts[0].Attributes(), attribute.Bool("ai.robust.attempt_timed_out", true)))
-		is.True(t, oteltest.HasAttribute(attempts[1].Attributes(), attribute.String("ai.robust.action", "success")))
 	})
 
 	t.Run("records a retry action and attempt_timed_out when the stream stalls before the first part", func(t *testing.T) {
-		// This path runs through commitOnFirstPart, which must not end the attempt span on its
-		// failure branches — otherwise the timeout-path attributes set afterwards are dropped.
-		sr := oteltest.NewSpanRecorder(t)
+		synctest.Test(t, func(t *testing.T) {
+			// This path runs through commitOnFirstPart, which must not end the attempt span on its
+			// failure branches — otherwise the timeout-path attributes set afterwards are dropped.
+			sr := oteltest.NewSpanRecorder(t)
 
-		primary := newFakeChatCompleter(t, "primary", []fakeResponse{
-			{hangInStream: true},
+			primary := newFakeChatCompleter(t, "primary", []fakeResponse{
+				{hangInStream: true},
+			})
+			secondary := newFakeChatCompleter(t, "secondary", []fakeResponse{
+				{parts: []gai.Part{gai.TextPart("saved")}},
+			})
+
+			cc := robust.NewChatCompleter(robust.NewChatCompleterOptions{
+				Completers:     []gai.ChatCompleter{primary, secondary},
+				MaxAttempts:    1,
+				BaseDelay:      time.Millisecond,
+				MaxDelay:       time.Millisecond,
+				AttemptTimeout: 10 * time.Millisecond,
+			})
+
+			res, err := cc.ChatComplete(t.Context(), gai.ChatCompleteRequest{})
+			is.NotError(t, err)
+			_, err = collectParts(t, res)
+			is.NotError(t, err)
+
+			attempts := oteltest.SpansByName(sr.Ended(), "robust.chat_complete_attempt")
+			is.Equal(t, 2, len(attempts))
+			is.True(t, oteltest.HasAttribute(attempts[0].Attributes(), attribute.String("ai.robust.action", "retry")))
+			is.True(t, oteltest.HasAttribute(attempts[0].Attributes(), attribute.Bool("ai.robust.attempt_timed_out", true)))
+			is.True(t, oteltest.HasAttribute(attempts[1].Attributes(), attribute.String("ai.robust.action", "success")))
 		})
-		secondary := newFakeChatCompleter(t, "secondary", []fakeResponse{
-			{parts: []gai.Part{gai.TextPart("saved")}},
-		})
-
-		cc := robust.NewChatCompleter(robust.NewChatCompleterOptions{
-			Completers:     []gai.ChatCompleter{primary, secondary},
-			MaxAttempts:    1,
-			BaseDelay:      time.Millisecond,
-			MaxDelay:       time.Millisecond,
-			AttemptTimeout: 10 * time.Millisecond,
-		})
-
-		res, err := cc.ChatComplete(t.Context(), gai.ChatCompleteRequest{})
-		is.NotError(t, err)
-		_, err = collectParts(t, res)
-		is.NotError(t, err)
-
-		attempts := oteltest.SpansByName(sr.Ended(), "robust.chat_complete_attempt")
-		is.Equal(t, 2, len(attempts))
-		is.True(t, oteltest.HasAttribute(attempts[0].Attributes(), attribute.String("ai.robust.action", "retry")))
-		is.True(t, oteltest.HasAttribute(attempts[0].Attributes(), attribute.Bool("ai.robust.attempt_timed_out", true)))
-		is.True(t, oteltest.HasAttribute(attempts[1].Attributes(), attribute.String("ai.robust.action", "success")))
 	})
 
 	t.Run("panics when AttemptTimeout is negative", func(t *testing.T) {

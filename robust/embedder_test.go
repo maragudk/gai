@@ -418,136 +418,147 @@ func TestEmbedder_Embed(t *testing.T) {
 	})
 
 	t.Run("retries a hung primary under AttemptTimeout then falls over to a healthy secondary", func(t *testing.T) {
-		primary := newFakeEmbedder(t, "primary", []fakeEmbedResponse[float32]{
-			{hang: true},
-			{hang: true},
-		})
-		secondary := newFakeEmbedder(t, "secondary", []fakeEmbedResponse[float32]{
-			{embedding: []float32{1, 2}},
-		})
+		synctest.Test(t, func(t *testing.T) {
+			primary := newFakeEmbedder(t, "primary", []fakeEmbedResponse[float32]{
+				{hang: true},
+				{hang: true},
+			})
+			secondary := newFakeEmbedder(t, "secondary", []fakeEmbedResponse[float32]{
+				{embedding: []float32{1, 2}},
+			})
 
-		e := robust.NewEmbedder[float32](robust.NewEmbedderOptions[float32]{
-			Embedders:      []gai.Embedder[float32]{primary, secondary},
-			MaxAttempts:    2,
-			BaseDelay:      time.Millisecond,
-			MaxDelay:       time.Millisecond,
-			AttemptTimeout: 10 * time.Millisecond,
-		})
+			e := robust.NewEmbedder[float32](robust.NewEmbedderOptions[float32]{
+				Embedders:      []gai.Embedder[float32]{primary, secondary},
+				MaxAttempts:    2,
+				BaseDelay:      time.Millisecond,
+				MaxDelay:       time.Millisecond,
+				AttemptTimeout: 10 * time.Millisecond,
+			})
 
-		res, err := e.Embed(t.Context(), gai.EmbedRequest{})
-		is.NotError(t, err)
-		is.EqualSlice(t, []float32{1, 2}, res.Embedding)
-		is.Equal(t, 2, primary.calls)
-		is.Equal(t, 1, secondary.calls)
+			res, err := e.Embed(t.Context(), gai.EmbedRequest{})
+			is.NotError(t, err)
+			is.EqualSlice(t, []float32{1, 2}, res.Embedding)
+			is.Equal(t, 2, primary.calls)
+			is.Equal(t, 1, secondary.calls)
+		})
 	})
 
 	t.Run("retries a hung backend up to MaxAttempts with a fresh clock each time then falls over", func(t *testing.T) {
-		primary := newFakeEmbedder(t, "primary", []fakeEmbedResponse[float32]{
-			{hang: true},
-			{hang: true},
-			{hang: true},
-		})
-		secondary := newFakeEmbedder(t, "secondary", []fakeEmbedResponse[float32]{
-			{embedding: []float32{3}},
-		})
+		synctest.Test(t, func(t *testing.T) {
+			primary := newFakeEmbedder(t, "primary", []fakeEmbedResponse[float32]{
+				{hang: true},
+				{hang: true},
+				{hang: true},
+			})
+			secondary := newFakeEmbedder(t, "secondary", []fakeEmbedResponse[float32]{
+				{embedding: []float32{3}},
+			})
 
-		e := robust.NewEmbedder[float32](robust.NewEmbedderOptions[float32]{
-			Embedders:      []gai.Embedder[float32]{primary, secondary},
-			MaxAttempts:    3,
-			BaseDelay:      time.Millisecond,
-			MaxDelay:       time.Millisecond,
-			AttemptTimeout: 10 * time.Millisecond,
-		})
+			e := robust.NewEmbedder[float32](robust.NewEmbedderOptions[float32]{
+				Embedders:      []gai.Embedder[float32]{primary, secondary},
+				MaxAttempts:    3,
+				BaseDelay:      time.Millisecond,
+				MaxDelay:       time.Millisecond,
+				AttemptTimeout: 10 * time.Millisecond,
+			})
 
-		res, err := e.Embed(t.Context(), gai.EmbedRequest{})
-		is.NotError(t, err)
-		is.EqualSlice(t, []float32{3}, res.Embedding)
-		is.Equal(t, 3, primary.calls)
-		is.Equal(t, 1, secondary.calls)
+			res, err := e.Embed(t.Context(), gai.EmbedRequest{})
+			is.NotError(t, err)
+			is.EqualSlice(t, []float32{3}, res.Embedding)
+			is.Equal(t, 3, primary.calls)
+			is.Equal(t, 1, secondary.calls)
+		})
 	})
 
 	t.Run("treats the caller's own deadline as fatal even when AttemptTimeout is set", func(t *testing.T) {
-		// The caller's deadline is shorter than the per-attempt timeout, so the parent context
-		// expires first. That must be fatal, not a retryable per-attempt timeout.
-		primary := newFakeEmbedder(t, "primary", []fakeEmbedResponse[float32]{
-			{hang: true},
-		})
-		secondary := newFakeEmbedder(t, "secondary", []fakeEmbedResponse[float32]{
-			{embedding: []float32{9}},
-		})
+		synctest.Test(t, func(t *testing.T) {
+			// The caller's deadline is shorter than the per-attempt timeout, so the parent context
+			// expires first. That must be fatal, not a retryable per-attempt timeout. Build the
+			// deadline from the bubble's context so it runs on the fake clock.
+			primary := newFakeEmbedder(t, "primary", []fakeEmbedResponse[float32]{
+				{hang: true},
+			})
+			secondary := newFakeEmbedder(t, "secondary", []fakeEmbedResponse[float32]{
+				{embedding: []float32{9}},
+			})
 
-		ctx, cancel := context.WithTimeout(t.Context(), 10*time.Millisecond)
-		defer cancel()
+			ctx, cancel := context.WithTimeout(t.Context(), 10*time.Millisecond)
+			defer cancel()
 
-		e := robust.NewEmbedder[float32](robust.NewEmbedderOptions[float32]{
-			Embedders:      []gai.Embedder[float32]{primary, secondary},
-			MaxAttempts:    3,
-			BaseDelay:      time.Nanosecond,
-			MaxDelay:       time.Nanosecond,
-			AttemptTimeout: time.Hour,
+			e := robust.NewEmbedder[float32](robust.NewEmbedderOptions[float32]{
+				Embedders:      []gai.Embedder[float32]{primary, secondary},
+				MaxAttempts:    3,
+				BaseDelay:      time.Nanosecond,
+				MaxDelay:       time.Nanosecond,
+				AttemptTimeout: time.Hour,
+			})
+
+			_, err := e.Embed(ctx, gai.EmbedRequest{})
+			is.Error(t, context.DeadlineExceeded, err)
+			is.Equal(t, 1, primary.calls)
+			is.Equal(t, 0, secondary.calls)
 		})
-
-		_, err := e.Embed(ctx, gai.EmbedRequest{})
-		is.Error(t, context.DeadlineExceeded, err)
-		is.Equal(t, 1, primary.calls)
-		is.Equal(t, 0, secondary.calls)
 	})
 
 	t.Run("retries a per-attempt timeout without invoking the custom classifier", func(t *testing.T) {
-		var classifierCalls int
-		primary := newFakeEmbedder(t, "primary", []fakeEmbedResponse[float32]{
-			{hang: true},
-		})
-		secondary := newFakeEmbedder(t, "secondary", []fakeEmbedResponse[float32]{
-			{embedding: []float32{5}},
-		})
+		synctest.Test(t, func(t *testing.T) {
+			var classifierCalls int
+			primary := newFakeEmbedder(t, "primary", []fakeEmbedResponse[float32]{
+				{hang: true},
+			})
+			secondary := newFakeEmbedder(t, "secondary", []fakeEmbedResponse[float32]{
+				{embedding: []float32{5}},
+			})
 
-		e := robust.NewEmbedder[float32](robust.NewEmbedderOptions[float32]{
-			Embedders:      []gai.Embedder[float32]{primary, secondary},
-			MaxAttempts:    1,
-			BaseDelay:      time.Millisecond,
-			MaxDelay:       time.Millisecond,
-			AttemptTimeout: 10 * time.Millisecond,
-			ErrorClassifier: func(error) robust.Action {
-				classifierCalls++
-				return robust.ActionFail
-			},
-		})
+			e := robust.NewEmbedder[float32](robust.NewEmbedderOptions[float32]{
+				Embedders:      []gai.Embedder[float32]{primary, secondary},
+				MaxAttempts:    1,
+				BaseDelay:      time.Millisecond,
+				MaxDelay:       time.Millisecond,
+				AttemptTimeout: 10 * time.Millisecond,
+				ErrorClassifier: func(error) robust.Action {
+					classifierCalls++
+					return robust.ActionFail
+				},
+			})
 
-		res, err := e.Embed(t.Context(), gai.EmbedRequest{})
-		is.NotError(t, err)
-		is.EqualSlice(t, []float32{5}, res.Embedding)
-		is.Equal(t, 0, classifierCalls)
-		is.Equal(t, 1, primary.calls)
-		is.Equal(t, 1, secondary.calls)
+			res, err := e.Embed(t.Context(), gai.EmbedRequest{})
+			is.NotError(t, err)
+			is.EqualSlice(t, []float32{5}, res.Embedding)
+			is.Equal(t, 0, classifierCalls)
+			is.Equal(t, 1, primary.calls)
+			is.Equal(t, 1, secondary.calls)
+		})
 	})
 
 	t.Run("records a retry action and attempt_timed_out on the timed-out attempt span", func(t *testing.T) {
-		sr := oteltest.NewSpanRecorder(t)
+		synctest.Test(t, func(t *testing.T) {
+			sr := oteltest.NewSpanRecorder(t)
 
-		primary := newFakeEmbedder(t, "primary", []fakeEmbedResponse[float32]{
-			{hang: true},
+			primary := newFakeEmbedder(t, "primary", []fakeEmbedResponse[float32]{
+				{hang: true},
+			})
+			secondary := newFakeEmbedder(t, "secondary", []fakeEmbedResponse[float32]{
+				{embedding: []float32{1}},
+			})
+
+			e := robust.NewEmbedder[float32](robust.NewEmbedderOptions[float32]{
+				Embedders:      []gai.Embedder[float32]{primary, secondary},
+				MaxAttempts:    1,
+				BaseDelay:      time.Millisecond,
+				MaxDelay:       time.Millisecond,
+				AttemptTimeout: 10 * time.Millisecond,
+			})
+
+			_, err := e.Embed(t.Context(), gai.EmbedRequest{})
+			is.NotError(t, err)
+
+			attempts := oteltest.SpansByName(sr.Ended(), "robust.embed_attempt")
+			is.Equal(t, 2, len(attempts))
+			is.True(t, oteltest.HasAttribute(attempts[0].Attributes(), attribute.String("ai.robust.action", "retry")))
+			is.True(t, oteltest.HasAttribute(attempts[0].Attributes(), attribute.Bool("ai.robust.attempt_timed_out", true)))
+			is.True(t, oteltest.HasAttribute(attempts[1].Attributes(), attribute.String("ai.robust.action", "success")))
 		})
-		secondary := newFakeEmbedder(t, "secondary", []fakeEmbedResponse[float32]{
-			{embedding: []float32{1}},
-		})
-
-		e := robust.NewEmbedder[float32](robust.NewEmbedderOptions[float32]{
-			Embedders:      []gai.Embedder[float32]{primary, secondary},
-			MaxAttempts:    1,
-			BaseDelay:      time.Millisecond,
-			MaxDelay:       time.Millisecond,
-			AttemptTimeout: 10 * time.Millisecond,
-		})
-
-		_, err := e.Embed(t.Context(), gai.EmbedRequest{})
-		is.NotError(t, err)
-
-		attempts := oteltest.SpansByName(sr.Ended(), "robust.embed_attempt")
-		is.Equal(t, 2, len(attempts))
-		is.True(t, oteltest.HasAttribute(attempts[0].Attributes(), attribute.String("ai.robust.action", "retry")))
-		is.True(t, oteltest.HasAttribute(attempts[0].Attributes(), attribute.Bool("ai.robust.attempt_timed_out", true)))
-		is.True(t, oteltest.HasAttribute(attempts[1].Attributes(), attribute.String("ai.robust.action", "success")))
 	})
 
 	t.Run("panics when AttemptTimeout is negative", func(t *testing.T) {
