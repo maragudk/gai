@@ -39,7 +39,7 @@ type NewEmbedderOptions[T gai.VectorComponent] struct {
 	// MaxDelay caps the backoff sleep. Defaults to 5s.
 	MaxDelay time.Duration
 	// AttemptTimeout bounds a single attempt against one backend.
-	// Zero (default) means no per-attempt timeout, preserving current behaviour.
+	// Zero (default) means no per-attempt timeout.
 	AttemptTimeout time.Duration
 	// ErrorClassifier decides how to handle errors. Defaults to a conservative built-in.
 	ErrorClassifier ErrorClassifierFunc

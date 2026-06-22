@@ -82,7 +82,7 @@ type NewChatCompleterOptions struct {
 	MaxDelay time.Duration
 	// AttemptTimeout bounds a single attempt against one backend. For streaming it bounds
 	// time-to-first-part only, not the whole stream.
-	// Zero (default) means no per-attempt timeout, preserving current behaviour.
+	// Zero (default) means no per-attempt timeout.
 	AttemptTimeout time.Duration
 	// ErrorClassifier decides how to handle errors. Defaults to a conservative built-in.
 	ErrorClassifier ErrorClassifierFunc
