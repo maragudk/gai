@@ -10,6 +10,7 @@ import (
 	"iter"
 	"log/slog"
 	"math"
+	"sync/atomic"
 	"time"
 
 	"go.opentelemetry.io/otel"
@@ -59,13 +60,14 @@ type ErrorClassifierFunc func(error) Action
 // ChatCompleter wraps a prioritized list of [gai.ChatCompleter]s with retries and fallbacks.
 // Construct with [NewChatCompleter].
 type ChatCompleter struct {
-	completers  []gai.ChatCompleter
-	maxAttempts int
-	baseDelay   time.Duration
-	maxDelay    time.Duration
-	classifier  ErrorClassifierFunc
-	log         *slog.Logger
-	tracer      trace.Tracer
+	completers     []gai.ChatCompleter
+	maxAttempts    int
+	baseDelay      time.Duration
+	maxDelay       time.Duration
+	attemptTimeout time.Duration
+	classifier     ErrorClassifierFunc
+	log            *slog.Logger
+	tracer         trace.Tracer
 }
 
 // NewChatCompleterOptions configures a new [ChatCompleter].
@@ -78,6 +80,10 @@ type NewChatCompleterOptions struct {
 	BaseDelay time.Duration
 	// MaxDelay caps the backoff sleep. Defaults to 30s.
 	MaxDelay time.Duration
+	// AttemptTimeout bounds a single attempt against one backend. For streaming it bounds
+	// time-to-first-part only, not the whole stream.
+	// Zero (default) means no per-attempt timeout.
+	AttemptTimeout time.Duration
 	// ErrorClassifier decides how to handle errors. Defaults to a conservative built-in.
 	ErrorClassifier ErrorClassifierFunc
 	// Log receives debug messages on failover and final exhaustion. Defaults to discarding output.
@@ -86,7 +92,7 @@ type NewChatCompleterOptions struct {
 
 // NewChatCompleter constructs a [ChatCompleter]. Panics if:
 //   - Completers is empty,
-//   - MaxAttempts, BaseDelay, or MaxDelay is negative,
+//   - MaxAttempts, BaseDelay, MaxDelay, or AttemptTimeout is negative,
 //   - MaxDelay equals [math.MaxInt64],
 //   - BaseDelay exceeds MaxDelay.
 func NewChatCompleter(opts NewChatCompleterOptions) *ChatCompleter {
@@ -117,6 +123,9 @@ func NewChatCompleter(opts NewChatCompleterOptions) *ChatCompleter {
 	if opts.BaseDelay > opts.MaxDelay {
 		panic("BaseDelay must not exceed MaxDelay")
 	}
+	if opts.AttemptTimeout < 0 {
+		panic("AttemptTimeout must not be negative")
+	}
 	if opts.ErrorClassifier == nil {
 		opts.ErrorClassifier = defaultErrorClassifier
 	}
@@ -124,13 +133,14 @@ func NewChatCompleter(opts NewChatCompleterOptions) *ChatCompleter {
 		opts.Log = slog.New(slog.DiscardHandler)
 	}
 	return &ChatCompleter{
-		completers:  opts.Completers,
-		maxAttempts: opts.MaxAttempts,
-		baseDelay:   opts.BaseDelay,
-		maxDelay:    opts.MaxDelay,
-		classifier:  opts.ErrorClassifier,
-		log:         opts.Log,
-		tracer:      otel.Tracer("maragu.dev/gai/robust"),
+		completers:     opts.Completers,
+		maxAttempts:    opts.MaxAttempts,
+		baseDelay:      opts.BaseDelay,
+		maxDelay:       opts.MaxDelay,
+		attemptTimeout: opts.AttemptTimeout,
+		classifier:     opts.ErrorClassifier,
+		log:            opts.Log,
+		tracer:         otel.Tracer("maragu.dev/gai/robust"),
 	}
 }
 
@@ -197,6 +207,14 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 // On success returns (committed, actionNone, nil); the attempt span is ended when the
 // wrapped iterator terminates. On failure returns (zero, classifiedAction, err) and ends
 // the attempt span before returning.
+//
+// When [ChatCompleter.attemptTimeout] is set, a per-attempt timer bounds time-to-first-part
+// only: it is stopped at commit and the attempt context is kept alive (and cancelled exactly
+// once) for the remaining stream, so a healthy long stream is never killed. A fired
+// per-attempt timer (the timer expired while the parent ctx is still live) is retryable and
+// handled out of band: tryOnce returns [ActionRetry] without consulting the classifier. A
+// caller cancellation or the caller's own deadline still flows through the classifier, where
+// it is fatal by default.
 func (c *ChatCompleter) tryOnce(ctx context.Context, completer gai.ChatCompleter, req gai.ChatCompleteRequest, completerIdx, attempt int, rootSpan trace.Span) (gai.ChatCompleteResponse, Action, error) {
 	ctx, attemptSpan := c.tracer.Start(ctx, "robust.chat_complete_attempt",
 		trace.WithAttributes(
@@ -205,14 +223,51 @@ func (c *ChatCompleter) tryOnce(ctx context.Context, completer gai.ChatCompleter
 		),
 	)
 
-	res, err := completer.ChatComplete(ctx, req)
+	// attemptCtx bounds the attempt. stopTimer halts the per-attempt timer at commit so it
+	// cannot fire mid-stream; cancel releases the attempt context. Without a per-attempt timeout
+	// all three are inert: attemptCtx is the span context, and stopTimer and cancel are no-ops.
+	attemptCtx := ctx
+	stopTimer := func() {}
+	cancel := func() {}
+	var timerFired atomic.Bool
+	if c.attemptTimeout > 0 {
+		var cancelCtx context.CancelFunc
+		attemptCtx, cancelCtx = context.WithCancel(ctx)
+		cancel = cancelCtx
+		timer := time.AfterFunc(c.attemptTimeout, func() {
+			timerFired.Store(true)
+			cancelCtx()
+		})
+		stopTimer = func() { timer.Stop() }
+	}
+
+	res, err := completer.ChatComplete(attemptCtx, req)
 	if err == nil {
-		committed, peekErr := commitOnFirstPart(res, attemptSpan, rootSpan)
+		// On commit, stopTimer halts the time-to-first-part clock and ownership of cancel
+		// transfers to the wrapped iterator, which runs it once at stream end — keeping
+		// attemptCtx valid for the rest of a healthy stream.
+		committed, peekErr := commitOnFirstPart(res, attemptSpan, rootSpan, stopTimer, cancel)
 		if peekErr == nil {
 			attemptSpan.SetAttributes(attribute.String("ai.robust.action", "success"))
 			return committed, actionNone, nil
 		}
 		err = peekErr
+	}
+	stopTimer()
+	cancel()
+
+	// A fired per-attempt timer is authoritatively signalled by the flag set on its own
+	// goroutine: the timer expired while the parent ctx is still live. Treat it as retryable
+	// out of band, bypassing the classifier, so a hung backend retries then falls over.
+	if timerFired.Load() && ctx.Err() == nil {
+		attemptSpan.SetAttributes(
+			attribute.String("ai.robust.action", ActionRetry.String()),
+			attribute.Bool("ai.robust.attempt_timed_out", true),
+		)
+		attemptSpan.RecordError(err)
+		attemptSpan.SetStatus(codes.Error, ActionRetry.String())
+		attemptSpan.End()
+		return gai.ChatCompleteResponse{}, ActionRetry, err
 	}
 
 	act := c.classifier(err)
@@ -228,30 +283,42 @@ func (c *ChatCompleter) tryOnce(ctx context.Context, completer gai.ChatCompleter
 // Otherwise returns a wrapped response that yields the buffered first part and then delegates
 // to the underlying iterator. Mid-stream errors after commit pass through to the caller.
 //
+// stopTimer and cancel manage the per-attempt timeout's lifetime across the commit boundary.
+// stopTimer halts the time-to-first-part timer at commit, so it cannot cancel a healthy stream
+// mid-flight. cancel releases the attempt context and is transferred to the wrapper's iterator,
+// running once at stream end so the attempt context stays valid for the remaining stream. On the
+// failure paths neither runs here; the caller stops the timer and cancels after this returns.
+//
 // On the success path, attemptSpan and rootSpan are both ended when the wrapper's iterator
-// terminates. On the failure paths, only attemptSpan is ended before returning; the caller is
-// responsible for rootSpan's lifetime in that case.
+// terminates. On the failure paths the caller owns both spans: it records the error on
+// attemptSpan and ends it, so commitOnFirstPart must not end attemptSpan there — doing so would
+// freeze the span before the caller sets the action and timed-out attributes, and the SDK would
+// drop them.
 //
 // Callers of the wrapped response MUST drain [gai.ChatCompleteResponse.Parts] — see
 // https://github.com/maragudk/gai/issues/211 — otherwise the iter.Pull2 goroutine and both
 // spans leak.
-func commitOnFirstPart(res gai.ChatCompleteResponse, attemptSpan, rootSpan trace.Span) (gai.ChatCompleteResponse, error) {
+func commitOnFirstPart(res gai.ChatCompleteResponse, attemptSpan, rootSpan trace.Span, stopTimer, cancel func()) (gai.ChatCompleteResponse, error) {
 	next, stop := iter.Pull2(res.Parts())
 	firstPart, firstErr, ok := next()
 	if !ok {
 		stop()
-		attemptSpan.End()
 		return gai.ChatCompleteResponse{}, errors.New("robust: underlying completer returned an empty stream")
 	}
 	if firstErr != nil {
 		stop()
-		attemptSpan.End()
 		return gai.ChatCompleteResponse{}, firstErr
 	}
+
+	// Commit: stop the time-to-first-part timer so it cannot fire mid-stream. If it already
+	// fired (a benign race right at commit), the first part still returns and the rest of the
+	// stream may error through, per the commit-on-first-part contract.
+	stopTimer()
 
 	wrapped := gai.NewChatCompleteResponse(func(yield func(gai.Part, error) bool) {
 		defer func() {
 			stop()
+			cancel()
 			attemptSpan.End()
 			rootSpan.End()
 		}()

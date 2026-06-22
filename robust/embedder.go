@@ -18,13 +18,14 @@ import (
 // Embedder wraps a prioritized list of [gai.Embedder] implementations with retries and fallbacks.
 // Construct with [NewEmbedder].
 type Embedder[T gai.VectorComponent] struct {
-	embedders   []gai.Embedder[T]
-	maxAttempts int
-	baseDelay   time.Duration
-	maxDelay    time.Duration
-	classifier  ErrorClassifierFunc
-	log         *slog.Logger
-	tracer      trace.Tracer
+	embedders      []gai.Embedder[T]
+	maxAttempts    int
+	baseDelay      time.Duration
+	maxDelay       time.Duration
+	attemptTimeout time.Duration
+	classifier     ErrorClassifierFunc
+	log            *slog.Logger
+	tracer         trace.Tracer
 }
 
 // NewEmbedderOptions configures a new [Embedder].
@@ -37,6 +38,9 @@ type NewEmbedderOptions[T gai.VectorComponent] struct {
 	BaseDelay time.Duration
 	// MaxDelay caps the backoff sleep. Defaults to 5s.
 	MaxDelay time.Duration
+	// AttemptTimeout bounds a single attempt against one backend.
+	// Zero (default) means no per-attempt timeout.
+	AttemptTimeout time.Duration
 	// ErrorClassifier decides how to handle errors. Defaults to a conservative built-in.
 	ErrorClassifier ErrorClassifierFunc
 	// Log receives debug messages on failover and final exhaustion. Defaults to discarding output.
@@ -45,7 +49,7 @@ type NewEmbedderOptions[T gai.VectorComponent] struct {
 
 // NewEmbedder constructs an [Embedder]. Panics if:
 //   - Embedders is empty,
-//   - MaxAttempts, BaseDelay, or MaxDelay is negative,
+//   - MaxAttempts, BaseDelay, MaxDelay, or AttemptTimeout is negative,
 //   - MaxDelay equals [math.MaxInt64],
 //   - BaseDelay exceeds MaxDelay.
 func NewEmbedder[T gai.VectorComponent](opts NewEmbedderOptions[T]) *Embedder[T] {
@@ -76,6 +80,9 @@ func NewEmbedder[T gai.VectorComponent](opts NewEmbedderOptions[T]) *Embedder[T]
 	if opts.BaseDelay > opts.MaxDelay {
 		panic("BaseDelay must not exceed MaxDelay")
 	}
+	if opts.AttemptTimeout < 0 {
+		panic("AttemptTimeout must not be negative")
+	}
 	if opts.ErrorClassifier == nil {
 		opts.ErrorClassifier = defaultErrorClassifier
 	}
@@ -83,13 +90,14 @@ func NewEmbedder[T gai.VectorComponent](opts NewEmbedderOptions[T]) *Embedder[T]
 		opts.Log = slog.New(slog.DiscardHandler)
 	}
 	return &Embedder[T]{
-		embedders:   opts.Embedders,
-		maxAttempts: opts.MaxAttempts,
-		baseDelay:   opts.BaseDelay,
-		maxDelay:    opts.MaxDelay,
-		classifier:  opts.ErrorClassifier,
-		log:         opts.Log,
-		tracer:      otel.Tracer("maragu.dev/gai/robust"),
+		embedders:      opts.Embedders,
+		maxAttempts:    opts.MaxAttempts,
+		baseDelay:      opts.BaseDelay,
+		maxDelay:       opts.MaxDelay,
+		attemptTimeout: opts.AttemptTimeout,
+		classifier:     opts.ErrorClassifier,
+		log:            opts.Log,
+		tracer:         otel.Tracer("maragu.dev/gai/robust"),
 	}
 }
 
@@ -148,6 +156,12 @@ func (e *Embedder[T]) Embed(ctx context.Context, req gai.EmbedRequest) (gai.Embe
 
 // tryOnce runs a single Embed attempt against one embedder. Returns (res, actionNone, nil) on
 // success; (zero, classifiedAction, err) on failure. Ends the attempt span before returning.
+//
+// When [Embedder.attemptTimeout] is set, the attempt runs against a sub-context with that
+// timeout. A fired per-attempt timeout (the sub-context's deadline expired while the parent
+// ctx is still live) is retryable and handled out of band: tryOnce returns [ActionRetry]
+// without consulting the classifier. A caller cancellation or the caller's own deadline still
+// flows through the classifier, where it is fatal by default.
 func (e *Embedder[T]) tryOnce(ctx context.Context, embedder gai.Embedder[T], req gai.EmbedRequest, embedderIdx, attempt int) (gai.EmbedResponse[T], Action, error) {
 	ctx, attemptSpan := e.tracer.Start(ctx, "robust.embed_attempt",
 		trace.WithAttributes(
@@ -157,10 +171,30 @@ func (e *Embedder[T]) tryOnce(ctx context.Context, embedder gai.Embedder[T], req
 	)
 	defer attemptSpan.End()
 
-	res, err := embedder.Embed(ctx, req)
+	attemptCtx := ctx
+	if e.attemptTimeout > 0 {
+		var cancel context.CancelFunc
+		attemptCtx, cancel = context.WithTimeout(ctx, e.attemptTimeout)
+		defer cancel()
+	}
+
+	res, err := embedder.Embed(attemptCtx, req)
 	if err == nil {
 		attemptSpan.SetAttributes(attribute.String("ai.robust.action", "success"))
 		return res, actionNone, nil
+	}
+
+	// A fired per-attempt timeout is authoritatively signalled by the sub-context's own state:
+	// its deadline expired while the parent ctx is still live. Treat it as retryable out of
+	// band, bypassing the classifier, so a hung backend retries then falls over.
+	if attemptCtx.Err() == context.DeadlineExceeded && ctx.Err() == nil {
+		attemptSpan.SetAttributes(
+			attribute.String("ai.robust.action", ActionRetry.String()),
+			attribute.Bool("ai.robust.attempt_timed_out", true),
+		)
+		attemptSpan.RecordError(err)
+		attemptSpan.SetStatus(codes.Error, ActionRetry.String())
+		return gai.EmbedResponse[T]{}, ActionRetry, err
 	}
 
 	act := e.classifier(err)
