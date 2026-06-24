@@ -36,6 +36,13 @@ jobs:
         if: matrix.deps == 'latest'
         run: go get -u -t ./...
 
+      - name: Set up GCP credentials
+        env:
+          GOOGLE_VERTEX_CREDENTIALS_JSON: ${{ secrets.GOOGLE_VERTEX_CREDENTIALS_JSON }}
+        run: |
+          echo "$GOOGLE_VERTEX_CREDENTIALS_JSON" > "$RUNNER_TEMP/vertex.json"
+          echo "GOOGLE_VERTEX_CREDENTIALS_PATH=$RUNNER_TEMP/vertex.json" >> "$GITHUB_ENV"
+
       - name: Test
         run: go test -shuffle on ./...
         env:
