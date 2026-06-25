@@ -33,7 +33,7 @@ var errThoughtRoundTripUnsupported = errors.New("inbound PartTypeThought not sup
 type ChatCompleteModel string
 
 const (
-	ChatCompleteModelClaudeOpus4_1Latest   = ChatCompleteModel(anthropic.ModelClaudeOpus4_1)
+	ChatCompleteModelClaudeOpus4_1Latest   = ChatCompleteModel(anthropic.ModelClaudeOpus4_1) //nolint:staticcheck // Opus 4.1 is deprecated (EOL 2026-08-05) but kept for callers still pinning it
 	ChatCompleteModelClaudeHaiku4_5Latest  = ChatCompleteModel(anthropic.ModelClaudeHaiku4_5)
 	ChatCompleteModelClaudeSonnet4_5Latest = ChatCompleteModel(anthropic.ModelClaudeSonnet4_5)
 	ChatCompleteModelClaudeOpus4_5Latest   = ChatCompleteModel(anthropic.ModelClaudeOpus4_5)
@@ -371,32 +371,34 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 				}
 
 			case anthropic.ContentBlockStopEvent:
-				// Use the accumulated block for the tool use only
-				for _, block := range message.Content {
-					switch block := block.AsAny().(type) {
-					case anthropic.ToolUseBlock:
-						c.log.Debug("Tool call", "id", block.ID, "name", block.Name, "input", block.Input)
-						var found bool
-						for _, tool := range req.Tools {
-							if tool.Name == block.Name {
-								found = true
-								if !yield(gai.ToolCallPart(block.ID, block.Name, block.Input), nil) {
-									return
-								}
+				// Yield the tool call for the block that just stopped. Index into
+				// message.Content directly rather than scanning the whole slice, so
+				// each block is yielded exactly once and the accumulator's content
+				// slice stays intact: the SDK's Accumulate requires each
+				// ContentBlockStartEvent index to equal len(message.Content), so
+				// clearing the slice mid-stream breaks the next start event.
+				if event.Index < 0 || int(event.Index) >= len(message.Content) {
+					continue
+				}
+				switch block := message.Content[event.Index].AsAny().(type) {
+				case anthropic.ToolUseBlock:
+					c.log.Debug("Tool call", "id", block.ID, "name", block.Name, "input", block.Input)
+					var found bool
+					for _, tool := range req.Tools {
+						if tool.Name == block.Name {
+							found = true
+							if !yield(gai.ToolCallPart(block.ID, block.Name, block.Input), nil) {
+								return
 							}
 						}
-						if !found {
-							span.RecordError(fmt.Errorf("tool not found: %s", block.Name))
-							span.SetStatus(codes.Error, "tool not found")
-							yield(gai.Part{}, fmt.Errorf("tool not found: %s", block.Name))
-							return
-						}
+					}
+					if !found {
+						span.RecordError(fmt.Errorf("tool not found: %s", block.Name))
+						span.SetStatus(codes.Error, "tool not found")
+						yield(gai.Part{}, fmt.Errorf("tool not found: %s", block.Name))
+						return
 					}
 				}
-				// Clear only content to avoid re-yielding tool_use blocks on the next
-				// ContentBlockStopEvent; preserve message.Usage which is populated by
-				// MessageStartEvent and updated by MessageDeltaEvent.
-				message.Content = nil
 			}
 		}
 
