@@ -98,6 +98,7 @@ The root span carries the configuration; each attempt span carries its position 
 | `ai.robust.embedder_index` | int | — | `robust.embed_attempt` | Zero-based position of the embedder tried |
 | `ai.robust.attempt_number` | int | — | attempt | One-based attempt counter within the current implementation |
 | `ai.robust.action` | string | — | attempt | Outcome of the attempt: `success`, `retry`, `fallback`, or `fail` |
+| `ai.robust.attempt_timed_out` | bool | — | attempt | Set to `true` when the per-attempt timeout fired; the attempt is retried, bypassing the error classifier. Present only on timed-out attempts |
 
 ## Invariants
 
