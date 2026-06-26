@@ -144,6 +144,7 @@ func NewModelTextMessage(text string) Message {
 	}
 }
 
+// NewUserToolResultMessage is a convenience function to create a new user tool result message.
 func NewUserToolResultMessage(result ToolResult) Message {
 	return Message{
 		Role: MessageRoleUser,
