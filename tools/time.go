@@ -9,6 +9,7 @@ import (
 	"maragu.dev/gai"
 )
 
+// GetTimeArgs holds the arguments for the GetTime tool.
 type GetTimeArgs struct{}
 
 // NewGetTime creates a new tool that returns the current date and time, given the time function.
