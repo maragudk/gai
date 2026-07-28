@@ -38,9 +38,13 @@ const (
 	ChatCompleteModelGPT5_4Mini       = ChatCompleteModel(openai.ChatModelGPT5_4Mini)
 	ChatCompleteModelGPT5_4Nano       = ChatCompleteModel(openai.ChatModelGPT5_4Nano)
 	// ChatCompleteModelGPT5_5 is the frontier gpt-5.5 model. The pinned openai-go SDK
-	// (v3.33.0) does not yet ship a `ChatModelGPT5_5` enum, so the value is the bare
+	// (v3.44.0) does not yet ship a `ChatModelGPT5_5` enum, so the value is the bare
 	// API string. Switch to `ChatModelGPT5_5` once the SDK exposes it.
 	ChatCompleteModelGPT5_5 = ChatCompleteModel("gpt-5.5")
+
+	ChatCompleteModelGPT5_6Luna  = ChatCompleteModel(openai.ChatModelGPT5_6Luna)
+	ChatCompleteModelGPT5_6Sol   = ChatCompleteModel(openai.ChatModelGPT5_6Sol)
+	ChatCompleteModelGPT5_6Terra = ChatCompleteModel(openai.ChatModelGPT5_6Terra)
 )
 
 // Per-client [gai.ThinkingLevel] constants. The set covers the union of reasoning_effort
