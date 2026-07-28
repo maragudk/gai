@@ -6,6 +6,10 @@ updates:
       interval: "weekly"
     cooldown:
       default-days: 7
+    allow:
+      - dependency-name: "github.com/anthropics/anthropic-sdk-go*"
+      - dependency-name: "github.com/openai/openai-go*"
+      - dependency-name: "google.golang.org/genai*"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
