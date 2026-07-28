@@ -40,6 +40,7 @@ const (
 	ChatCompleteModelClaudeSonnet4_6Latest = ChatCompleteModel(anthropic.ModelClaudeSonnet4_6)
 	ChatCompleteModelClaudeOpus4_6Latest   = ChatCompleteModel(anthropic.ModelClaudeOpus4_6)
 	ChatCompleteModelClaudeOpus4_7Latest   = ChatCompleteModel(anthropic.ModelClaudeOpus4_7)
+	ChatCompleteModelClaudeSonnet5Latest   = ChatCompleteModel(anthropic.ModelClaudeSonnet5)
 )
 
 // Per-client [gai.ThinkingLevel] constants. These map onto the `output_config.effort` enum
