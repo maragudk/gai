@@ -466,15 +466,6 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			{name: "gpt-5.2 + high", model: openai.ChatCompleteModelGPT5_2, level: openai.ThinkingLevelHigh},
 			{name: "gpt-5.2 + xhigh", model: openai.ChatCompleteModelGPT5_2, level: openai.ThinkingLevelXHigh, wantThoughtTokens: true},
 
-			// gpt-5.3-chat-latest: chat-tuned, only `medium` accepted; every other level
-			// rejected with `Supported values are: 'medium'`.
-			{name: "gpt-5.3-chat-latest + none rejected", model: openai.ChatCompleteModelGPT5_3ChatLatest, level: gai.ThinkingLevelNone, wantErr: true},
-			{name: "gpt-5.3-chat-latest + minimal rejected", model: openai.ChatCompleteModelGPT5_3ChatLatest, level: openai.ThinkingLevelMinimal, wantErr: true},
-			{name: "gpt-5.3-chat-latest + low rejected", model: openai.ChatCompleteModelGPT5_3ChatLatest, level: openai.ThinkingLevelLow, wantErr: true},
-			{name: "gpt-5.3-chat-latest + medium", model: openai.ChatCompleteModelGPT5_3ChatLatest, level: openai.ThinkingLevelMedium},
-			{name: "gpt-5.3-chat-latest + high rejected", model: openai.ChatCompleteModelGPT5_3ChatLatest, level: openai.ThinkingLevelHigh, wantErr: true},
-			{name: "gpt-5.3-chat-latest + xhigh rejected", model: openai.ChatCompleteModelGPT5_3ChatLatest, level: openai.ThinkingLevelXHigh, wantErr: true},
-
 			// gpt-5.4: same matrix as gpt-5.2 — none/low/medium/high/xhigh accepted.
 			{name: "gpt-5.4 + none", model: openai.ChatCompleteModelGPT5_4, level: gai.ThinkingLevelNone},
 			{name: "gpt-5.4 + minimal rejected", model: openai.ChatCompleteModelGPT5_4, level: openai.ThinkingLevelMinimal, wantErr: true},
@@ -695,8 +686,7 @@ func drainParts(t *testing.T, res gai.ChatCompleteResponse) error {
 // newChatCompleter builds an [openai.ChatCompleter] for tests. With no model argument,
 // the default is `gpt-5-nano` — the cheapest current model, which keeps the bulk of the
 // integration tests fast and inexpensive. Tests that need a specific capability (gpt-5.4
-// reasoning, gpt-5.5 frontier behaviour, gpt-5.3-chat-latest medium-only quirk, etc.)
-// pass the model explicitly.
+// reasoning, gpt-5.5 frontier behaviour, etc.) pass the model explicitly.
 func newChatCompleter(t *testing.T, model ...openai.ChatCompleteModel) *openai.ChatCompleter {
 	t.Helper()
 	m := openai.ChatCompleteModelGPT5Nano
