@@ -16,6 +16,8 @@ import (
 
 type EmbedModel string
 
+// The model constants below follow the curation policy documented on the
+// [ChatCompleteModel] constants, enforced by TestModelConformance and its ignore list.
 const (
 	EmbedModelTextEmbedding3Large = EmbedModel(openai.EmbeddingModelTextEmbedding3Large)
 	EmbedModelTextEmbedding3Small = EmbedModel(openai.EmbeddingModelTextEmbedding3Small)

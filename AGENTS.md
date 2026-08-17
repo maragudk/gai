@@ -19,6 +19,7 @@ The repository implements `maragu.dev/gai`, a Go library that standardises inter
 - Evaluations run via `go test -shuffle on -run TestEval ./...` or `make evaluate`; logs accumulate in `evals.jsonl`.
 - Benchmarks live alongside tests and run with `make benchmark`.
 - Lint with `golangci-lint run` or `make lint`; address warnings immediately to avoid CI regressions.
+- Client model constants are hand-curated (stable, generally-available, current and recent generations); the live `TestModelConformance` in each client package enforces the set in both directions against its package-private ignore list.
 
 ## Coding Conventions
 - Stick to dependency injection through small private interfaces close to the consumer (see chat completer tools).

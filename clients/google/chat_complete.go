@@ -31,6 +31,12 @@ var errThoughtRoundTripUnsupported = errors.New("inbound PartTypeThought not sup
 // availability of each model.
 type ChatCompleteModel string
 
+// The model constants below are hand-curated: stable, generally-available models of the
+// current and recent generations, with previews included case-by-case. Dated snapshots and
+// modality variants are excluded, and models killed server-side are removed immediately.
+// The set is enforced by TestModelConformance and its ignore list.
+// The same policy applies to the [EmbedModel] constants.
+// The genai SDK exports no model constants, hence the bare strings.
 const (
 	ChatCompleteModelGemini2_0Flash      = ChatCompleteModel("gemini-2.0-flash")
 	ChatCompleteModelGemini2_5Flash      = ChatCompleteModel("gemini-2.5-flash")
@@ -40,6 +46,9 @@ const (
 	ChatCompleteModelGemini3_1ProPreview = ChatCompleteModel("gemini-3.1-pro-preview")
 	ChatCompleteModelGemini3_1FlashLite  = ChatCompleteModel("gemini-3.1-flash-lite")
 	ChatCompleteModelGemini3_5Flash      = ChatCompleteModel("gemini-3.5-flash")
+	ChatCompleteModelGemini3_5FlashLite  = ChatCompleteModel("gemini-3.5-flash-lite")
+	ChatCompleteModelGemini3_6Flash      = ChatCompleteModel("gemini-3.6-flash")
+	ChatCompleteModelGemini3_7Flash      = ChatCompleteModel("gemini-3.7-flash")
 )
 
 // Per-client [gai.ThinkingLevel] constants. These map directly onto the symbolic

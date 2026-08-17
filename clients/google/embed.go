@@ -17,6 +17,8 @@ import (
 // EmbedModel for use with [Embedder].
 type EmbedModel string
 
+// The model constants below follow the curation policy documented on the
+// [ChatCompleteModel] constants, enforced by TestModelConformance and its ignore list.
 const (
 	EmbedModelGeminiEmbedding001 = EmbedModel("gemini-embedding-001")
 	EmbedModelGeminiEmbedding2   = EmbedModel("gemini-embedding-2")
