@@ -173,3 +173,45 @@ The delta is mechanical (one constant removal, one ignore entry, one comment cla
 ### Future work
 
 None new. The Step 3 items stand: `claude-mythos-5` deserves a curation glance when it surfaces in list output, and the openai key's possible scope narrowing (`missing_scope` on the vision test) should be checked before the PR merges.
+
+## Step 5: Switch the gpt-5.5 constant to the SDK enum
+
+**Author:** conformance-builder
+
+### Prompt Context
+
+**Verbatim prompt:** "Lead — final polish task. I rebased the branch onto current main [...] openai-go is now v3.50.0, which ships `ChatModelGPT5_5` — the exact condition the gpt-5.5 bare-string constant's comment says to act on." (excerpted; the elided text specifies the verification and process steps)
+**Interpretation:** The Dependabot bump fulfilled the condition the bare-string constant's comment named, so wrap `openai.ChatModelGPT5_5` like the sibling constants and drop the SDK-pin comment.
+**Inferred intent:** Land the feature with no self-referential TODOs left in the const block, and retire the comment whose version reference (v3.44.0) had already drifted.
+
+### What I did
+
+Switched `ChatCompleteModelGPT5_5` in `/clients/openai/chat_complete.go` from the bare `"gpt-5.5"` string to `ChatCompleteModel(openai.ChatModelGPT5_5)`, deleted the three-line SDK-pin comment, and folded the constant into the single aligned const group (removing the blank line that had separated it from the 5.6 trio). Verified the SDK constant's value is byte-identical (`go doc github.com/openai/openai-go/v3/shared ChatModelGPT5_5` shows `"gpt-5.5"`), so the exported string set is unchanged.
+
+### Why
+
+The comment was an explicit instruction to make this change once the SDK shipped the enum; after the rebase onto main with openai-go v3.50.0, keeping the bare string would have preserved a falsified comment (it named v3.44.0 as the pin, already stale against the previous v3.46.0).
+
+### What worked
+
+Verifying the enum's exact value with `go doc <pkg> <identifier>` before editing — the Step 3 lesson applied deliberately, instead of pattern-grepping the SDK.
+
+### What didn't work
+
+Nothing failed; build, vet, the live OpenAI `TestModelConformance`, and the full lint pass were green on the first attempt.
+
+### What I learned
+
+Nothing new; this step cashed in Step 3's lesson rather than generating one.
+
+### What was tricky
+
+Nothing — a value-preserving one-constant swap. The only care point was confirming the rebase had not otherwise changed the const block before editing on top of it.
+
+### What warrants review
+
+The diff is nine lines of realignment plus the swap; confirm the constant's value is unchanged (`gpt-5.5`) and that the removed comment carried no other obligation. Validate with `go test -count=1 ./clients/openai -run TestModelConformance` (green live) and `golangci-lint run` (0 issues).
+
+### Future work
+
+None new; the standing Step 3/4 items are unchanged.
