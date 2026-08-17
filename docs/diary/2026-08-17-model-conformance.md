@@ -131,3 +131,45 @@ The self-review (two competing reviewers, both running live verification) had co
 ### Future work
 
 Decide the fate of the exported-but-unusable `ChatCompleteModelGPT5_2Pro`. The pinned anthropic SDK also ships `ModelClaudeMythos5` (`claude-mythos-5`), which does not appear in this key's list output and was therefore never a freshness hit — worth a curation glance when it surfaces. If `flash 3.7 + none`'s zero-budget-but-thinking behavior changes server-side, the matrix row's comment (not an assertion) is the only thing to update.
+
+## Step 4: Remove the alive-but-unusable `gpt-5.2-pro` and extend the policy to API-surface fit
+
+**Author:** conformance-builder
+
+### Prompt Context
+
+**Verbatim prompt:** "Lead again — Markus decided: remove `openai.ChatCompleteModelGPT5_2Pro`. Rationale: a constant that can only produce a runtime API error through gai's ChatCompleter is a trap; alive-but-unusable gets the same treatment as dead. [...] 2. This establishes a policy nuance, so extend the shared policy comment with one clause — models that cannot work through the client's implemented API surface (e.g. Responses-API-only) are not exported — keeping the phrasing IDENTICAL across all three clients as before." (excerpted; the elided text specifies the sweep discipline, the ignore-list placement, and the process steps)
+**Interpretation:** Remove the constant Step 3 flagged as an open question, fold `gpt-5.2-pro` into the pro-models ignore block, and encode the new alive-but-unusable rule as one identical clause in all three policy comments.
+**Inferred intent:** Close the last open curation question so the feature lands with no known traps in the exported API, and make the rule that resolved it part of the written policy so future triage applies it without re-litigating.
+
+### What I did
+
+Removed `ChatCompleteModelGPT5_2Pro` from `/clients/openai/chat_complete.go` and its row from `exportedModels` in `/clients/openai/model_conformance_test.go`. In the ignore list, added `gpt-5.2-pro*` to the pro-models block (whose Responses-API-only comment now covers it), dropped the now-subsumed `gpt-5.2-pro-2*` snapshot entry, and deleted the special-case parenthetical that described the constant as deliberately exported. Extended the policy comment in all three clients' `chat_complete.go` with the API-surface clause; a `grep | sort | uniq -c` over the five comment lines confirms all three copies are byte-identical. The lead's own amendment to `/docs/decisions.md` (recording the alive-but-unusable rule) was already sitting uncommitted in the worktree and rides along in this commit untouched.
+
+### Why
+
+`gpt-5.2-pro` resolves on get-by-ID but rejects `/v1/chat/completions` ("This is not a chat model"), so the constant's only reachable behavior through `ChatCompleter` was a runtime error. Markus's rule makes API-surface fit part of the curation bar, and the identical-phrasing constraint keeps the three clients telling one story.
+
+### What worked
+
+The sweep was cheap because Step 3's removal of `ChatCompleteModelGPT5_1Mini` had already established the reference checklist (const, `exportedModels`, matrix rows, examples): a single grep found exactly four live references and no matrix rows or example usages existed for this one.
+
+### What didn't work
+
+Nothing failed in this step; both live OpenAI conformance runs and the full lint pass were green on the first attempt.
+
+### What I learned
+
+The prefix consolidation mattered more than it looked: keeping both `gpt-5.2-pro-2*` (snapshots) and `gpt-5.2-pro*` (everything) would have been harmless but misleading, implying the alias and its snapshots are triaged under different rules when the new policy treats the whole family as one exclusion.
+
+### What was tricky
+
+Only the phrasing: folding "cannot work through the client's implemented API surface (e.g. Responses-API-only)" into the existing exclusion sentence without breaking the identical-across-clients constraint, given the example is OpenAI-flavored while the clause must also read sensibly in the anthropic and google files.
+
+### What warrants review
+
+The delta is mechanical (one constant removal, one ignore entry, one comment clause ×3), so this step's self-review was a solo pass rather than the competing-reviewer setup: full diff read, grep-clean sweep verification (`GPT5_2Pro`/`gpt-5.2-pro` survive only in diary history and the ignore entry), mechanical comment-identity check, and live reruns. To validate: `go test -count=1 ./clients/openai -run TestModelConformance` (green twice, once shuffled) and `golangci-lint run` (0 issues). Reviewers should confirm the decisions-entry amendment matches what Markus decided, since it was authored by the lead and only transported by this commit.
+
+### Future work
+
+None new. The Step 3 items stand: `claude-mythos-5` deserves a curation glance when it surfaces in list output, and the openai key's possible scope narrowing (`missing_scope` on the vision test) should be checked before the PR merges.

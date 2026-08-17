@@ -18,7 +18,6 @@ var exportedModels = []string{
 	string(openai.ChatCompleteModelGPT5Nano),
 	string(openai.ChatCompleteModelGPT5_1),
 	string(openai.ChatCompleteModelGPT5_2),
-	string(openai.ChatCompleteModelGPT5_2Pro),
 	string(openai.ChatCompleteModelGPT5_4),
 	string(openai.ChatCompleteModelGPT5_4Mini),
 	string(openai.ChatCompleteModelGPT5_4Nano),
@@ -40,7 +39,6 @@ var ignoredModels = []string{
 	"gpt-5-nano-2*",
 	"gpt-5.1-2*",
 	"gpt-5.2-2*",
-	"gpt-5.2-pro-2*",
 	"gpt-5.4-2*",
 	"gpt-5.4-mini-2*",
 	"gpt-5.4-nano-2*",
@@ -52,9 +50,9 @@ var ignoredModels = []string{
 	"gpt-5.2-chat-latest",
 	"gpt-5.3-chat-latest",
 	// Pro reasoning models: only usable via the Responses API, rejected by the
-	// chat-completions endpoint this package targets. (The exported gpt-5.2-pro
-	// shares this limitation and is deliberately not listed here.)
+	// chat-completions endpoint this package targets.
 	"gpt-5-pro*",
+	"gpt-5.2-pro*",
 	"gpt-5.4-pro*",
 	"gpt-5.5-pro*",
 	// Coding-agent (codex) and search variants.

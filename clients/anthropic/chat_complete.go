@@ -33,9 +33,10 @@ var errThoughtRoundTripUnsupported = errors.New("inbound PartTypeThought not sup
 type ChatCompleteModel string
 
 // The model constants below are hand-curated: stable, generally-available models of the
-// current and recent generations, with previews included case-by-case. Dated snapshots and
-// modality variants are excluded, and models killed server-side are removed immediately.
-// The set is enforced by TestModelConformance and its ignore list.
+// current and recent generations, with previews included case-by-case. Dated snapshots,
+// modality variants, and models that cannot work through the client's implemented API
+// surface (e.g. Responses-API-only) are excluded, and models killed server-side are
+// removed immediately. The set is enforced by TestModelConformance and its ignore list.
 const (
 	ChatCompleteModelClaudeHaiku4_5Latest  = ChatCompleteModel(anthropic.ModelClaudeHaiku4_5)
 	ChatCompleteModelClaudeSonnet4_5Latest = ChatCompleteModel(anthropic.ModelClaudeSonnet4_5)

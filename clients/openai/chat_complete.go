@@ -26,9 +26,10 @@ import (
 type ChatCompleteModel string
 
 // The model constants below are hand-curated: stable, generally-available models of the
-// current and recent generations, with previews included case-by-case. Dated snapshots and
-// modality variants are excluded, and models killed server-side are removed immediately.
-// The set is enforced by TestModelConformance and its ignore list.
+// current and recent generations, with previews included case-by-case. Dated snapshots,
+// modality variants, and models that cannot work through the client's implemented API
+// surface (e.g. Responses-API-only) are excluded, and models killed server-side are
+// removed immediately. The set is enforced by TestModelConformance and its ignore list.
 // The same policy applies to the [EmbedModel] constants.
 const (
 	ChatCompleteModelGPT5       = ChatCompleteModel(openai.ChatModelGPT5)
@@ -36,7 +37,6 @@ const (
 	ChatCompleteModelGPT5Nano   = ChatCompleteModel(openai.ChatModelGPT5Nano)
 	ChatCompleteModelGPT5_1     = ChatCompleteModel(openai.ChatModelGPT5_1)
 	ChatCompleteModelGPT5_2     = ChatCompleteModel(openai.ChatModelGPT5_2)
-	ChatCompleteModelGPT5_2Pro  = ChatCompleteModel(openai.ChatModelGPT5_2Pro)
 	ChatCompleteModelGPT5_4     = ChatCompleteModel(openai.ChatModelGPT5_4)
 	ChatCompleteModelGPT5_4Mini = ChatCompleteModel(openai.ChatModelGPT5_4Mini)
 	ChatCompleteModelGPT5_4Nano = ChatCompleteModel(openai.ChatModelGPT5_4Nano)
