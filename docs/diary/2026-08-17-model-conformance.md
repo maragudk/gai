@@ -87,3 +87,47 @@ Self-review ran two competing reviewers over the diff. Consensus finding (fixed)
 ### Future work
 
 Rotate `OPENAI_KEY` in `.env.test.local`, run the OpenAI `TestModelConformance`, and triage its (large) freshness backlog — openai's list has no capability metadata, so scoping happens entirely through ignore prefixes. Decide whether `claude-fable-5` (new family, GA-looking metadata, absent from the pinned SDK) should be exported or stay ignored.
+
+## Step 3: Export Fable 5, triage OpenAI with the rotated key, and probe the new Gemini models' thinking levels
+
+**Author:** conformance-builder
+
+### Prompt Context
+
+**Verbatim prompt:** "Lead here — Markus answered both of your questions. Two new tasks in the same worktree; the OpenAI key is NOT rotated yet, so leave the openai triage parked. 1. Export `claude-fable-5` [...] 2. Probe and document the three new Gemini constants' thinking-level behavior [...] The earlier prohibition on touching thinking-level docs/matrices is lifted for exactly these three models — nothing else." (excerpted; the elided text specifies matrix row style, the single-turn constraint, and the flake warning). A rotated `OPENAI_KEY` then landed mid-session, unparking the OpenAI triage from Step 2's future work.
+**Interpretation:** Export Fable 5 into the anthropic client and re-verify conformance live; establish the thinking-level accept/reject matrix for `gemini-3.5-flash-lite`, `gemini-3.6-flash`, and `gemini-3.7-flash` by live probing, then encode only non-flaky expectations; and complete the parked OpenAI triage once credentials worked.
+**Inferred intent:** Finish the two curation decisions Markus made, close the OpenAI gap from Step 2, and extend behavior coverage to the newly exported Gemini models without introducing CI flakes.
+
+### What I did
+
+Exported `ChatCompleteModelClaudeFable5Latest` in `/clients/anthropic/chat_complete.go` and moved it from the ignore list to `exportedModels`; the anthropic `TestModelConformance` is green live. With the rotated key, ran the OpenAI conformance test: the existence check flagged `gpt-5.1-mini` (404 `model_not_found`, absent from list output), so `ChatCompleteModelGPT5_1Mini` is removed under the killed-server-side rule — including its `exportedModels` row, a stale matrix comment in `/clients/openai/chat_complete_test.go` (which had already noted the model 404ing months ago), and `/internal/examples/robust/main.go`, which now uses `ChatCompleteModelGPT5_4Mini`. Triaged the 111-ID freshness backlog into a 46-entry ignore list: dated-snapshot prefixes, ChatGPT-tracking floaters (including `gpt-5.3-chat-latest`, the ID that started this whole feature), Responses-only pro models, codex/search variants, audio/realtime/image/video/moderation surfaces, and legacy generations. Zero new OpenAI exports: curl probes showed `gpt-5-pro`, `gpt-5.4-pro`, and `gpt-5.5-pro` all reject `/v1/chat/completions` ("This model is only supported in v1/responses" / "This is not a chat model").
+
+For Gemini, added 15 rows to the `thinking level matrix` subtest in `/clients/google/chat_complete_test.go`, first as flag-less probe rows, then encoded from two full live runs plus targeted reruns: `gemini-3.5-flash-lite` and `gemini-3.6-flash` reject `ThinkingLevelNone` with a generic 400 INVALID_ARGUMENT; `gemini-3.7-flash` accepts None but rejects MINIMAL ("Thinking level MINIMAL is not supported for this model"); minimal yields zero thoughts_tokens where accepted; low/medium/high populate thoughts_tokens on every probe. Updated the thinking-level doc comment in `/clients/google/chat_complete.go` to enumerate the new accept/reject split.
+
+### Why
+
+Both tasks discharge open questions from Step 2 with Markus's explicit decisions, and the OpenAI triage completes the conformance rollout so all three clients are enforced. The example-file swap keeps a removed constant from breaking the build; the flag-less-probe-rows-first approach let the live API dictate the matrix instead of my assumptions.
+
+### What worked
+
+Using the matrix test itself as the probe harness (lenient rows, read the `thoughtParts/textParts/thoughtsTokens` logs, then tighten) — no throwaway scripts, and the probe data is reproducible by rerunning the subtest. The competing-reviewer self-review earned its cost twice over (see below).
+
+### What didn't work
+
+My initial claim that the pinned anthropic-sdk-go v1.61.0 lacks a `ModelClaudeFable5` constant was wrong: my verification grep used `ModelClaude(Fable|Opus4_8|...)\b`, and the `\b` after the alternation can never match between `Fable` and `5` (both word characters), so the existing constant was invisible. I shipped a bare string with a false comment; reviewer A caught it and the constant now wraps `anthropic.ModelClaudeFable5` like its siblings. Separately, my four probes of `flash 3.7 + none` all showed thoughts_tokens > 0, so I encoded `wantThoughtTokens: true` — reviewer A's larger sample (17 runs) found two zero-token runs (~1 in 16), exactly the flaky-expectation trap the lead warned about; the flag is removed and both comments now say "usually".
+
+### What I learned
+
+A regex word boundary directly after an alternation group silently kills matches when the next character is alphanumeric — verify SDK constants with `go doc <pkg> <identifier>`, not grep patterns. Four probes is not enough to encode a nondeterministic assertion; the reviewers' independent larger sample was the difference between a documented behavior and a planted CI flake. OpenAI's pro-tier models are Responses-API-only across every generation probed (including the already-exported `gpt-5.2-pro`), and its models list carries no capability metadata, so the ignore list is the only scoping tool.
+
+### What was tricky
+
+Encoding `gemini-3.7-flash + none`: the model accepts the request but usually thinks anyway despite `ThinkingBudget=0` — behavior worth documenting but not asserting. The row now asserts only that the call succeeds, with the nondeterminism recorded in the comment. On the OpenAI side, distinguishing "killed" from "restricted": `gpt-5.1-mini` 404s on get-by-ID *and* is absent from list output, which together justify removal, whereas a bare get-by-ID failure could also mean a key-scoping artifact.
+
+### What warrants review
+
+The self-review (two competing reviewers, both running live verification) had consensus on two issues, both fixed: the false Fable 5 SDK comment (now uses the SDK constant) and the pro-models ignore comment reading as if `gpt-5.2-pro` were unaffected (now carries a parenthetical). Reviewer A alone flagged `gpt-4*` as an over-broad legacy prefix that also absorbs actively-shipped 4o modality variants; reviewer B checked the same wildcards and found no wrongful swallowing, so it stays — noted for the lead. Open question raised to the lead: `ChatCompleteModelGPT5_2Pro` is exported but cannot work through `ChatCompleter` (chat-completions rejects it); removing it is an API break outside this change's rules. To validate: `go test -count=1 ./clients/... -run TestModelConformance` (all three green live) and `go test ./clients/google -run "TestChatCompleter_ChatComplete/thinking_level_matrix"`.
+
+### Future work
+
+Decide the fate of the exported-but-unusable `ChatCompleteModelGPT5_2Pro`. The pinned anthropic SDK also ships `ModelClaudeMythos5` (`claude-mythos-5`), which does not appear in this key's list output and was therefore never a freshness hit — worth a curation glance when it surfaces. If `flash 3.7 + none`'s zero-budget-but-thinking behavior changes server-side, the matrix row's comment (not an assertion) is the only thing to update.

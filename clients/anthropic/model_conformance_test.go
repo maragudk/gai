@@ -21,6 +21,7 @@ var exportedModels = []string{
 	string(anthropic.ChatCompleteModelClaudeOpus4_6Latest),
 	string(anthropic.ChatCompleteModelClaudeOpus4_7Latest),
 	string(anthropic.ChatCompleteModelClaudeOpus4_8Latest),
+	string(anthropic.ChatCompleteModelClaudeFable5Latest),
 	string(anthropic.ChatCompleteModelClaudeSonnet5Latest),
 	string(anthropic.ChatCompleteModelClaudeOpus5Latest),
 }
@@ -33,8 +34,6 @@ var ignoredModels = []string{
 	"claude-haiku-4-5-2*",
 	"claude-opus-4-5-2*",
 	"claude-sonnet-4-5-2*",
-	// New model family; deliberately not exported until its positioning is clear.
-	"claude-fable-5",
 }
 
 // isIgnoredModel reports whether the given model ID matches an entry in [ignoredModels].

@@ -44,6 +44,7 @@ const (
 	ChatCompleteModelClaudeOpus4_6Latest   = ChatCompleteModel(anthropic.ModelClaudeOpus4_6)
 	ChatCompleteModelClaudeOpus4_7Latest   = ChatCompleteModel(anthropic.ModelClaudeOpus4_7)
 	ChatCompleteModelClaudeOpus4_8Latest   = ChatCompleteModel(anthropic.ModelClaudeOpus4_8)
+	ChatCompleteModelClaudeFable5Latest    = ChatCompleteModel(anthropic.ModelClaudeFable5)
 	ChatCompleteModelClaudeSonnet5Latest   = ChatCompleteModel(anthropic.ModelClaudeSonnet5)
 	ChatCompleteModelClaudeOpus5Latest     = ChatCompleteModel(anthropic.ModelClaudeOpus5)
 )

@@ -17,7 +17,6 @@ var exportedModels = []string{
 	string(openai.ChatCompleteModelGPT5Mini),
 	string(openai.ChatCompleteModelGPT5Nano),
 	string(openai.ChatCompleteModelGPT5_1),
-	string(openai.ChatCompleteModelGPT5_1Mini),
 	string(openai.ChatCompleteModelGPT5_2),
 	string(openai.ChatCompleteModelGPT5_2Pro),
 	string(openai.ChatCompleteModelGPT5_4),
@@ -34,7 +33,57 @@ var exportedModels = []string{
 // ignoredModels are provider model IDs deliberately not exported as constants,
 // per the curation policy above the model const blocks. An entry ending in "*"
 // matches every model ID with that prefix; any other entry matches exactly.
-var ignoredModels = []string{}
+var ignoredModels = []string{
+	// Dated snapshots of exported aliases; "-2*" matches the date suffix.
+	"gpt-5-2*",
+	"gpt-5-mini-2*",
+	"gpt-5-nano-2*",
+	"gpt-5.1-2*",
+	"gpt-5.2-2*",
+	"gpt-5.2-pro-2*",
+	"gpt-5.4-2*",
+	"gpt-5.4-mini-2*",
+	"gpt-5.4-nano-2*",
+	"gpt-5.5-2*",
+	// Floating aliases that track ChatGPT; the exported constants pin versions instead.
+	"chat-latest",
+	"gpt-5-chat-latest",
+	"gpt-5.1-chat-latest",
+	"gpt-5.2-chat-latest",
+	"gpt-5.3-chat-latest",
+	// Pro reasoning models: only usable via the Responses API, rejected by the
+	// chat-completions endpoint this package targets. (The exported gpt-5.2-pro
+	// shares this limitation and is deliberately not listed here.)
+	"gpt-5-pro*",
+	"gpt-5.4-pro*",
+	"gpt-5.5-pro*",
+	// Coding-agent (codex) and search variants.
+	"gpt-5-codex",
+	"gpt-5.1-codex*",
+	"gpt-5.2-codex",
+	"gpt-5.3-codex",
+	"gpt-5-search-api*",
+	// Audio, realtime, transcription, TTS, image, video, and moderation surfaces.
+	"chatgpt-image-latest",
+	"gpt-audio*",
+	"gpt-image*",
+	"gpt-live-transcribe",
+	"gpt-realtime*",
+	"gpt-transcribe",
+	"omni-moderation-*",
+	"sora-*",
+	"tts-1*",
+	"whisper-*",
+	// Legacy generations and legacy embeddings.
+	"babbage-002",
+	"davinci-002",
+	"gpt-3.5-*",
+	"gpt-4*",
+	"o1*",
+	"o3*",
+	"o4-mini*",
+	"text-embedding-ada-002",
+}
 
 // isIgnoredModel reports whether the given model ID matches an entry in [ignoredModels].
 func isIgnoredModel(id string) bool {

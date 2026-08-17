@@ -453,11 +453,6 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			{name: "gpt-5.1 + high", model: openai.ChatCompleteModelGPT5_1, level: openai.ThinkingLevelHigh},
 			{name: "gpt-5.1 + xhigh rejected", model: openai.ChatCompleteModelGPT5_1, level: openai.ThinkingLevelXHigh, wantErr: true},
 
-			// gpt-5.1-mini intentionally omitted: the model is in the SDK enum but not
-			// accessible with our test API key (404 model_not_found). The matrix is the
-			// same as gpt-5.1 above per OpenAI's docs; no level-mapping signal is lost
-			// by skipping it.
-
 			// gpt-5.2: none/low/medium/high/xhigh accepted, minimal rejected.
 			{name: "gpt-5.2 + none", model: openai.ChatCompleteModelGPT5_2, level: gai.ThinkingLevelNone},
 			{name: "gpt-5.2 + minimal rejected", model: openai.ChatCompleteModelGPT5_2, level: openai.ThinkingLevelMinimal, wantErr: true},

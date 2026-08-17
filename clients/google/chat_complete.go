@@ -53,11 +53,14 @@ const (
 
 // Per-client [gai.ThinkingLevel] constants. These map directly onto the symbolic
 // `genai.ThinkingLevel` enum used by the Gemini 3.x family. Pass [gai.ThinkingLevelNone] to
-// opt out via `ThinkingBudget=0`; this is accepted by the Flash models (`gemini-3-flash-preview`,
-// `gemini-3.1-flash-lite`, `gemini-3.5-flash`) and rejected by `gemini-3.1-pro-preview`
-// (Pro 3.x only runs in thinking mode). Levels not in this list panic at the client boundary.
+// opt out via `ThinkingBudget=0`; this is accepted by `gemini-3-flash-preview`,
+// `gemini-3.1-flash-lite`, `gemini-3.5-flash`, and `gemini-3.7-flash` (though 3.7 usually
+// keeps thinking regardless of the zero budget), and rejected by `gemini-3.1-pro-preview`
+// (Pro 3.x only runs in thinking mode), `gemini-3.5-flash-lite`, and `gemini-3.6-flash`.
+// Levels not in this list panic at the client boundary.
 const (
-	// ThinkingLevelMinimal applies the cheapest thinking budget. Rejected by gemini-3.1-pro-preview.
+	// ThinkingLevelMinimal applies the cheapest thinking budget. Rejected by gemini-3.1-pro-preview
+	// and gemini-3.7-flash.
 	ThinkingLevelMinimal gai.ThinkingLevel = "minimal"
 	// ThinkingLevelLow applies low thinking effort.
 	ThinkingLevelLow gai.ThinkingLevel = "low"
