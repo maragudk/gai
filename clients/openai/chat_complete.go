@@ -26,17 +26,16 @@ import (
 type ChatCompleteModel string
 
 const (
-	ChatCompleteModelGPT5             = ChatCompleteModel(openai.ChatModelGPT5)
-	ChatCompleteModelGPT5Mini         = ChatCompleteModel(openai.ChatModelGPT5Mini)
-	ChatCompleteModelGPT5Nano         = ChatCompleteModel(openai.ChatModelGPT5Nano)
-	ChatCompleteModelGPT5_1           = ChatCompleteModel(openai.ChatModelGPT5_1)
-	ChatCompleteModelGPT5_1Mini       = ChatCompleteModel(openai.ChatModelGPT5_1Mini)
-	ChatCompleteModelGPT5_2           = ChatCompleteModel(openai.ChatModelGPT5_2)
-	ChatCompleteModelGPT5_2Pro        = ChatCompleteModel(openai.ChatModelGPT5_2Pro)
-	ChatCompleteModelGPT5_3ChatLatest = ChatCompleteModel(openai.ChatModelGPT5_3ChatLatest)
-	ChatCompleteModelGPT5_4           = ChatCompleteModel(openai.ChatModelGPT5_4)
-	ChatCompleteModelGPT5_4Mini       = ChatCompleteModel(openai.ChatModelGPT5_4Mini)
-	ChatCompleteModelGPT5_4Nano       = ChatCompleteModel(openai.ChatModelGPT5_4Nano)
+	ChatCompleteModelGPT5       = ChatCompleteModel(openai.ChatModelGPT5)
+	ChatCompleteModelGPT5Mini   = ChatCompleteModel(openai.ChatModelGPT5Mini)
+	ChatCompleteModelGPT5Nano   = ChatCompleteModel(openai.ChatModelGPT5Nano)
+	ChatCompleteModelGPT5_1     = ChatCompleteModel(openai.ChatModelGPT5_1)
+	ChatCompleteModelGPT5_1Mini = ChatCompleteModel(openai.ChatModelGPT5_1Mini)
+	ChatCompleteModelGPT5_2     = ChatCompleteModel(openai.ChatModelGPT5_2)
+	ChatCompleteModelGPT5_2Pro  = ChatCompleteModel(openai.ChatModelGPT5_2Pro)
+	ChatCompleteModelGPT5_4     = ChatCompleteModel(openai.ChatModelGPT5_4)
+	ChatCompleteModelGPT5_4Mini = ChatCompleteModel(openai.ChatModelGPT5_4Mini)
+	ChatCompleteModelGPT5_4Nano = ChatCompleteModel(openai.ChatModelGPT5_4Nano)
 	// ChatCompleteModelGPT5_5 is the frontier gpt-5.5 model. The pinned openai-go SDK
 	// (v3.44.0) does not yet ship a `ChatModelGPT5_5` enum, so the value is the bare
 	// API string. Switch to `ChatModelGPT5_5` once the SDK exposes it.
@@ -54,22 +53,21 @@ const (
 //   - gpt-5: minimal/low/medium/high
 //   - gpt-5.1: none/low/medium/high
 //   - gpt-5.2: none/low/medium/high/xhigh
-//   - gpt-5.3-chat-latest: medium only — chat-tuned, rejects every other level
 //   - gpt-5.4 / gpt-5.4-mini / gpt-5.4-nano: none/low/medium/high/xhigh
 //   - gpt-5.5: none/low/medium/high/xhigh — frontier model, reasons eagerly at every
 //     non-`none` level
 //
 // Pass [gai.ThinkingLevelNone] to opt out — accepted by gpt-5.1+, gpt-5.4*, and gpt-5.5;
-// rejected by gpt-5 and by gpt-5.3-chat-latest. Using a level a given model does not
-// support surfaces a 400 from the API. Levels not in this list panic at the client boundary.
+// rejected by gpt-5. Using a level a given model does not support surfaces a 400 from
+// the API. Levels not in this list panic at the client boundary.
 const (
 	// ThinkingLevelMinimal applies the cheapest reasoning effort. gpt-5 only.
 	ThinkingLevelMinimal gai.ThinkingLevel = "minimal"
-	// ThinkingLevelLow applies low reasoning effort. Rejected by gpt-5.3-chat-latest.
+	// ThinkingLevelLow applies low reasoning effort.
 	ThinkingLevelLow gai.ThinkingLevel = "low"
-	// ThinkingLevelMedium applies medium reasoning effort. The only level gpt-5.3-chat-latest accepts.
+	// ThinkingLevelMedium applies medium reasoning effort.
 	ThinkingLevelMedium gai.ThinkingLevel = "medium"
-	// ThinkingLevelHigh applies high reasoning effort. Rejected by gpt-5.3-chat-latest.
+	// ThinkingLevelHigh applies high reasoning effort.
 	ThinkingLevelHigh gai.ThinkingLevel = "high"
 	// ThinkingLevelXHigh applies extra-high reasoning effort. gpt-5.2, gpt-5.4*, and gpt-5.5.
 	ThinkingLevelXHigh gai.ThinkingLevel = "xhigh"
