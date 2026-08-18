@@ -95,3 +95,45 @@ The exported names (`gai.PartMetadata` interface + `Part.Metadata` field, `googl
 ### Future work
 
 Unchanged from Step 1: the default-test-model switch. One observation to carry there: the openai `missing_scope` 401 hit a non-vision subtest once in this session, so treat that whole class as environmental. A pre-existing quirk surfaced by review but left alone per the no-drive-by rule: several google error paths return without `span.End()` — worth its own small fix some day.
+
+## Step 3: Reject fully-skipped final messages instead of misrouting
+
+**Author:** roundtrip-builder
+
+### Prompt Context
+
+**Verbatim prompt:** "Lead — an external codex review (gpt-5.6-sol, xhigh) of the PR branch found one verified P2 defect in your change; I've confirmed it in the code. In clients/google/chat_complete.go, the `len(content.Parts) > 0` guard you added [...] runs before `lastContent := history[len(history)-1]` [...]. Two failure modes: (1) if the request's FINAL message has all parts skipped [...] it's silently dropped and the previous message becomes the current user turn — wrong request semantics; (2) if EVERY message is filtered, the index expression panics. Fix: reject rather than misroute [...] Check the anthropic client's equivalent skip-empty-message guard for a symmetric last-message/role-alignment problem while you're there [...]"
+**Interpretation:** The skip-empty-message guard from the Step 2 review fixes traded one bug for two subtler ones on the final message; close them with a typed pre-network error in both clients and pin the behavior with unit-level tests.
+**Inferred intent:** A malformed history should fail loudly and cheaply at the client boundary, never silently answer a different turn than the caller asked about.
+
+### What I did
+
+Both clients now track whether the final request message survived the skip-empty-content guard, and return a typed error before any network call when it did not: package-private `errLastMessageEmpty` ("last message has no sendable parts"), wrapped as `google:`/`anthropic:` like the old `errThoughtRoundTripUnsupported` was, with `span.RecordError` + `span.SetStatus` + `span.End()` matching the tool-choice validation path. In google this also guarantees `history` is non-empty before the `history[len(history)-1]` split, closing the panic. The anthropic check turned out symmetric as predicted: it has no last-message split, but a fully-dropped final user message would leave the conversation ending on the model message — a silent prefill continuation — and an all-dropped list would send nil messages; both now hit the same error. Four new unit-level subtests (two per client, "errors when the only/last message has no sendable parts") pin both failure modes without network calls, asserting the exact error strings.
+
+### Why
+
+The Step 2 consensus fix answered "empty content 400s at the API" but not "what does skipping the *final* message mean" — and it means answering the previous turn, which is worse than the 400 it replaced because it succeeds. Rejecting at the boundary matches the client's existing stance that structural request problems fail fast (tool-choice validation, role panics).
+
+### What worked
+
+The external reviewer's analysis was exactly right on both google failure modes and the fix shape; the anthropic symmetry check it requested found a real (if softer) equivalent. The unit tests needed no live API — both error paths trigger during request conversion — and all four passed in 0.00s on the first run.
+
+### What didn't work
+
+Nothing failed in this step. Both full live suites (google with the usual service-account skips) re-ran green on the first attempt after the change, and lint stayed at 0 issues.
+
+### What I learned
+
+A skip-parts guard is only half a fix in a request builder: dropping content changes message *positions*, and position carries meaning at both APIs (google's last-content split, anthropic's final-turn/prefill semantics). Any future part-dropping logic needs the same "did the last message survive?" question asked explicitly.
+
+### What was tricky
+
+Deciding error versus panic: the clients panic on structural misuse (empty messages, wrong last role), but a history that loses its final message to metadata-dependent dropping is caller *data*, not a programming error — the same request is valid against the provider that recorded it. The `ToolChoice.Validate` precedent (bad caller data errors, unknown constants panic) settled it as an error.
+
+### What warrants review
+
+The behavioral choice that a fully-dropped final message errors rather than falling back to the previous turn, and the exact error string ("last message has no sendable parts") now pinned by four tests. Validate with `go test -count=1 ./clients/google ./clients/anthropic -run 'TestChatCompleter_ChatComplete/errors_when'` — no API keys needed for those subtests.
+
+### Future work
+
+Nothing new; the Step 2 list stands. If a third client ever gains part-dropping behavior, it should adopt the same `lastMessageSent` check — the AGENTS.md line on metadata does not mention this, deliberately, since it is client-internal.
