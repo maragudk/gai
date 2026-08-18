@@ -176,3 +176,15 @@ Decision, three parts:
 - The ignore list is the explicit, machine-checked record of "seen and deliberately not exported". A new provider model breaks CI until a human either exports it or ignores it — accepted freshness pressure, cheap to discharge with a one-line change.
 
 Tradeoff: a provider shipping or killing a model reddens CI for unrelated PRs. That is the point — the alternative, silent rot, cost a broken main and two blocked Dependabot PRs this week. Known limitation: the test catches existence drift, not behavior drift (a model changing how it streams thinking parts still needs behavioral tests).
+
+## 2026-08-18: Carry opaque provider metadata on `gai.Part` via a marker-interface field
+
+To fix #250 (Anthropic signed thinking blocks) and #256 (Gemini 3.x `thought_signature`) with one mechanism, `gai.Part` gets a single field of an exported marker-interface type. Each client package defines its own small typed metadata struct (e.g. google's carrying `ThoughtSignature []byte`, anthropic's carrying the thinking-block signature and redacted-thinking data), set by the originating client on stream-read and consumed only by the same provider's request builder; other providers ignore foreign or absent metadata.
+
+Context: both providers require opaque, provider-specific data captured from a response to be echoed back verbatim on the next turn (Gemini 3.x on `functionCall` parts even with thinking disabled; Anthropic on extended-thinking blocks in tool flows). `gai.Part` had nowhere to carry it, so multi-turn tool use 400s on Gemini 3.x and the Anthropic client hard-errors on inbound `PartTypeThought`. This also blocks moving the default test models to Sonnet 5 and Gemini 3.5 Flash Lite (probe evidence in PR #335 and the 2026-08-18 diary).
+
+Alternatives considered (both from the issues' own analysis):
+- `Provider any` field: minimal and honest about leakage, but stringly-typed in spirit — `any` gives no compile-time signal and invites misuse.
+- Sibling part types per provider behind an interface: avoids `any` but multiplies the exported type surface and every consumer's switch statements.
+
+Decision: marker-interface field. One field in core, typed structs in the client packages where the provider specifics already live, compile-time checkable, and the gai core stays provider-agnostic. Known tradeoff: an interface-typed field does not survive naive JSON round-trips of `gai.Part`; callers persisting history must handle metadata themselves, which is acceptable since the data is opaque and provider-session-specific anyway.

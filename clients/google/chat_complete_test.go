@@ -514,8 +514,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 
 	// Thinking-level matrix. Each row exercises a real (model, level) combination so the
 	// per-client `ThinkingLevel` mapping is grounded in live API behaviour. Stays
-	// single-turn — multi-turn tool flows on Gemini 3.x require thought_signature
-	// round-trip (https://github.com/maragudk/gai/issues/256), which is deferred.
+	// single-turn — multi-turn signature round-trip has its own subtest in this file.
 	t.Run("thinking level matrix", func(t *testing.T) {
 		tests := []struct {
 			name              string
@@ -695,25 +694,120 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 		assertVertexFlashChatComplete(t, c)
 	})
 
-	t.Run("rejects inbound PartTypeThought as deferred", func(t *testing.T) {
-		// Multi-turn round-trip of the per-part `thought_signature` is tracked by
-		// https://github.com/maragudk/gai/issues/256. Until that lands, the client
-		// returns a typed error rather than silently dropping the part. This subtest
-		// runs without making a network call — the error path triggers during the
-		// request-message conversion, before the API is contacted.
-		cc := newChatCompleter(t)
+	t.Run("can round-trip thought signatures on multi-turn tool use with Gemini 3.5 Flash Lite", func(t *testing.T) {
+		// Gemini 3.x returns a `thought_signature` on function-call parts and rejects the
+		// follow-up turn with a 400 unless the signature is sent back on the same part —
+		// even with no thinking level requested. The model is pinned because the default
+		// test model does not enforce this. See https://github.com/maragudk/gai/issues/256.
+		cc := newChatCompleter(t, google.ChatCompleteModelGemini3_5FlashLite)
+
+		root, err := os.OpenRoot("testdata")
+		is.NotError(t, err)
 
 		req := gai.ChatCompleteRequest{
 			Messages: []gai.Message{
-				{Role: gai.MessageRoleUser, Parts: []gai.Part{gai.TextPart("Hi!")}},
-				{Role: gai.MessageRoleModel, Parts: []gai.Part{gai.ThoughtPart("the user said hi")}},
-				gai.NewUserTextMessage("And again, hi!"),
+				gai.NewUserTextMessage("What is in the readme.txt file?"),
+			},
+			Temperature: gai.Ptr(gai.Temperature(0)),
+			Tools: []gai.Tool{
+				tools.NewReadFile(root),
 			},
 		}
 
-		_, err := cc.ChatComplete(t.Context(), req)
-		is.True(t, err != nil, "expected an error")
-		is.True(t, strings.Contains(err.Error(), "PartTypeThought"), err.Error())
+		res, err := cc.ChatComplete(t.Context(), req)
+		is.NotError(t, err)
+
+		var parts []gai.Part
+		var found, foundSignature bool
+		var result gai.ToolResult
+		for part, err := range res.Parts() {
+			is.NotError(t, err)
+
+			parts = append(parts, part)
+
+			if md, ok := part.Metadata.(google.PartMetadata); ok && len(md.ThoughtSignature) > 0 {
+				foundSignature = true
+			}
+
+			if part.Type != gai.PartTypeToolCall {
+				continue
+			}
+			toolCall := part.ToolCall()
+			for _, tool := range req.Tools {
+				if tool.Name == toolCall.Name {
+					found = true
+					content, err := tool.Execute(t.Context(), toolCall.Args)
+					result = gai.ToolResult{
+						ID:      toolCall.ID,
+						Name:    toolCall.Name,
+						Content: content,
+						Err:     err,
+					}
+					break
+				}
+			}
+		}
+
+		is.True(t, found, "tool not found")
+		is.True(t, foundSignature, "should surface a thought signature in part metadata")
+		is.Equal(t, "Hi!\n", result.Content)
+		is.NotError(t, result.Err)
+
+		req.Messages = []gai.Message{
+			gai.NewUserTextMessage("What is in the readme.txt file?"),
+			{Role: gai.MessageRoleModel, Parts: parts},
+			gai.NewUserToolResultMessage(result),
+		}
+		req.System = gai.Ptr("Answer the user's question in a single sentence using the tool result. Do not call any more tools.")
+
+		res, err = cc.ChatComplete(t.Context(), req)
+		is.NotError(t, err)
+
+		var output string
+		for part, err := range res.Parts() {
+			is.NotError(t, err)
+			if part.Type == gai.PartTypeText {
+				output += part.Text()
+			}
+		}
+
+		t.Log(output)
+		is.True(t, strings.Contains(output, "Hi!"), output)
+	})
+
+	t.Run("ignores foreign or absent metadata on thought parts in history", func(t *testing.T) {
+		// Message history recorded from another provider can contain thought parts with
+		// that provider's metadata, or none at all. The client replays the thought text
+		// unsigned and ignores the metadata; the request must not error.
+		cc := newChatCompleter(t)
+
+		foreignThought := gai.ThoughtPart("the user said hi")
+		foreignThought.Metadata = foreignPartMetadata{}
+
+		req := gai.ChatCompleteRequest{
+			Messages: []gai.Message{
+				gai.NewUserTextMessage("Hi!"),
+				{Role: gai.MessageRoleModel, Parts: []gai.Part{
+					gai.ThoughtPart("I should greet the user back"),
+					foreignThought,
+					gai.TextPart("Hello! How can I help you today?"),
+				}},
+				gai.NewUserTextMessage("What does the acronym AI stand for? Be brief."),
+			},
+			Temperature: gai.Ptr(gai.Temperature(0)),
+		}
+
+		res, err := cc.ChatComplete(t.Context(), req)
+		is.NotError(t, err)
+
+		var output string
+		for part, err := range res.Parts() {
+			is.NotError(t, err)
+			if part.Type == gai.PartTypeText {
+				output += part.Text()
+			}
+		}
+		is.True(t, strings.Contains(output, "Artificial Intelligence"), output)
 	})
 
 	t.Run("tool choice", func(t *testing.T) {
@@ -822,6 +916,12 @@ func drainParts(t *testing.T, res gai.ChatCompleteResponse) error {
 	}
 	return nil
 }
+
+// foreignPartMetadata stands in for [gai.PartMetadata] set by another provider's client.
+type foreignPartMetadata struct{}
+
+// PartMetadata satisfies [gai.PartMetadata].
+func (foreignPartMetadata) PartMetadata() {}
 
 func assertVertexFlashChatComplete(t *testing.T, c *google.Client) {
 	t.Helper()
