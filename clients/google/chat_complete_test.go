@@ -521,7 +521,6 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			model             google.ChatCompleteModel
 			level             gai.ThinkingLevel
 			wantErr           bool
-			requireThoughts   bool // strict: assert thoughtParts > 0
 			wantThoughtTokens bool // assert Usage.ThoughtsTokens > 0
 		}{
 			// The 2.5 family does not accept the symbolic ThinkingLevel enum at all — the
@@ -543,14 +542,15 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			{name: "flash 3 + high", model: google.ChatCompleteModelGemini3FlashPreview, level: google.ThinkingLevelHigh, wantThoughtTokens: true},
 
 			// Flash Lite 3.1 accepts every level too. Streaming behaviour: no thought parts
-			// at None/Minimal/Low/Medium, but at High the streaming API does emit one
-			// PartTypeThought (different from full Flash 3 which never streams thoughts).
+			// at None/Minimal/Low/Medium. At High the streaming API usually emits at least
+			// one PartTypeThought, but not reliably enough to assert — it flaked twice in
+			// two days — so the High row asserts thoughts_tokens only, like the rest.
 			// thoughts_tokens are populated from Low onwards.
 			{name: "flash-lite 3.1 + none", model: google.ChatCompleteModelGemini3_1FlashLite, level: gai.ThinkingLevelNone},
 			{name: "flash-lite 3.1 + minimal", model: google.ChatCompleteModelGemini3_1FlashLite, level: google.ThinkingLevelMinimal},
 			{name: "flash-lite 3.1 + low", model: google.ChatCompleteModelGemini3_1FlashLite, level: google.ThinkingLevelLow, wantThoughtTokens: true},
 			{name: "flash-lite 3.1 + medium", model: google.ChatCompleteModelGemini3_1FlashLite, level: google.ThinkingLevelMedium, wantThoughtTokens: true},
-			{name: "flash-lite 3.1 + high", model: google.ChatCompleteModelGemini3_1FlashLite, level: google.ThinkingLevelHigh, requireThoughts: true, wantThoughtTokens: true},
+			{name: "flash-lite 3.1 + high", model: google.ChatCompleteModelGemini3_1FlashLite, level: google.ThinkingLevelHigh, wantThoughtTokens: true},
 
 			// Flash 3.5 is a thinking-capable Flash model (version 3.5-flash-05-2026) and,
 			// like the rest of the 3.x Flash line, accepts every level including
@@ -594,14 +594,15 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			// Pro 3.1 rejects the off path entirely: `This model only works in thinking
 			// mode`. It also rejects MINIMAL: `Thinking level MINIMAL is not supported for
 			// this model`. Low/Medium/High all populate the thoughts-tokens count. Streamed
-			// thought parts are reliable at Medium/High but flaky at Low (probe: ~50%) — at
-			// Low we assert thoughts_tokens only. Same shape as the now-shut-down Gemini 3
-			// Pro Preview, which we used to target until Google retired it on 2026-03-09.
+			// thought parts looked reliable at Medium/High in early probes, but that read
+			// didn't hold — three flakes across two days on those two rows — so all three
+			// rows assert thoughts_tokens only. Same shape as the now-shut-down Gemini 3 Pro
+			// Preview, which we used to target until Google retired it on 2026-03-09.
 			{name: "pro 3.1 + none rejected", model: google.ChatCompleteModelGemini3_1ProPreview, level: gai.ThinkingLevelNone, wantErr: true},
 			{name: "pro 3.1 + minimal rejected", model: google.ChatCompleteModelGemini3_1ProPreview, level: google.ThinkingLevelMinimal, wantErr: true},
 			{name: "pro 3.1 + low", model: google.ChatCompleteModelGemini3_1ProPreview, level: google.ThinkingLevelLow, wantThoughtTokens: true},
-			{name: "pro 3.1 + medium", model: google.ChatCompleteModelGemini3_1ProPreview, level: google.ThinkingLevelMedium, requireThoughts: true, wantThoughtTokens: true},
-			{name: "pro 3.1 + high", model: google.ChatCompleteModelGemini3_1ProPreview, level: google.ThinkingLevelHigh, requireThoughts: true, wantThoughtTokens: true},
+			{name: "pro 3.1 + medium", model: google.ChatCompleteModelGemini3_1ProPreview, level: google.ThinkingLevelMedium, wantThoughtTokens: true},
+			{name: "pro 3.1 + high", model: google.ChatCompleteModelGemini3_1ProPreview, level: google.ThinkingLevelHigh, wantThoughtTokens: true},
 		}
 
 		for _, test := range tests {
@@ -640,9 +641,6 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 					}
 				}
 				is.True(t, textParts > 0, "should produce text parts")
-				if test.requireThoughts {
-					is.True(t, thoughtParts > 0, "should stream PartTypeThought parts")
-				}
 				if test.wantThoughtTokens {
 					is.True(t, res.Meta.Usage.ThoughtsTokens > 0, "thoughts tokens should be populated")
 				}
