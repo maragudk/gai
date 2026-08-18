@@ -857,10 +857,15 @@ func assertVertexFlashChatComplete(t *testing.T, c *google.Client) {
 }
 
 // newChatCompleter builds a [google.ChatCompleter] for tests. With no model argument,
-// the default is `gemini-2.5-flash` — held at 2.5 Flash (rather than the spec's 3.x flash)
-// because Gemini 3.x enforces a `thought_signature` round-trip on tool follow-ups that
-// `gai.Part` does not yet preserve. Tests that need a 3.x model pass it explicitly. See
+// the default is `gemini-2.5-flash` — held at 2.5 Flash because Gemini 3.x enforces a
+// `thought_signature` round-trip on tool follow-ups that `gai.Part` does not yet preserve.
+// Tests that need a 3.x model pass it explicitly. See
 // https://github.com/maragudk/gai/issues/256 for the deferred signature plumbing.
+//
+// `gemini-3.5-flash-lite` cannot serve as the default: the follow-up turn of "can use a
+// tool" fails with "Function call is missing a thought_signature in functionCall parts", and
+// "tracks token usage" fails because Flash Lite spends no thought tokens on a trivial
+// prompt.
 func newChatCompleter(t *testing.T, model ...google.ChatCompleteModel) *google.ChatCompleter {
 	t.Helper()
 	m := google.ChatCompleteModelGemini2_5Flash

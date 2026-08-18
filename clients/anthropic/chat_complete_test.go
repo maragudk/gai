@@ -657,6 +657,12 @@ func drainParts(t *testing.T, res gai.ChatCompleteResponse) error {
 // the default is `claude-haiku-4-5` — the cheapest current model, which keeps the bulk of
 // the integration tests fast and inexpensive. Tests that need a specific capability
 // (Sonnet 4.6 adaptive thinking, Opus 4.7 xhigh effort, etc.) pass the model explicitly.
+//
+// `claude-sonnet-5` cannot serve as the default. It rejects the `temperature` field the
+// tests here pin for determinism, with "`temperature` is deprecated for this model.", and it
+// streams thinking blocks even when no thinking level is requested — which "can use a tool"
+// collects and feeds back on the follow-up turn, where inbound thought parts are refused.
+// See https://github.com/maragudk/gai/issues/250 for the deferred signature plumbing.
 func newChatCompleter(t *testing.T, model ...anthropic.ChatCompleteModel) *anthropic.ChatCompleter {
 	t.Helper()
 	m := anthropic.ChatCompleteModelClaudeHaiku4_5Latest

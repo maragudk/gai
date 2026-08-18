@@ -682,6 +682,12 @@ func drainParts(t *testing.T, res gai.ChatCompleteResponse) error {
 // the default is `gpt-5-nano` — the cheapest current model, which keeps the bulk of the
 // integration tests fast and inexpensive. Tests that need a specific capability (gpt-5.4
 // reasoning, gpt-5.5 frontier behaviour, etc.) pass the model explicitly.
+//
+// `gpt-5.6-luna` cannot serve as the default: the endpoint rejects function tools for it —
+// "Function tools with reasoning_effort are not supported for gpt-5.6-luna in
+// /v1/chat/completions" — unless the request pins `reasoning_effort` to `none`, which means
+// [gai.ThinkingLevelNone] here. The tool and tool-choice tests set no thinking level at all,
+// and `none` is no neutral addition: `gpt-5` and `gpt-5-nano` reject it.
 func newChatCompleter(t *testing.T, model ...openai.ChatCompleteModel) *openai.ChatCompleter {
 	t.Helper()
 	m := openai.ChatCompleteModelGPT5Nano
