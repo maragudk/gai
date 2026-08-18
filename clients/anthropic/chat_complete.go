@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"sort"
@@ -44,6 +45,12 @@ type PartMetadata struct {
 
 // PartMetadata satisfies [gai.PartMetadata].
 func (PartMetadata) PartMetadata() {}
+
+// errLastMessageEmpty is returned when the last message of a request has no parts the
+// client can send — for example only thought parts without usable [PartMetadata], which
+// are dropped. Sending the request anyway would make the previous message the final
+// turn, silently changing what the model responds to, so the client rejects it instead.
+var errLastMessageEmpty = errors.New("last message has no sendable parts")
 
 // ChatCompleteModel is an Anthropic Claude model identifier accepted by the
 // chat-completions surface. See https://platform.claude.com/docs/en/about-claude/models/overview
@@ -130,6 +137,7 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 	}
 
 	var messages []anthropic.MessageParam
+	var lastMessageSent bool
 	for _, m := range req.Messages {
 		var parts []anthropic.ContentBlockParamUnion
 
@@ -257,12 +265,23 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 
 		// A message whose parts were all dropped would reach the API as empty content
 		// and be rejected, so skip the whole message instead.
-		if len(parts) > 0 {
+		lastMessageSent = len(parts) > 0
+		if lastMessageSent {
 			messages = append(messages, anthropic.MessageParam{
 				Content: parts,
 				Role:    role,
 			})
 		}
+	}
+
+	// If the final message lost all its parts to dropping, the previous message would
+	// silently become the final turn, so reject the request instead.
+	if !lastMessageSent {
+		err := fmt.Errorf("anthropic: %w", errLastMessageEmpty)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "last message empty")
+		span.End()
+		return gai.ChatCompleteResponse{}, err
 	}
 
 	var tools []anthropic.ToolUnionParam

@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"sort"
@@ -33,6 +34,12 @@ type PartMetadata struct {
 
 // PartMetadata satisfies [gai.PartMetadata].
 func (PartMetadata) PartMetadata() {}
+
+// errLastMessageEmpty is returned when the last message of a request has no parts the
+// client can send — for example only empty thought parts without a `thought_signature`,
+// which are skipped. Sending the request anyway would silently promote the previous
+// message to the current turn, so the client rejects it instead.
+var errLastMessageEmpty = errors.New("last message has no sendable parts")
 
 // ChatCompleteModel is a Google Gemini model identifier accepted by the chat-completions
 // surface. See https://ai.google.dev/gemini-api/docs/models for the full list and current
@@ -203,6 +210,7 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 	}
 
 	var history []*genai.Content
+	var lastMessageSent bool
 	for _, m := range req.Messages {
 		var content genai.Content
 
@@ -289,9 +297,21 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 
 		// A message whose parts were all skipped would reach the API as empty content
 		// and be rejected, so skip the whole message instead.
-		if len(content.Parts) > 0 {
+		lastMessageSent = len(content.Parts) > 0
+		if lastMessageSent {
 			history = append(history, &content)
 		}
+	}
+
+	// If the final message lost all its parts to skipping, the previous message would
+	// silently become the current turn, so reject the request instead. This also
+	// guarantees history is non-empty below.
+	if !lastMessageSent {
+		err := fmt.Errorf("google: %w", errLastMessageEmpty)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "last message empty")
+		span.End()
+		return gai.ChatCompleteResponse{}, err
 	}
 
 	// Delete the last content from the history, because SendMessageStream expects it as varargs

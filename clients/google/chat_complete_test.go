@@ -810,6 +810,48 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 		is.True(t, strings.Contains(output, "Artificial Intelligence"), output)
 	})
 
+	t.Run("errors when the only message has no sendable parts", func(t *testing.T) {
+		// An empty thought part with foreign metadata is skipped entirely; a request
+		// left with no sendable messages must error cleanly, not panic. This subtest
+		// runs without making a network call.
+		cc := newChatCompleter(t)
+
+		emptyThought := gai.ThoughtPart("")
+		emptyThought.Metadata = foreignPartMetadata{}
+
+		req := gai.ChatCompleteRequest{
+			Messages: []gai.Message{
+				{Role: gai.MessageRoleUser, Parts: []gai.Part{emptyThought}},
+			},
+		}
+
+		_, err := cc.ChatComplete(t.Context(), req)
+		is.True(t, err != nil, "expected an error")
+		is.Equal(t, "google: last message has no sendable parts", err.Error())
+	})
+
+	t.Run("errors when the last message has no sendable parts", func(t *testing.T) {
+		// If only the final message is skipped, sending anyway would silently make the
+		// previous message the current turn, so the client must error instead. This
+		// subtest runs without making a network call.
+		cc := newChatCompleter(t)
+
+		emptyThought := gai.ThoughtPart("")
+		emptyThought.Metadata = foreignPartMetadata{}
+
+		req := gai.ChatCompleteRequest{
+			Messages: []gai.Message{
+				gai.NewUserTextMessage("Hi!"),
+				gai.NewModelTextMessage("Hello! How can I help you today?"),
+				{Role: gai.MessageRoleUser, Parts: []gai.Part{emptyThought}},
+			},
+		}
+
+		_, err := cc.ChatComplete(t.Context(), req)
+		is.True(t, err != nil, "expected an error")
+		is.Equal(t, "google: last message has no sendable parts", err.Error())
+	})
+
 	t.Run("tool choice", func(t *testing.T) {
 		weather := gai.Tool{
 			Name:        "get_weather",

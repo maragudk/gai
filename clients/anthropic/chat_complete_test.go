@@ -702,6 +702,48 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 		is.True(t, strings.Contains(strings.ToLower(output), "artificial intelligence"), output)
 	})
 
+	t.Run("errors when the only message has no sendable parts", func(t *testing.T) {
+		// A thought part with foreign metadata is dropped entirely; a request left with
+		// no sendable messages must error cleanly, not send empty content. This subtest
+		// runs without making a network call.
+		cc := newChatCompleter(t)
+
+		foreignThought := gai.ThoughtPart("the user said hi")
+		foreignThought.Metadata = foreignPartMetadata{}
+
+		req := gai.ChatCompleteRequest{
+			Messages: []gai.Message{
+				{Role: gai.MessageRoleUser, Parts: []gai.Part{foreignThought}},
+			},
+		}
+
+		_, err := cc.ChatComplete(t.Context(), req)
+		is.True(t, err != nil, "expected an error")
+		is.Equal(t, "anthropic: last message has no sendable parts", err.Error())
+	})
+
+	t.Run("errors when the last message has no sendable parts", func(t *testing.T) {
+		// If only the final message is dropped, sending anyway would make the previous
+		// model message the final turn — a silent prefill continuation — so the client
+		// must error instead. This subtest runs without making a network call.
+		cc := newChatCompleter(t)
+
+		foreignThought := gai.ThoughtPart("the user said hi")
+		foreignThought.Metadata = foreignPartMetadata{}
+
+		req := gai.ChatCompleteRequest{
+			Messages: []gai.Message{
+				gai.NewUserTextMessage("Hi!"),
+				gai.NewModelTextMessage("Hello! How can I help you today?"),
+				{Role: gai.MessageRoleUser, Parts: []gai.Part{foreignThought}},
+			},
+		}
+
+		_, err := cc.ChatComplete(t.Context(), req)
+		is.True(t, err != nil, "expected an error")
+		is.Equal(t, "anthropic: last message has no sendable parts", err.Error())
+	})
+
 	t.Run("panics on unsupported thinking level", func(t *testing.T) {
 		// The Anthropic client publishes Low/Medium/High/XHigh/Max. Anything outside
 		// that set must panic at the boundary, not silently round-trip to the API.
