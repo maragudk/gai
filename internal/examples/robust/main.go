@@ -26,7 +26,7 @@ func main() {
 	primary := openai.NewClient(openai.NewClientOptions{
 		Log: log,
 	}).NewChatCompleter(openai.NewChatCompleterOptions{
-		Model: openai.ChatCompleteModelGPT5_1Mini,
+		Model: openai.ChatCompleteModelGPT5_4Mini,
 	})
 
 	// Key intentionally empty — see top-of-file comment.

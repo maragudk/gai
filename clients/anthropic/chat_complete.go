@@ -32,15 +32,22 @@ var errThoughtRoundTripUnsupported = errors.New("inbound PartTypeThought not sup
 // for the full list and the current availability and capability matrix of each model.
 type ChatCompleteModel string
 
+// The model constants below are hand-curated: stable, generally-available models of the
+// current and recent generations, with previews included case-by-case. Dated snapshots,
+// modality variants, and models that cannot work through the client's implemented API
+// surface (e.g. Responses-API-only) are excluded, and models killed server-side are
+// removed immediately. The set is enforced by TestModelConformance and its ignore list.
 const (
-	ChatCompleteModelClaudeOpus4_1Latest   = ChatCompleteModel(anthropic.ModelClaudeOpus4_1) //nolint:staticcheck // Opus 4.1 is deprecated (EOL 2026-08-05) but kept for callers still pinning it
 	ChatCompleteModelClaudeHaiku4_5Latest  = ChatCompleteModel(anthropic.ModelClaudeHaiku4_5)
 	ChatCompleteModelClaudeSonnet4_5Latest = ChatCompleteModel(anthropic.ModelClaudeSonnet4_5)
 	ChatCompleteModelClaudeOpus4_5Latest   = ChatCompleteModel(anthropic.ModelClaudeOpus4_5)
 	ChatCompleteModelClaudeSonnet4_6Latest = ChatCompleteModel(anthropic.ModelClaudeSonnet4_6)
 	ChatCompleteModelClaudeOpus4_6Latest   = ChatCompleteModel(anthropic.ModelClaudeOpus4_6)
 	ChatCompleteModelClaudeOpus4_7Latest   = ChatCompleteModel(anthropic.ModelClaudeOpus4_7)
+	ChatCompleteModelClaudeOpus4_8Latest   = ChatCompleteModel(anthropic.ModelClaudeOpus4_8)
+	ChatCompleteModelClaudeFable5Latest    = ChatCompleteModel(anthropic.ModelClaudeFable5)
 	ChatCompleteModelClaudeSonnet5Latest   = ChatCompleteModel(anthropic.ModelClaudeSonnet5)
+	ChatCompleteModelClaudeOpus5Latest     = ChatCompleteModel(anthropic.ModelClaudeOpus5)
 )
 
 // Per-client [gai.ThinkingLevel] constants. These map onto the `output_config.effort` enum
