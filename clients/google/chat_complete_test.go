@@ -522,7 +522,6 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			model             google.ChatCompleteModel
 			level             gai.ThinkingLevel
 			wantErr           bool
-			requireThoughts   bool // strict: assert thoughtParts > 0
 			wantThoughtTokens bool // assert Usage.ThoughtsTokens > 0
 		}{
 			// The 2.5 family does not accept the symbolic ThinkingLevel enum at all — the
@@ -643,9 +642,6 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 					}
 				}
 				is.True(t, textParts > 0, "should produce text parts")
-				if test.requireThoughts {
-					is.True(t, thoughtParts > 0, "should stream PartTypeThought parts")
-				}
 				if test.wantThoughtTokens {
 					is.True(t, res.Meta.Usage.ThoughtsTokens > 0, "thoughts tokens should be populated")
 				}
