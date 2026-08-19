@@ -137,3 +137,45 @@ The behavioral choice that a fully-dropped final message errors rather than fall
 ### Future work
 
 Nothing new; the Step 2 list stands. If a third client ever gains part-dropping behavior, it should adopt the same `lastMessageSent` check — the AGENTS.md line on metadata does not mention this, deliberately, since it is client-internal.
+
+## Step 4: Accept pointer-form metadata at all consumption sites
+
+**Author:** roundtrip-builder
+
+### Prompt Context
+
+**Verbatim prompt:** "Lead — second codex review of the final branch found one more verified P2. Because `PartMetadata()` has a value receiver, `*google.PartMetadata` and `*anthropic.PartMetadata` satisfy `gai.PartMetadata`, but all four consumption sites assert only the value form [...]. A caller who stores metadata as a pointer compiles fine and silently loses the signature on replay — the exact 400/rejection this PR fixes. Fix: accept both value and pointer forms at all four sites — a small package-private helper per client [...] Add unit tests per client proving pointer-form metadata round-trips [...]"
+**Interpretation:** Close the value-receiver method-set gap: pointer-stored metadata must round-trip identically to value-stored metadata, via a per-client unwrapping helper.
+**Inferred intent:** The metadata contract should hold for any way a caller can legally satisfy the interface, not just the form the clients themselves produce.
+
+### What I did
+
+Pulled the moved branch first (it now carries two main merges: anthropic-sdk-go 1.62.0 and the relaxed google matrix from #338). Added a package-private `asPartMetadata(gai.PartMetadata) (PartMetadata, bool)` to each client that unwraps both the value and pointer forms (nil pointers and nil interfaces return false), switched all four consumption sites to it (`/clients/google/chat_complete.go` text, tool-call, and thought build sites; `/clients/anthropic/chat_complete.go` thought build site), and extended the `gai.Part.Metadata` contract sentence: implementations must accept their own metadata "both as a value and as a pointer to it". Two new unit subtests, "accepts pointer-form part metadata", one per client, reusing the Step 3 seam: a message whose only part is a thought carrying pointer-form metadata errors with `errLastMessageEmpty` exactly when the pointer is ignored, so `is.NotError` on `ChatComplete` proves the unwrap. I red-green-verified the seam by temporarily reverting the google sites to the value-only assertion — the new test failed, restoring the helper made it pass.
+
+### Why
+
+Go's method sets make the pointer form satisfy the interface for free with a value receiver; forbidding it is impossible and asserting only the value form makes the failure silent — the worst combination, since the caller's code compiles and the signature just vanishes on replay. Unwrapping at a single helper per package keeps the double assertion out of four call sites.
+
+### What worked
+
+The Step 3 `errLastMessageEmpty` seam paid off immediately: it turned "did the signature survive request building" into an offline, deterministic assertion with no request-inspection machinery. Verified `genai.Chats.Create` is purely local (no network) before relying on it, so the google subtest is fully offline; the anthropic one issues the SDK's eager streaming request but its assertion is client-side and deterministic either way. All live round-trip tests passed on the freshly bumped SDK.
+
+### What didn't work
+
+Nothing failed. The deliberate red run (value-only assertion) failed exactly as predicted, which is the point.
+
+### What I learned
+
+A marker interface with a value receiver silently admits two forms of every implementation; consumption sites must be written for both from day one. The Step 2 competing reviewers and my own review both missed this — it took a second external reviewer looking specifically at the method-set mechanics.
+
+### What was tricky
+
+Proving the round-trip without live calls or new test seams: the trick was realizing the empty-thought skip condition and the signature attachment share the same helper result, so "request not rejected" implies "signature attached" on the thought site, and the shared helper extends that confidence to the other three sites.
+
+### What warrants review
+
+Whether the per-package helper duplication (two identical 12-line functions) is acceptable — sharing would mean exporting something, which loses more than it saves. And the contract sentence on `gai.Part.Metadata`, which now binds all implementations to pointer acceptance. Validate offline with `go test -count=1 ./clients/google ./clients/anthropic -run 'TestChatCompleter_ChatComplete/accepts_pointer'`.
+
+### Future work
+
+Nothing new. Credit where due: this and the Step 3 defect were both found by external codex reviews (gpt-5.6-sol, xhigh effort) of the PR branch — worth keeping that review pass in the loop for public-API changes.
