@@ -181,9 +181,10 @@ type Part struct {
 	// parts it produces, to be echoed back when the part is passed as message history.
 	// The data is opaque and provider-session-specific: send it back through the same
 	// implementation that set it, and treat it as a black box everywhere else.
-	// Implementations that consume metadata must ignore values they did not produce.
-	// Metadata does not survive naive JSON round-trips of Part, so callers persisting
-	// message history must preserve and restore it themselves if they need it.
+	// Implementations that consume metadata must ignore values they did not produce,
+	// and accept their own both as a value and as a pointer to it. Metadata does not
+	// survive naive JSON round-trips of Part, so callers persisting message history
+	// must preserve and restore it themselves if they need it.
 	Metadata PartMetadata
 
 	text       *string

@@ -46,6 +46,20 @@ type PartMetadata struct {
 // PartMetadata satisfies [gai.PartMetadata].
 func (PartMetadata) PartMetadata() {}
 
+// asPartMetadata unwraps the [PartMetadata] of this package from a [gai.PartMetadata],
+// accepting both the value and pointer forms since both satisfy the interface.
+func asPartMetadata(m gai.PartMetadata) (PartMetadata, bool) {
+	switch m := m.(type) {
+	case PartMetadata:
+		return m, true
+	case *PartMetadata:
+		if m != nil {
+			return *m, true
+		}
+	}
+	return PartMetadata{}, false
+}
+
 // errLastMessageEmpty is returned when the last message of a request has no parts the
 // client can send — for example only thought parts without usable [PartMetadata], which
 // are dropped. Sending the request anyway would make the previous message the final
@@ -167,7 +181,7 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 
 			case gai.PartTypeThought:
 				pendingThinking.WriteString(part.Thought())
-				if md, ok := part.Metadata.(PartMetadata); ok {
+				if md, ok := asPartMetadata(part.Metadata); ok {
 					switch {
 					case md.RedactedThinkingData != "":
 						parts = append(parts, anthropic.NewRedactedThinkingBlock(md.RedactedThinkingData))

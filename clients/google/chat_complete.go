@@ -35,6 +35,20 @@ type PartMetadata struct {
 // PartMetadata satisfies [gai.PartMetadata].
 func (PartMetadata) PartMetadata() {}
 
+// asPartMetadata unwraps the [PartMetadata] of this package from a [gai.PartMetadata],
+// accepting both the value and pointer forms since both satisfy the interface.
+func asPartMetadata(m gai.PartMetadata) (PartMetadata, bool) {
+	switch m := m.(type) {
+	case PartMetadata:
+		return m, true
+	case *PartMetadata:
+		if m != nil {
+			return *m, true
+		}
+	}
+	return PartMetadata{}, false
+}
+
 // errLastMessageEmpty is returned when the last message of a request has no parts the
 // client can send — for example only empty thought parts without a `thought_signature`,
 // which are skipped. Sending the request anyway would silently promote the previous
@@ -227,7 +241,7 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 			switch part.Type {
 			case gai.PartTypeText:
 				textPart := &genai.Part{Text: part.Text()}
-				if md, ok := part.Metadata.(PartMetadata); ok {
+				if md, ok := asPartMetadata(part.Metadata); ok {
 					textPart.ThoughtSignature = md.ThoughtSignature
 				}
 				content.Parts = append(content.Parts, textPart)
@@ -242,7 +256,7 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 				}
 				functionCallPart := genai.NewPartFromFunctionCall(toolCall.Name, args)
 				functionCallPart.FunctionCall.ID = toolCall.ID
-				if md, ok := part.Metadata.(PartMetadata); ok {
+				if md, ok := asPartMetadata(part.Metadata); ok {
 					// Gemini 3.x requires the `thought_signature` back on the same
 					// function-call part it was returned on; without it the follow-up
 					// turn is rejected with a 400.
@@ -282,7 +296,7 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 				// still replay; empty ones are skipped because an empty [genai.Part] is
 				// invalid.
 				thoughtPart := &genai.Part{Text: part.Thought(), Thought: true}
-				if md, ok := part.Metadata.(PartMetadata); ok {
+				if md, ok := asPartMetadata(part.Metadata); ok {
 					thoughtPart.ThoughtSignature = md.ThoughtSignature
 				}
 				if thoughtPart.Text == "" && len(thoughtPart.ThoughtSignature) == 0 {

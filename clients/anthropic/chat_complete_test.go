@@ -702,6 +702,26 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 		is.True(t, strings.Contains(strings.ToLower(output), "artificial intelligence"), output)
 	})
 
+	t.Run("accepts pointer-form part metadata", func(t *testing.T) {
+		// A pointer to [anthropic.PartMetadata] satisfies [gai.PartMetadata] just like
+		// the value form, so both must round-trip. The seam: a thought part is kept only
+		// if its metadata is recognised, so a request whose only part is a
+		// pointer-metadata thought errors if and only if the pointer is ignored.
+		cc := newChatCompleter(t)
+
+		signedThought := gai.ThoughtPart("the user said hi")
+		signedThought.Metadata = &anthropic.PartMetadata{Signature: "test-signature"}
+
+		req := gai.ChatCompleteRequest{
+			Messages: []gai.Message{
+				{Role: gai.MessageRoleModel, Parts: []gai.Part{signedThought}},
+			},
+		}
+
+		_, err := cc.ChatComplete(t.Context(), req)
+		is.NotError(t, err)
+	})
+
 	t.Run("errors when the only message has no sendable parts", func(t *testing.T) {
 		// A thought part with foreign metadata is dropped entirely; a request left with
 		// no sendable messages must error cleanly, not send empty content. This subtest
