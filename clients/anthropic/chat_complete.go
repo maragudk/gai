@@ -21,11 +21,50 @@ import (
 	"maragu.dev/gai"
 )
 
-// errThoughtRoundTripUnsupported is returned when a caller passes [gai.PartTypeThought]
-// back into the Anthropic client. Multi-turn thinking on Anthropic requires forwarding the
-// per-block signature returned by the API, which is not yet plumbed through [gai.Part].
-// Tracked by https://github.com/maragudk/gai/issues/250.
-var errThoughtRoundTripUnsupported = errors.New("inbound PartTypeThought not supported (https://github.com/maragudk/gai/issues/250)")
+// PartMetadata carried on [gai.Part] values produced by [ChatCompleter.ChatComplete],
+// implementing [gai.PartMetadata]. When such a part is passed back as message history,
+// the client re-emits the metadata so the API accepts the follow-up turn.
+//
+// The client streams a thinking block as its text deltas first, each a plain
+// [gai.PartTypeThought] part, followed by one final empty [gai.PartTypeThought] part
+// whose metadata carries the block's Signature. A redacted thinking block is a single
+// empty [gai.PartTypeThought] part whose metadata carries RedactedThinkingData. Passing
+// all streamed parts back as history in order reassembles the original blocks. Thought
+// parts without usable metadata of this package — from other providers, or built by
+// hand — are omitted from requests entirely, because the API rejects unsigned thinking
+// blocks.
+type PartMetadata struct {
+	// Signature of a thinking block, which the API requires back verbatim with the
+	// block's full text on the next turn of a tool-use flow. See
+	// https://docs.claude.com/en/docs/build-with-claude/extended-thinking.
+	Signature string
+	// RedactedThinkingData is the opaque payload of a redacted thinking block, which the
+	// API likewise requires back verbatim on the next turn.
+	RedactedThinkingData string
+}
+
+// PartMetadata satisfies [gai.PartMetadata].
+func (PartMetadata) PartMetadata() {}
+
+// asPartMetadata unwraps the [PartMetadata] of this package from a [gai.PartMetadata],
+// accepting both the value and pointer forms since both satisfy the interface.
+func asPartMetadata(m gai.PartMetadata) (PartMetadata, bool) {
+	switch m := m.(type) {
+	case PartMetadata:
+		return m, true
+	case *PartMetadata:
+		if m != nil {
+			return *m, true
+		}
+	}
+	return PartMetadata{}, false
+}
+
+// errLastMessageEmpty is returned when the last message of a request has no parts the
+// client can send — for example only thought parts without usable [PartMetadata], which
+// are dropped. Sending the request anyway would make the previous message the final
+// turn, silently changing what the model responds to, so the client rejects it instead.
+var errLastMessageEmpty = errors.New("last message has no sendable parts")
 
 // ChatCompleteModel is an Anthropic Claude model identifier accepted by the
 // chat-completions surface. See https://platform.claude.com/docs/en/about-claude/models/overview
@@ -112,10 +151,26 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 	}
 
 	var messages []anthropic.MessageParam
+	var lastMessageSent bool
 	for _, m := range req.Messages {
 		var parts []anthropic.ContentBlockParamUnion
 
+		// Thought parts stream as plain text fragments terminated by a part whose
+		// [PartMetadata] carries the block signature (see [PartMetadata]); buffer the
+		// fragments and emit one signed thinking block per group. Fragment runs never
+		// terminated by usable metadata — thoughts from other providers, or hand-built
+		// ones — are dropped silently: the API rejects unsigned thinking blocks outright,
+		// so a history replayed across providers would otherwise always error over
+		// context the API refuses anyway.
+		var pendingThinking strings.Builder
+
 		for _, part := range m.Parts {
+			if part.Type != gai.PartTypeThought {
+				// A thinking block is a contiguous run of thought parts; any other part
+				// type ends the run, discarding unsigned fragments.
+				pendingThinking.Reset()
+			}
+
 			switch part.Type {
 			case gai.PartTypeText:
 				parts = append(parts, anthropic.ContentBlockParamUnion{
@@ -125,13 +180,18 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 				})
 
 			case gai.PartTypeThought:
-				// Round-tripping thinking blocks back to Anthropic requires preserving the
-				// signature returned with each block, which we don't yet plumb. See
-				// https://github.com/maragudk/gai/issues/250.
-				err := fmt.Errorf("anthropic: %w", errThoughtRoundTripUnsupported)
-				span.RecordError(err)
-				span.SetStatus(codes.Error, "unsupported part type")
-				return gai.ChatCompleteResponse{}, err
+				pendingThinking.WriteString(part.Thought())
+				if md, ok := asPartMetadata(part.Metadata); ok {
+					switch {
+					case md.RedactedThinkingData != "":
+						parts = append(parts, anthropic.NewRedactedThinkingBlock(md.RedactedThinkingData))
+					case md.Signature != "":
+						parts = append(parts, anthropic.NewThinkingBlock(md.Signature, pendingThinking.String()))
+					}
+					// Any metadata of this package ends the run, so a zero value drops
+					// its unsigned text rather than bleeding it into the next block.
+					pendingThinking.Reset()
+				}
 
 			case gai.PartTypeToolCall:
 				toolCall := part.ToolCall()
@@ -217,10 +277,25 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 			panic("unknown role " + m.Role)
 		}
 
-		messages = append(messages, anthropic.MessageParam{
-			Content: parts,
-			Role:    role,
-		})
+		// A message whose parts were all dropped would reach the API as empty content
+		// and be rejected, so skip the whole message instead.
+		lastMessageSent = len(parts) > 0
+		if lastMessageSent {
+			messages = append(messages, anthropic.MessageParam{
+				Content: parts,
+				Role:    role,
+			})
+		}
+	}
+
+	// If the final message lost all its parts to dropping, the previous message would
+	// silently become the final turn, so reject the request instead.
+	if !lastMessageSent {
+		err := fmt.Errorf("anthropic: %w", errLastMessageEmpty)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "last message empty")
+		span.End()
+		return gai.ChatCompleteResponse{}, err
 	}
 
 	var tools []anthropic.ToolUnionParam
@@ -389,6 +464,27 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 					continue
 				}
 				switch block := message.Content[event.Index].AsAny().(type) {
+				case anthropic.ThinkingBlock:
+					// The block's signature only arrives in the trailing signature delta,
+					// after the text deltas above have already been yielded, so it rides
+					// on a final empty thought part. See [PartMetadata] for how the
+					// request builder reassembles the block from these parts.
+					thoughtPart := gai.ThoughtPart("")
+					thoughtPart.Metadata = PartMetadata{Signature: block.Signature}
+					if !yield(thoughtPart, nil) {
+						return
+					}
+
+				case anthropic.RedactedThinkingBlock:
+					// Redacted thinking has no readable text, only an opaque payload the
+					// API requires back verbatim, so it surfaces as a single empty thought
+					// part carrying the payload in its metadata.
+					thoughtPart := gai.ThoughtPart("")
+					thoughtPart.Metadata = PartMetadata{RedactedThinkingData: block.Data}
+					if !yield(thoughtPart, nil) {
+						return
+					}
+
 				case anthropic.ToolUseBlock:
 					c.log.Debug("Tool call", "id", block.ID, "name", block.Name, "input", block.Input)
 					var found bool
