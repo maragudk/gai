@@ -40,8 +40,13 @@ var ignoredModels = []string{
 	"gemini-3.1-flash-lite-preview",
 	"gemini-3.1-pro-preview-customtools",
 	"gemini-embedding-2-preview",
+	// Omni models: only usable via the Interactions API, rejected by the generateContent
+	// endpoint this package targets. Both the preview and its stable 1.1 counterpart list
+	// generateContent as a supported action, yet answer streaming and non-streaming calls
+	// alike with 400 INVALID_ARGUMENT, `This model only supports Interactions API.`.
+	"gemini-omni-1.1-flash",
 	"gemini-omni-flash-preview",
-	// Modality variants: image generation, TTS, computer use, robotics, music.
+	// Modality variants: image generation, TTS, transcription, computer use, robotics, music.
 	"gemini-2.5-computer-use-*",
 	"gemini-2.5-flash-image*",
 	"gemini-2.5-flash-preview-tts",
@@ -50,6 +55,7 @@ var ignoredModels = []string{
 	"gemini-3.1-flash-image*",
 	"gemini-3.1-flash-lite-image*",
 	"gemini-3.1-flash-tts-preview",
+	"gemini-3.5-transcribe",
 	"gemini-robotics-*",
 	"lyria-*",
 	"nano-banana-*",
