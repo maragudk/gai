@@ -176,3 +176,15 @@ Decision, three parts:
 - The ignore list is the explicit, machine-checked record of "seen and deliberately not exported". A new provider model breaks CI until a human either exports it or ignores it — accepted freshness pressure, cheap to discharge with a one-line change.
 
 Tradeoff: a provider shipping or killing a model reddens CI for unrelated PRs. That is the point — the alternative, silent rot, cost a broken main and two blocked Dependabot PRs this week. Known limitation: the test catches existence drift, not behavior drift (a model changing how it streams thinking parts still needs behavioral tests).
+
+## 2026-09-02: Run the live model conformance test on a schedule, not as a merge gate
+
+Amends the enforcement part of the 2026-08-17 decision. The three `TestModelConformance` functions stay as designed, but they now skip unless `GAI_MODEL_CONFORMANCE` is set, so `make test`, the `CI` workflow, and the `Compatibility` workflow no longer hit the providers' model-list endpoints. A new dedicated `Conformance` workflow runs them daily (plus manual dispatch), is not a required check, and reports drift through a single GitHub issue.
+
+Context: the August design accepted "a new or killed provider model reddens CI for unrelated PRs" as the price of freshness. Within two weeks the price was paid twice in two days — Google's `gemini-3.5-transcribe`/`gemini-omni-1.1-flash` on 2026-09-01 and Anthropic's `claude-fable-5-1` on 2026-09-02 — each blocking every open PR (Dependabot bumps #343/#344, the flake fix #346) until a triage PR landed on main and the others were rebased. The cost fell on whoever had a PR open, not on the curation decision itself.
+
+Alternatives considered: folding the test into the existing daily `Compatibility` workflow (rejected: it upgrades dependencies first, so a red run would conflate dependency breakage with model drift) or into `Security` (rejected: it runs on every PR, so drift would still paint a red X on unrelated PRs, and the concerns do not match). For the skip mechanism, `-skip TestModelConformance` in the CI commands (rejected: local `make test` would still hit the live API unless the Makefile duplicated the flag) and build tags (rejected: they hide the files from tooling by default). An env-var gate inside the tests makes every existing `go test ./...` invocation skip automatically and needs one `make conformance` target for opting in.
+
+Issue dedup is deliberately minimal: a fixed label and title, create an issue only if no open one exists, close it on the next green run, no per-run comments. This gives at most one open drift issue at a time and auto-resolution when a triage PR lands, at the cost of not announcing when an additional model joins an already-open drift episode. The richer variant (comment when the failing set changes) was considered and deferred as not worth the extra workflow logic.
+
+Tradeoff: drift is now discovered the next morning instead of on the next PR, and a triage PR is a deliberate task rather than a forced one. The behavior tests (thinking-level matrices, embed) stay in merge-gating CI; their live-API flakiness is a separate question.
