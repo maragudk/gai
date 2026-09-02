@@ -33,8 +33,7 @@ jobs:
           go-version: stable
           check-latest: true
 
-      - name: Govulncheck
-        id: govulncheck
+      - id: govulncheck
         run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
 
       - name: Open security issue
