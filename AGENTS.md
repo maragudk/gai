@@ -21,7 +21,7 @@ The repository implements `maragu.dev/gai`, a Go library that standardises inter
 - Lint with `golangci-lint run` or `make lint`; address warnings immediately to avoid CI regressions.
 - Client model constants are hand-curated (stable, generally-available, current and recent generations); the live `TestModelConformance` in each client package enforces the set in both directions against its package-private ignore list.
 - `TestModelConformance` skips unless `GAI_MODEL_CONFORMANCE` is set to a non-empty value; run it with `make conformance`. The daily `Conformance` workflow runs it in CI and opens one `model-drift` issue on drift, closing it on the next green run; it has no `pull_request` trigger, so it never gates a merge.
-- The `Security` workflow runs `govulncheck` on pushes to main, pull requests, and daily; on main only, it opens one `govulncheck` issue on a failure and closes it on the next green run, the same way `Conformance` does. The label is bespoke so the dedup and close steps cannot touch human-filed issues.
+- The `Security` workflow calls the shared `maragudk/workflows` Security workflow, which runs `govulncheck` on pushes to main, pull requests, and daily; on main only, it opens one `govulncheck` issue on a failure and closes it on the next green run, the same way `Conformance` does. The label is bespoke so the dedup and close steps cannot touch human-filed issues.
 
 ## Coding Conventions
 - Stick to dependency injection through small private interfaces close to the consumer (see chat completer tools).
