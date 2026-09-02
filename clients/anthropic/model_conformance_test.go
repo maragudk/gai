@@ -22,6 +22,7 @@ var exportedModels = []string{
 	string(anthropic.ChatCompleteModelClaudeOpus4_7Latest),
 	string(anthropic.ChatCompleteModelClaudeOpus4_8Latest),
 	string(anthropic.ChatCompleteModelClaudeFable5Latest),
+	string(anthropic.ChatCompleteModelClaudeFable5_1Latest),
 	string(anthropic.ChatCompleteModelClaudeSonnet5Latest),
 	string(anthropic.ChatCompleteModelClaudeOpus5Latest),
 }
