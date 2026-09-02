@@ -584,11 +584,15 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			{name: "flash 3.6 + high", model: google.ChatCompleteModelGemini3_6Flash, level: google.ThinkingLevelHigh, wantThoughtTokens: true},
 
 			// Flash 3.7 flips both edges: `gai.ThinkingLevelNone` is accepted but the model
-			// usually thinks anyway (thoughts_tokens > 0 in most probes, 0 in roughly one run
-			// in sixteen, so the row doesn't assert it), and MINIMAL is rejected like on Pro 3.1.
+			// usually thinks anyway, and MINIMAL is rejected like on Pro 3.1. Thoughts tokens
+			// are nondeterministic at the bottom of the range, so neither the None nor the Low
+			// row asserts them: None comes back at 0 in roughly one run in sixteen, Low in
+			// roughly one run in ten (the same rate on genai 1.68 and 1.69, so the source is
+			// the server, not the SDK). Medium and High never returned 0 across 50 probes each
+			// and keep the assertion.
 			{name: "flash 3.7 + none", model: google.ChatCompleteModelGemini3_7Flash, level: gai.ThinkingLevelNone},
 			{name: "flash 3.7 + minimal rejected", model: google.ChatCompleteModelGemini3_7Flash, level: google.ThinkingLevelMinimal, wantErr: true},
-			{name: "flash 3.7 + low", model: google.ChatCompleteModelGemini3_7Flash, level: google.ThinkingLevelLow, wantThoughtTokens: true},
+			{name: "flash 3.7 + low", model: google.ChatCompleteModelGemini3_7Flash, level: google.ThinkingLevelLow},
 			{name: "flash 3.7 + medium", model: google.ChatCompleteModelGemini3_7Flash, level: google.ThinkingLevelMedium, wantThoughtTokens: true},
 			{name: "flash 3.7 + high", model: google.ChatCompleteModelGemini3_7Flash, level: google.ThinkingLevelHigh, wantThoughtTokens: true},
 
