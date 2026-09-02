@@ -46,8 +46,12 @@ const (
 	ChatCompleteModelClaudeOpus4_7Latest   = ChatCompleteModel(anthropic.ModelClaudeOpus4_7)
 	ChatCompleteModelClaudeOpus4_8Latest   = ChatCompleteModel(anthropic.ModelClaudeOpus4_8)
 	ChatCompleteModelClaudeFable5Latest    = ChatCompleteModel(anthropic.ModelClaudeFable5)
-	ChatCompleteModelClaudeSonnet5Latest   = ChatCompleteModel(anthropic.ModelClaudeSonnet5)
-	ChatCompleteModelClaudeOpus5Latest     = ChatCompleteModel(anthropic.ModelClaudeOpus5)
+	// ChatCompleteModelClaudeFable5_1Latest is the claude-fable-5-1 model. The pinned
+	// anthropic-sdk-go (v1.66.0) does not yet ship a `ModelClaudeFable5_1` constant, so the
+	// value is the bare API string. Switch to `ModelClaudeFable5_1` once the SDK exposes it.
+	ChatCompleteModelClaudeFable5_1Latest = ChatCompleteModel("claude-fable-5-1")
+	ChatCompleteModelClaudeSonnet5Latest  = ChatCompleteModel(anthropic.ModelClaudeSonnet5)
+	ChatCompleteModelClaudeOpus5Latest    = ChatCompleteModel(anthropic.ModelClaudeOpus5)
 )
 
 // Per-client [gai.ThinkingLevel] constants. These map onto the `output_config.effort` enum
