@@ -1,0 +1,66 @@
+name: Conformance
+
+on:
+  schedule:
+    - cron: "44 7 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  conformance:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          check-latest: true
+
+      - name: Conformance
+        id: conformance
+        run: make conformance
+        env:
+          ANTHROPIC_KEY: ${{ secrets.ANTHROPIC_KEY }}
+          GAI_MODEL_CONFORMANCE: "1"
+          GOOGLE_KEY: ${{ secrets.GOOGLE_KEY }}
+          OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
+
+      - name: Open drift issue
+        if: failure() && steps.conformance.outcome == 'failure'
+        env:
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh label create model-drift --color D93F0B --description "Live model conformance drift" || true
+          existing="$(gh issue list --label model-drift --state open --limit 1 --json number --jq '.[].number')"
+          if [ -n "$existing" ]; then
+            echo "Issue #$existing is already open for model drift, leaving it alone."
+            exit 0
+          fi
+          printf -v body 'The `Conformance` workflow failed: %s\n\nRun `make conformance` locally to see the failing model IDs, then export or ignore them.' "$RUN_URL"
+          gh issue create --title "Model conformance drift" --label model-drift --body "$body"
+
+      - name: Close drift issue
+        if: success()
+        env:
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh issue list --label model-drift --state open --limit 30 --json number --jq '.[].number' |
+            while read -r number; do
+              gh issue close "$number" --comment "Model conformance is green again: $RUN_URL"
+            done
