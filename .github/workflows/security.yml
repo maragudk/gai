@@ -11,21 +11,58 @@ on:
     - cron: "14 7 * * *"
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref_name }}
+  cancel-in-progress: ${{ github.ref_name != 'main' }}
+
 permissions:
   contents: read
+  issues: write
 
 jobs:
   govulncheck:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v7
+      - name: Checkout
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
 
-      - uses: actions/setup-go@v7
+      - name: Setup Go
+        uses: actions/setup-go@v7
         with:
           go-version: stable
           check-latest: true
 
-      - run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+      - name: Govulncheck
+        id: govulncheck
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+
+      - name: Open security issue
+        if: failure() && steps.govulncheck.outcome == 'failure' && github.ref_name == 'main'
+        env:
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh label create govulncheck --color B60205 --description "govulncheck found vulnerabilities in CI" || true
+          existing="$(gh issue list --label govulncheck --state open --limit 1 --json number --jq '.[].number')"
+          if [ -n "$existing" ]; then
+            echo "Issue #$existing is already open for vulnerabilities, leaving it alone."
+            exit 0
+          fi
+          printf -v body 'The `Security` workflow failed: %s\n\nRun `go run golang.org/x/vuln/cmd/govulncheck@latest ./...` locally to see the vulnerabilities, then upgrade the affected dependencies.' "$RUN_URL"
+          gh issue create --title "govulncheck found vulnerabilities" --label govulncheck --body "$body"
+
+      - name: Close security issue
+        if: success() && github.ref_name == 'main'
+        env:
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh issue list --label govulncheck --state open --limit 30 --json number --jq '.[].number' |
+            while read -r number; do
+              gh issue close "$number" --comment "govulncheck is green again: $RUN_URL"
+            done
