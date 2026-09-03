@@ -25,6 +25,7 @@ var exportedModels = []string{
 	string(google.ChatCompleteModelGemini3_5FlashLite),
 	string(google.ChatCompleteModelGemini3_6Flash),
 	string(google.ChatCompleteModelGemini3_7Flash),
+	string(google.ChatCompleteModelGemini3_8Flash),
 	string(google.EmbedModelGeminiEmbedding001),
 	string(google.EmbedModelGeminiEmbedding2),
 }
@@ -33,8 +34,10 @@ var exportedModels = []string{
 // per the curation policy above the model const blocks. An entry ending in "*"
 // matches every model ID with that prefix; any other entry matches exactly.
 var ignoredModels = []string{
-	// Floating aliases that track the newest model; the exported constants pin versions instead.
+	// Floating aliases that track the newest model, and experimental variants of those
+	// aliases; the exported constants pin versions instead.
 	"gemini-flash-latest",
+	"gemini-flash-latest-high-res-exp",
 	"gemini-flash-lite-latest",
 	"gemini-pro-latest",
 	// Previews without an exported stable counterpart, or superseded by one.
