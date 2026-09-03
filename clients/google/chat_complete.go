@@ -50,18 +50,20 @@ const (
 	ChatCompleteModelGemini3_5FlashLite  = ChatCompleteModel("gemini-3.5-flash-lite")
 	ChatCompleteModelGemini3_6Flash      = ChatCompleteModel("gemini-3.6-flash")
 	ChatCompleteModelGemini3_7Flash      = ChatCompleteModel("gemini-3.7-flash")
+	ChatCompleteModelGemini3_8Flash      = ChatCompleteModel("gemini-3.8-flash")
 )
 
 // Per-client [gai.ThinkingLevel] constants. These map directly onto the symbolic
 // `genai.ThinkingLevel` enum used by the Gemini 3.x family. Pass [gai.ThinkingLevelNone] to
 // opt out via `ThinkingBudget=0`; this is accepted by `gemini-3-flash-preview`,
-// `gemini-3.1-flash-lite`, `gemini-3.5-flash`, and `gemini-3.7-flash` (though 3.7 usually
-// keeps thinking regardless of the zero budget), and rejected by `gemini-3.1-pro-preview`
-// (Pro 3.x only runs in thinking mode), `gemini-3.5-flash-lite`, and `gemini-3.6-flash`.
+// `gemini-3.1-flash-lite`, `gemini-3.5-flash`, `gemini-3.7-flash`, and `gemini-3.8-flash`
+// (3.7 usually keeps thinking regardless of the zero budget, and 3.8 occasionally does),
+// and rejected by `gemini-3.1-pro-preview` (Pro 3.x only runs in thinking mode),
+// `gemini-3.5-flash-lite`, and `gemini-3.6-flash`.
 // Levels not in this list panic at the client boundary.
 const (
-	// ThinkingLevelMinimal applies the cheapest thinking budget. Rejected by gemini-3.1-pro-preview
-	// and gemini-3.7-flash.
+	// ThinkingLevelMinimal applies the cheapest thinking budget. Rejected by gemini-3.1-pro-preview,
+	// gemini-3.7-flash, and gemini-3.8-flash.
 	ThinkingLevelMinimal gai.ThinkingLevel = "minimal"
 	// ThinkingLevelLow applies low thinking effort.
 	ThinkingLevelLow gai.ThinkingLevel = "low"
