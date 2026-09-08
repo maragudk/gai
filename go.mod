@@ -5,13 +5,13 @@ go 1.25.8
 require (
 	cloud.google.com/go/auth v0.20.0
 	github.com/agnivade/levenshtein v1.2.1
-	github.com/anthropics/anthropic-sdk-go v1.62.0
+	github.com/anthropics/anthropic-sdk-go v1.66.0
 	github.com/invopop/jsonschema v0.14.0
-	github.com/openai/openai-go/v3 v3.50.0
+	github.com/openai/openai-go/v3 v3.52.0
 	go.opentelemetry.io/otel v1.44.0
 	go.opentelemetry.io/otel/sdk v1.44.0
 	go.opentelemetry.io/otel/trace v1.44.0
-	google.golang.org/genai v1.67.0
+	google.golang.org/genai v1.69.0
 	maragu.dev/env v0.2.0
 	maragu.dev/errors v0.3.0
 	maragu.dev/is v0.3.1

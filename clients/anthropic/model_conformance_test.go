@@ -1,6 +1,7 @@
 package anthropic_test
 
 import (
+	"os"
 	"slices"
 	"strings"
 	"testing"
@@ -22,6 +23,7 @@ var exportedModels = []string{
 	string(anthropic.ChatCompleteModelClaudeOpus4_7Latest),
 	string(anthropic.ChatCompleteModelClaudeOpus4_8Latest),
 	string(anthropic.ChatCompleteModelClaudeFable5Latest),
+	string(anthropic.ChatCompleteModelClaudeFable5_1Latest),
 	string(anthropic.ChatCompleteModelClaudeSonnet5Latest),
 	string(anthropic.ChatCompleteModelClaudeOpus5Latest),
 }
@@ -53,6 +55,10 @@ func isIgnoredModel(id string) bool {
 }
 
 func TestModelConformance(t *testing.T) {
+	if os.Getenv("GAI_MODEL_CONFORMANCE") == "" {
+		t.Skip("set GAI_MODEL_CONFORMANCE=1 to run the live model conformance test")
+	}
+
 	client := newClient(t)
 
 	t.Run("every exported model constant resolves via get-by-ID", func(t *testing.T) {

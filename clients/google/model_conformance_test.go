@@ -1,6 +1,7 @@
 package google_test
 
 import (
+	"os"
 	"slices"
 	"strings"
 	"testing"
@@ -24,6 +25,7 @@ var exportedModels = []string{
 	string(google.ChatCompleteModelGemini3_5FlashLite),
 	string(google.ChatCompleteModelGemini3_6Flash),
 	string(google.ChatCompleteModelGemini3_7Flash),
+	string(google.ChatCompleteModelGemini3_8Flash),
 	string(google.EmbedModelGeminiEmbedding001),
 	string(google.EmbedModelGeminiEmbedding2),
 }
@@ -32,16 +34,23 @@ var exportedModels = []string{
 // per the curation policy above the model const blocks. An entry ending in "*"
 // matches every model ID with that prefix; any other entry matches exactly.
 var ignoredModels = []string{
-	// Floating aliases that track the newest model; the exported constants pin versions instead.
+	// Floating aliases that track the newest model, and experimental variants of those
+	// aliases; the exported constants pin versions instead.
 	"gemini-flash-latest",
+	"gemini-flash-latest-high-res-exp",
 	"gemini-flash-lite-latest",
 	"gemini-pro-latest",
 	// Previews without an exported stable counterpart, or superseded by one.
 	"gemini-3.1-flash-lite-preview",
 	"gemini-3.1-pro-preview-customtools",
 	"gemini-embedding-2-preview",
+	// Omni models: only usable via the Interactions API, rejected by the generateContent
+	// endpoint this package targets. Both the preview and its stable 1.1 counterpart list
+	// generateContent as a supported action, yet answer streaming and non-streaming calls
+	// alike with 400 INVALID_ARGUMENT, `This model only supports Interactions API.`.
+	"gemini-omni-1.1-flash",
 	"gemini-omni-flash-preview",
-	// Modality variants: image generation, TTS, computer use, robotics, music.
+	// Modality variants: image generation, TTS, transcription, computer use, robotics, music.
 	"gemini-2.5-computer-use-*",
 	"gemini-2.5-flash-image*",
 	"gemini-2.5-flash-preview-tts",
@@ -50,6 +59,7 @@ var ignoredModels = []string{
 	"gemini-3.1-flash-image*",
 	"gemini-3.1-flash-lite-image*",
 	"gemini-3.1-flash-tts-preview",
+	"gemini-3.5-transcribe",
 	"gemini-robotics-*",
 	"lyria-*",
 	"nano-banana-*",
@@ -76,6 +86,10 @@ func isIgnoredModel(id string) bool {
 }
 
 func TestModelConformance(t *testing.T) {
+	if os.Getenv("GAI_MODEL_CONFORMANCE") == "" {
+		t.Skip("set GAI_MODEL_CONFORMANCE=1 to run the live model conformance test")
+	}
+
 	client := newClient(t)
 
 	t.Run("every exported model constant resolves via get-by-ID", func(t *testing.T) {

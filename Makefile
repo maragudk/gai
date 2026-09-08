@@ -2,6 +2,10 @@
 benchmark:
 	go test -bench . ./...
 
+.PHONY: conformance
+conformance:
+	GAI_MODEL_CONFORMANCE=1 go test -count=1 -shuffle on -run TestModelConformance ./clients/...
+
 .PHONY: cover
 cover:
 	go tool cover -html cover.out

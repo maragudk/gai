@@ -56,9 +56,8 @@ func NewClient(opts NewClientOptions) *Client {
 	case BackendVertexAI:
 		cfg.Backend = genai.BackendVertexAI
 		if opts.CredentialsPath != "" {
-			creds, err := credentials.DetectDefault(&credentials.DetectOptions{
-				CredentialsFile: opts.CredentialsPath,
-				Scopes:          []string{"https://www.googleapis.com/auth/cloud-platform"},
+			creds, err := credentials.NewCredentialsFromFile(credentials.ServiceAccount, opts.CredentialsPath, &credentials.DetectOptions{
+				Scopes: []string{"https://www.googleapis.com/auth/cloud-platform"},
 			})
 			if err != nil {
 				panic(err)

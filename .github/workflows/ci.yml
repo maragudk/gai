@@ -82,23 +82,4 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_KEY }}
 
   lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    if: ${{ github.triggering_actor != 'dependabot[bot]' }}
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-        with:
-          persist-credentials: false
-
-      - name: Setup Go
-        uses: actions/setup-go@v7
-        with:
-          go-version-file: go.mod
-          check-latest: true
-
-      - name: Lint
-        uses: golangci/golangci-lint-action@v9
-        with:
-          version: latest
+    uses: maragudk/workflows/.github/workflows/lint.yml@main

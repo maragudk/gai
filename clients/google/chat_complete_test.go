@@ -588,13 +588,29 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			{name: "flash 3.6 + high", model: google.ChatCompleteModelGemini3_6Flash, level: google.ThinkingLevelHigh, wantThoughtTokens: true},
 
 			// Flash 3.7 flips both edges: `gai.ThinkingLevelNone` is accepted but the model
-			// usually thinks anyway (thoughts_tokens > 0 in most probes, 0 in roughly one run
-			// in sixteen, so the row doesn't assert it), and MINIMAL is rejected like on Pro 3.1.
+			// usually thinks anyway, and MINIMAL is rejected like on Pro 3.1. Thoughts tokens
+			// are nondeterministic at the bottom of the range, so neither the None nor the Low
+			// row asserts them: None comes back at 0 in roughly one run in sixteen, Low in
+			// roughly one run in ten (the same rate on genai 1.68 and 1.69, so the source is
+			// the server, not the SDK). Medium and High never returned 0 across 50 probes each
+			// and keep the assertion.
 			{name: "flash 3.7 + none", model: google.ChatCompleteModelGemini3_7Flash, level: gai.ThinkingLevelNone},
 			{name: "flash 3.7 + minimal rejected", model: google.ChatCompleteModelGemini3_7Flash, level: google.ThinkingLevelMinimal, wantErr: true},
-			{name: "flash 3.7 + low", model: google.ChatCompleteModelGemini3_7Flash, level: google.ThinkingLevelLow, wantThoughtTokens: true},
+			{name: "flash 3.7 + low", model: google.ChatCompleteModelGemini3_7Flash, level: google.ThinkingLevelLow},
 			{name: "flash 3.7 + medium", model: google.ChatCompleteModelGemini3_7Flash, level: google.ThinkingLevelMedium, wantThoughtTokens: true},
 			{name: "flash 3.7 + high", model: google.ChatCompleteModelGemini3_7Flash, level: google.ThinkingLevelHigh, wantThoughtTokens: true},
+
+			// Flash 3.8 sits at the same two edges as 3.7: `gai.ThinkingLevelNone` is accepted
+			// and MINIMAL is rejected with `Thinking level MINIMAL is not supported for this
+			// model`. Where it differs is how loosely it holds the bottom of the range —
+			// thoughts tokens came back at 0 in 10 of 15 None probes and 9 of 15 Low probes,
+			// far more often than the corresponding rows on 3.7 — so neither row asserts them.
+			// Medium and High never returned 0 across 20 probes each and keep the assertion.
+			{name: "flash 3.8 + none", model: google.ChatCompleteModelGemini3_8Flash, level: gai.ThinkingLevelNone},
+			{name: "flash 3.8 + minimal rejected", model: google.ChatCompleteModelGemini3_8Flash, level: google.ThinkingLevelMinimal, wantErr: true},
+			{name: "flash 3.8 + low", model: google.ChatCompleteModelGemini3_8Flash, level: google.ThinkingLevelLow},
+			{name: "flash 3.8 + medium", model: google.ChatCompleteModelGemini3_8Flash, level: google.ThinkingLevelMedium, wantThoughtTokens: true},
+			{name: "flash 3.8 + high", model: google.ChatCompleteModelGemini3_8Flash, level: google.ThinkingLevelHigh, wantThoughtTokens: true},
 
 			// Pro 3.1 rejects the off path entirely: `This model only works in thinking
 			// mode`. It also rejects MINIMAL: `Thinking level MINIMAL is not supported for
