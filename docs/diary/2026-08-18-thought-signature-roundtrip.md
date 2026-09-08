@@ -179,3 +179,52 @@ Whether the per-package helper duplication (two identical 12-line functions) is 
 ### Future work
 
 Nothing new. Credit where due: this and the Step 3 defect were both found by external codex reviews (gpt-5.6-sol, xhigh effort) of the PR branch — worth keeping that review pass in the loop for public-API changes.
+
+## Step 5: Send contents directly instead of through a genai chat session
+
+**Author:** roundtrip-builder
+
+### Prompt Context
+
+**Verbatim prompt:** "Lead — third external review (gpt-6-astra) found two verified P2s in clients/google/chat_complete.go, and they are coupled, so design the fix as one change: 1. Stream-read [...] a Gemini response part with `ThoughtSignature` but empty Text and no FunctionCall builds `metadata` and never yields it — the signature is lost. [...] 2. Request-build [...] genai v1.67.0's `Chats.Create` runs `extractCuratedHistory`, whose `validateContent` ignores `ThoughtSignature`: an empty-text part with only a signature makes the whole model Content invalid, and the SDK silently drops that model message AND the preceding user message [...] Evaluate, in this order: (a) stop using `Chats.Create`/`SendMessageStream` and call `Models.GenerateContentStream` with the full contents list [...] Prefer (a) unless it changes observable behavior you can't preserve."
+**Interpretation:** Capture signature-only response parts, and stop routing requests through the SDK's history-curating chat session so those parts survive to the wire — one coupled change, option (a) preferred.
+**Inferred intent:** Make the signature round-trip actually reach the API in both directions, rather than working in our code and being silently undone by the SDK.
+
+### What I did
+
+Took **option (a)**. Verified both findings at the SDK source first (`/Users/maragubot/Developer/go/pkg/mod/google.golang.org/genai@v1.67.0/chats.go`): `validateContent` accepts a part only if it has non-empty `Text` or one of `InlineData`/`FileData`/`FunctionCall`/`FunctionResponse`/`ExecutableCode`/`CodeExecutionResult` — `ThoughtSignature` is not in the list — and `extractCuratedHistory` drops a whole run of invalid model outputs *plus* the preceding user message. Replaced `Chats.Create` + `chat.SendStream(lastContent.Parts...)` with `c.Client.Models.GenerateContentStream(ctx, model, contents, &config)`, renamed `history` to `contents`, and deleted the last-message split it required. On the read side, added a `yielded` flag so a part carrying only a signature surfaces as an empty thought part with metadata instead of vanishing. Kept `errLastMessageEmpty` and rewrote its rationale, since without the split the failure mode is "the request continues from an earlier turn", not "the previous message is promoted".
+
+Two offline tests, both driven by an `httptest` server wired in through `genai.ClientConfig.HTTPOptions.BaseURL` and the exported `google.Client.Client` field (new `newStubChatCompleter` and `writeStreamChunk` helpers): one asserts a streamed signature-only trailing part arrives as a metadata-bearing thought part; the other captures the outgoing request body and asserts all three turns — including a model turn whose only part is a signed empty thought — reach the wire with the signature intact.
+
+### Why
+
+Option (a) was preferred and turned out to be strictly better: gai already owns the full history, so the chat session added nothing but curation we do not want. Option (b) — attaching a signature-only part's signature to an adjacent part — would have preserved the byte but changed which part carries it, and would have left the curation footgun in place for any other part shape the SDK dislikes.
+
+### What worked
+
+Red-green proof for both findings, which is the real evidence here. Disabling the new signature-only yield: `chat_complete_test.go:842: Expected slice of length 2, but got 1`. Restoring the old `Chats.Create` path with the new request-body test in place: `chat_complete_test.go:884: Expected "3", but got "1" (type int)` — only one of three turns reached the wire, exactly the silent double-drop the reviewer described. Both tests pass with the fix. The two offline tests also ran green while `.env.test.local` was accidentally missing from the worktree, which independently proves they need no API key.
+
+### What didn't work
+
+Nothing in the change itself. Two unrelated red results in the full suite, both confirmed independent of this change:
+
+- `TestModelConformance/every_listed_model_ID_is_exported_or_ignored` fails with `export or ignore these model IDs: gemini-3.5-transcribe, gemini-3.8-flash, gemini-omni-1.1-flash` — provider-side model drift, exactly what that test exists to catch, and a human curation decision that is out of scope here.
+- `TestEmbedder_Embed/can_embed_a_document_with_a_title` failed once after 57s (timeout-shaped) and passed on re-run; it exercises `/clients/google/embed.go`, untouched by this change.
+
+Also noted, not fixed: `golangci-lint` reports one pre-existing `SA1019` on `/clients/google/client.go:60` (`credentials.DetectOptions.CredentialsFile` deprecated). I confirmed by stashing my changes that it is already present on the branch HEAD — it arrived with a dependency bump in one of the main merges, so it is not mine to fix here.
+
+### What I learned
+
+An SDK convenience wrapper can silently rewrite the request you think you built. `Chats.Create` looks like a constructor and behaves like a filter, and its curation is invisible: no error, no log, just a shorter conversation on the wire. The lesson generalises past this bug — when a client owns its own history, the lower-level "send exactly these contents" call is the safer primitive, and the earlier `errLastMessageEmpty` work had already removed the only reason we needed the session abstraction.
+
+### What was tricky
+
+Proving finding 2 without a live call. The insight was that the request body is the observable: an `httptest` server plus `HTTPOptions.BaseURL` lets the whole client run unchanged while the assertion reads the JSON it actually sent. Reverting to `Chats.Create` to see `3` become `1` is what turned a plausible reading of SDK source into demonstrated data loss.
+
+### What warrants review
+
+That dropping the chat session is behaviour-neutral otherwise: the only removed error path was `Chats.Create`'s role validation, which this client already covers by panicking on unknown roles before building contents. Span names and attributes are unchanged (`chat stream send failed` still covers stream errors). Validate offline with `go test -count=1 ./clients/google -run 'TestChatCompleter_ChatComplete/(surfaces_a_signature|sends_a_signed)'`, and live with the pinned Gemini 3.5 Flash Lite round-trip subtest.
+
+### Future work
+
+Two items for whoever picks up the branch next, neither in scope here: the model-drift conformance failure needs a human to export or ignore the three new Gemini IDs, and the `SA1019` deprecation on `client.go:60` wants its own small fix. The anthropic client does not have an equivalent curation risk — it builds `MessageParam` values and passes them straight to `Messages.NewStreaming` with no SDK-side filtering.

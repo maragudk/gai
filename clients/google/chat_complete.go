@@ -51,8 +51,8 @@ func asPartMetadata(m gai.PartMetadata) (PartMetadata, bool) {
 
 // errLastMessageEmpty is returned when the last message of a request has no parts the
 // client can send — for example only empty thought parts without a `thought_signature`,
-// which are skipped. Sending the request anyway would silently promote the previous
-// message to the current turn, so the client rejects it instead.
+// which are skipped. Sending the request anyway would ask the model to continue from an
+// earlier turn than the caller intended, so the client rejects it instead.
 var errLastMessageEmpty = errors.New("last message has no sendable parts")
 
 // ChatCompleteModel is a Google Gemini model identifier accepted by the chat-completions
@@ -223,7 +223,7 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 		span.SetAttributes(attribute.Bool("ai.has_response_schema", true))
 	}
 
-	var history []*genai.Content
+	var contents []*genai.Content
 	var lastMessageSent bool
 	for _, m := range req.Messages {
 		var content genai.Content
@@ -313,29 +313,18 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 		// and be rejected, so skip the whole message instead.
 		lastMessageSent = len(content.Parts) > 0
 		if lastMessageSent {
-			history = append(history, &content)
+			contents = append(contents, &content)
 		}
 	}
 
-	// If the final message lost all its parts to skipping, the previous message would
-	// silently become the current turn, so reject the request instead. This also
-	// guarantees history is non-empty below.
+	// If the final message lost all its parts to skipping, the request would ask the
+	// model to continue from an earlier turn instead of the one the caller sent, so
+	// reject it rather than silently answering a different question.
 	if !lastMessageSent {
 		err := fmt.Errorf("google: %w", errLastMessageEmpty)
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "last message empty")
 		span.End()
-		return gai.ChatCompleteResponse{}, err
-	}
-
-	// Delete the last content from the history, because SendMessageStream expects it as varargs
-	lastContent := history[len(history)-1]
-	history = history[:len(history)-1]
-
-	chat, err := c.Client.Chats.Create(ctx, string(c.model), &config, history)
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "chat session creation failed")
 		return gai.ChatCompleteResponse{}, err
 	}
 
@@ -366,7 +355,12 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 			)
 		}()
 
-		for chunk, err := range chat.SendStream(ctx, lastContent.Parts...) {
+		// Send the full contents list rather than a chat session: genai's chat history
+		// curation drops any model turn whose parts it considers invalid — and it does
+		// not recognise a part carrying only a `thought_signature` — silently taking the
+		// preceding user message with it. This client owns the history already, so it
+		// passes it to the model verbatim.
+		for chunk, err := range c.Client.Models.GenerateContentStream(ctx, string(c.model), contents, &config) {
 			if err != nil {
 				span.RecordError(err)
 				span.SetStatus(codes.Error, "chat stream send failed")
@@ -400,7 +394,10 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 					metadata = PartMetadata{ThoughtSignature: part.ThoughtSignature}
 				}
 
+				var yielded bool
+
 				if part.Text != "" {
+					yielded = true
 					if part.Thought {
 						thoughtPart := gai.ThoughtPart(part.Text)
 						thoughtPart.Metadata = metadata
@@ -417,6 +414,7 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 				}
 
 				if part.FunctionCall != nil {
+					yielded = true
 					args, err := json.Marshal(part.FunctionCall.Args)
 					if err != nil {
 						span.RecordError(err)
@@ -431,6 +429,17 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 					toolCallPart := gai.ToolCallPart(id, part.FunctionCall.Name, args)
 					toolCallPart.Metadata = metadata
 					if !yield(toolCallPart, nil) {
+						return
+					}
+				}
+
+				// Gemini also sends parts that carry only a signature, with no text and
+				// no function call. Surface those as empty thought parts so the
+				// signature survives into the next turn rather than being dropped.
+				if !yielded && metadata != nil {
+					thoughtPart := gai.ThoughtPart("")
+					thoughtPart.Metadata = metadata
+					if !yield(thoughtPart, nil) {
 						return
 					}
 				}
