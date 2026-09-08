@@ -26,6 +26,7 @@ var exportedModels = []string{
 	string(openai.ChatCompleteModelGPT5_6Luna),
 	string(openai.ChatCompleteModelGPT5_6Sol),
 	string(openai.ChatCompleteModelGPT5_6Terra),
+	string(openai.ChatCompleteModelGPT6Astra),
 	string(openai.EmbedModelTextEmbedding3Large),
 	string(openai.EmbedModelTextEmbedding3Small),
 }

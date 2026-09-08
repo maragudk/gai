@@ -495,6 +495,18 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			{name: "gpt-5.5 + medium", model: openai.ChatCompleteModelGPT5_5, level: openai.ThinkingLevelMedium, wantThoughtTokens: true},
 			{name: "gpt-5.5 + high", model: openai.ChatCompleteModelGPT5_5, level: openai.ThinkingLevelHigh, wantThoughtTokens: true},
 			{name: "gpt-5.5 + xhigh", model: openai.ChatCompleteModelGPT5_5, level: openai.ThinkingLevelXHigh, wantThoughtTokens: true},
+
+			// gpt-6-astra: the only model that rejects `none` as well as `minimal`, so the
+			// accepted range starts at low. The API says so itself: "does not support 'none'
+			// with this model. Supported values are: 'low', 'medium', 'high', and 'xhigh'."
+			// Probe returned 0 reasoning tokens at low across repeated runs, so that row
+			// makes no assertion.
+			{name: "gpt-6-astra + none rejected", model: openai.ChatCompleteModelGPT6Astra, level: gai.ThinkingLevelNone, wantErr: true},
+			{name: "gpt-6-astra + minimal rejected", model: openai.ChatCompleteModelGPT6Astra, level: openai.ThinkingLevelMinimal, wantErr: true},
+			{name: "gpt-6-astra + low", model: openai.ChatCompleteModelGPT6Astra, level: openai.ThinkingLevelLow},
+			{name: "gpt-6-astra + medium", model: openai.ChatCompleteModelGPT6Astra, level: openai.ThinkingLevelMedium, wantThoughtTokens: true},
+			{name: "gpt-6-astra + high", model: openai.ChatCompleteModelGPT6Astra, level: openai.ThinkingLevelHigh, wantThoughtTokens: true},
+			{name: "gpt-6-astra + xhigh", model: openai.ChatCompleteModelGPT6Astra, level: openai.ThinkingLevelXHigh, wantThoughtTokens: true},
 		}
 
 		for _, test := range tests {
