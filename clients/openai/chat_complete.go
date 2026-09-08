@@ -44,10 +44,11 @@ const (
 	ChatCompleteModelGPT5_6Luna  = ChatCompleteModel(openai.ChatModelGPT5_6Luna)
 	ChatCompleteModelGPT5_6Sol   = ChatCompleteModel(openai.ChatModelGPT5_6Sol)
 	ChatCompleteModelGPT5_6Terra = ChatCompleteModel(openai.ChatModelGPT5_6Terra)
+	ChatCompleteModelGPT6Astra   = ChatCompleteModel(openai.ChatModelGPT6Astra)
 )
 
 // Per-client [gai.ThinkingLevel] constants. The set covers the union of reasoning_effort
-// values across the gpt-5.x chat-completions family. Individual models accept a subset
+// values across the exported chat-completions models. Individual models accept a subset
 // (probed empirically against the live API):
 //
 //   - gpt-5: minimal/low/medium/high
@@ -56,10 +57,15 @@ const (
 //   - gpt-5.4 / gpt-5.4-mini / gpt-5.4-nano: none/low/medium/high/xhigh
 //   - gpt-5.5: none/low/medium/high/xhigh — frontier model, reasons eagerly at every
 //     non-`none` level
+//   - gpt-6-astra: low/medium/high/xhigh — the only model that rejects both `none` and
+//     `minimal`, so reasoning cannot be turned off
 //
-// Pass [gai.ThinkingLevelNone] to opt out — accepted by gpt-5.1+, gpt-5.4*, and gpt-5.5;
-// rejected by gpt-5. Using a level a given model does not support surfaces a 400 from
-// the API. Levels not in this list panic at the client boundary.
+// The gpt-5.6 family is not probed yet, so the list above and the per-level notes below
+// say nothing about which levels it accepts.
+//
+// Pass [gai.ThinkingLevelNone] to opt out — accepted by gpt-5.1 through gpt-5.5; rejected
+// by gpt-5 and gpt-6-astra. Using a level a given model does not support surfaces a 400
+// from the API. Levels not in this list panic at the client boundary.
 const (
 	// ThinkingLevelMinimal applies the cheapest reasoning effort. gpt-5 only.
 	ThinkingLevelMinimal gai.ThinkingLevel = "minimal"
@@ -69,7 +75,8 @@ const (
 	ThinkingLevelMedium gai.ThinkingLevel = "medium"
 	// ThinkingLevelHigh applies high reasoning effort.
 	ThinkingLevelHigh gai.ThinkingLevel = "high"
-	// ThinkingLevelXHigh applies extra-high reasoning effort. gpt-5.2, gpt-5.4*, and gpt-5.5.
+	// ThinkingLevelXHigh applies extra-high reasoning effort. gpt-5.2, gpt-5.4*, gpt-5.5,
+	// and gpt-6-astra.
 	ThinkingLevelXHigh gai.ThinkingLevel = "xhigh"
 )
 
