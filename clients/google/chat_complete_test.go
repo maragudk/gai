@@ -3,11 +3,16 @@ package google_test
 import (
 	_ "embed"
 	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
 
 	"go.opentelemetry.io/otel/attribute"
+	"google.golang.org/genai"
 	"maragu.dev/is"
 
 	"maragu.dev/gai"
@@ -514,8 +519,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 
 	// Thinking-level matrix. Each row exercises a real (model, level) combination so the
 	// per-client `ThinkingLevel` mapping is grounded in live API behaviour. Stays
-	// single-turn — multi-turn tool flows on Gemini 3.x require thought_signature
-	// round-trip (https://github.com/maragudk/gai/issues/256), which is deferred.
+	// single-turn — multi-turn signature round-trip has its own subtest in this file.
 	t.Run("thinking level matrix", func(t *testing.T) {
 		tests := []struct {
 			name              string
@@ -709,25 +713,259 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 		assertVertexFlashChatComplete(t, c)
 	})
 
-	t.Run("rejects inbound PartTypeThought as deferred", func(t *testing.T) {
-		// Multi-turn round-trip of the per-part `thought_signature` is tracked by
-		// https://github.com/maragudk/gai/issues/256. Until that lands, the client
-		// returns a typed error rather than silently dropping the part. This subtest
-		// runs without making a network call — the error path triggers during the
-		// request-message conversion, before the API is contacted.
-		cc := newChatCompleter(t)
+	t.Run("can round-trip thought signatures on multi-turn tool use with Gemini 3.5 Flash Lite", func(t *testing.T) {
+		// Gemini 3.x returns a `thought_signature` on function-call parts and rejects the
+		// follow-up turn with a 400 unless the signature is sent back on the same part —
+		// even with no thinking level requested. The model is pinned because the default
+		// test model does not enforce this. See https://github.com/maragudk/gai/issues/256.
+		cc := newChatCompleter(t, google.ChatCompleteModelGemini3_5FlashLite)
+
+		root, err := os.OpenRoot("testdata")
+		is.NotError(t, err)
 
 		req := gai.ChatCompleteRequest{
 			Messages: []gai.Message{
-				{Role: gai.MessageRoleUser, Parts: []gai.Part{gai.TextPart("Hi!")}},
-				{Role: gai.MessageRoleModel, Parts: []gai.Part{gai.ThoughtPart("the user said hi")}},
-				gai.NewUserTextMessage("And again, hi!"),
+				gai.NewUserTextMessage("What is in the readme.txt file?"),
+			},
+			Temperature: gai.Ptr(gai.Temperature(0)),
+			Tools: []gai.Tool{
+				tools.NewReadFile(root),
+			},
+		}
+
+		res, err := cc.ChatComplete(t.Context(), req)
+		is.NotError(t, err)
+
+		var parts []gai.Part
+		var found, foundSignature bool
+		var result gai.ToolResult
+		for part, err := range res.Parts() {
+			is.NotError(t, err)
+
+			parts = append(parts, part)
+
+			if md, ok := part.Metadata.(google.PartMetadata); ok && len(md.ThoughtSignature) > 0 {
+				foundSignature = true
+			}
+
+			if part.Type != gai.PartTypeToolCall {
+				continue
+			}
+			toolCall := part.ToolCall()
+			for _, tool := range req.Tools {
+				if tool.Name == toolCall.Name {
+					found = true
+					content, err := tool.Execute(t.Context(), toolCall.Args)
+					result = gai.ToolResult{
+						ID:      toolCall.ID,
+						Name:    toolCall.Name,
+						Content: content,
+						Err:     err,
+					}
+					break
+				}
+			}
+		}
+
+		is.True(t, found, "tool not found")
+		is.True(t, foundSignature, "should surface a thought signature in part metadata")
+		is.Equal(t, "Hi!\n", result.Content)
+		is.NotError(t, result.Err)
+
+		req.Messages = []gai.Message{
+			gai.NewUserTextMessage("What is in the readme.txt file?"),
+			{Role: gai.MessageRoleModel, Parts: parts},
+			gai.NewUserToolResultMessage(result),
+		}
+		req.System = gai.Ptr("Answer the user's question in a single sentence using the tool result. Do not call any more tools.")
+
+		res, err = cc.ChatComplete(t.Context(), req)
+		is.NotError(t, err)
+
+		var output string
+		for part, err := range res.Parts() {
+			is.NotError(t, err)
+			if part.Type == gai.PartTypeText {
+				output += part.Text()
+			}
+		}
+
+		t.Log(output)
+		is.True(t, strings.Contains(output, "Hi!"), output)
+	})
+
+	t.Run("ignores foreign or absent metadata on thought parts in history", func(t *testing.T) {
+		// Message history recorded from another provider can contain thought parts with
+		// that provider's metadata, or none at all. The client replays the thought text
+		// unsigned and ignores the metadata; the request must not error.
+		cc := newChatCompleter(t)
+
+		foreignThought := gai.ThoughtPart("the user said hi")
+		foreignThought.Metadata = foreignPartMetadata{}
+
+		req := gai.ChatCompleteRequest{
+			Messages: []gai.Message{
+				gai.NewUserTextMessage("Hi!"),
+				{Role: gai.MessageRoleModel, Parts: []gai.Part{
+					gai.ThoughtPart("I should greet the user back"),
+					foreignThought,
+					gai.TextPart("Hello! How can I help you today?"),
+				}},
+				gai.NewUserTextMessage("What does the acronym AI stand for? Be brief."),
+			},
+			Temperature: gai.Ptr(gai.Temperature(0)),
+		}
+
+		res, err := cc.ChatComplete(t.Context(), req)
+		is.NotError(t, err)
+
+		var output string
+		for part, err := range res.Parts() {
+			is.NotError(t, err)
+			if part.Type == gai.PartTypeText {
+				output += part.Text()
+			}
+		}
+		is.True(t, strings.Contains(output, "Artificial Intelligence"), output)
+	})
+
+	t.Run("surfaces a signature-only response part as a thought part", func(t *testing.T) {
+		// Gemini sends parts carrying only a `thought_signature`, with no text and no
+		// function call. The signature must still reach the caller, or it cannot be
+		// echoed back on the next turn. Served from a local transport, so no API call.
+		cc := newStubChatCompleter(t, func(w http.ResponseWriter, r *http.Request) {
+			writeStreamChunk(t, w, `{"candidates":[{"content":{"role":"model","parts":[
+				{"text":"Hello there."},
+				{"thoughtSignature":"c2lnLTEyMw=="}
+			]}}]}`)
+		})
+
+		res, err := cc.ChatComplete(t.Context(), gai.ChatCompleteRequest{
+			Messages: []gai.Message{gai.NewUserTextMessage("Hi!")},
+		})
+		is.NotError(t, err)
+
+		var types []gai.PartType
+		var signatures []string
+		for part, err := range res.Parts() {
+			is.NotError(t, err)
+			types = append(types, part.Type)
+			if md, ok := part.Metadata.(google.PartMetadata); ok {
+				signatures = append(signatures, string(md.ThoughtSignature))
+			}
+		}
+
+		is.EqualSlice(t, []gai.PartType{gai.PartTypeText, gai.PartTypeThought}, types)
+		is.EqualSlice(t, []string{"sig-123"}, signatures)
+	})
+
+	t.Run("sends a signed empty thought part in history to the API", func(t *testing.T) {
+		// A model turn carrying only a signed empty thought part must reach the wire
+		// intact. The genai chat-session history curation drops such a turn — and the
+		// user message before it — because it does not recognise a part that carries
+		// only a signature, so this client sends the contents list itself.
+		var body []byte
+		cc := newStubChatCompleter(t, func(w http.ResponseWriter, r *http.Request) {
+			var err error
+			body, err = io.ReadAll(r.Body)
+			is.NotError(t, err)
+			writeStreamChunk(t, w, `{"candidates":[{"content":{"role":"model","parts":[{"text":"Hi!"}]}}]}`)
+		})
+
+		signedThought := gai.ThoughtPart("")
+		signedThought.Metadata = google.PartMetadata{ThoughtSignature: []byte("sig-123")}
+
+		res, err := cc.ChatComplete(t.Context(), gai.ChatCompleteRequest{
+			Messages: []gai.Message{
+				gai.NewUserTextMessage("What is in the readme.txt file?"),
+				{Role: gai.MessageRoleModel, Parts: []gai.Part{signedThought}},
+				gai.NewUserTextMessage("And now?"),
+			},
+		})
+		is.NotError(t, err)
+		is.NotError(t, drainParts(t, res))
+
+		var sent struct {
+			Contents []struct {
+				Role  string `json:"role"`
+				Parts []struct {
+					Text             string `json:"text"`
+					ThoughtSignature []byte `json:"thoughtSignature"`
+				} `json:"parts"`
+			} `json:"contents"`
+		}
+		is.NotError(t, json.Unmarshal(body, &sent))
+
+		// All three turns must survive, with the signature on the model turn.
+		is.Equal(t, 3, len(sent.Contents))
+		is.Equal(t, "user", sent.Contents[0].Role)
+		is.Equal(t, "model", sent.Contents[1].Role)
+		is.Equal(t, "user", sent.Contents[2].Role)
+		is.Equal(t, 1, len(sent.Contents[1].Parts))
+		is.Equal(t, "sig-123", string(sent.Contents[1].Parts[0].ThoughtSignature))
+	})
+
+	t.Run("accepts pointer-form part metadata", func(t *testing.T) {
+		// A pointer to [google.PartMetadata] satisfies [gai.PartMetadata] just like the
+		// value form, so both must round-trip. The seam: an empty thought part is kept
+		// only if its signature is recognised, so a request whose only part is an empty
+		// pointer-metadata thought errors if and only if the pointer is ignored. This
+		// subtest runs without making a network call.
+		cc := newChatCompleter(t)
+
+		signedThought := gai.ThoughtPart("")
+		signedThought.Metadata = &google.PartMetadata{ThoughtSignature: []byte("test-signature")}
+
+		req := gai.ChatCompleteRequest{
+			Messages: []gai.Message{
+				{Role: gai.MessageRoleUser, Parts: []gai.Part{signedThought}},
+			},
+		}
+
+		_, err := cc.ChatComplete(t.Context(), req)
+		is.NotError(t, err)
+	})
+
+	t.Run("errors when the only message has no sendable parts", func(t *testing.T) {
+		// An empty thought part with foreign metadata is skipped entirely; a request
+		// left with no sendable messages must error cleanly, not panic. This subtest
+		// runs without making a network call.
+		cc := newChatCompleter(t)
+
+		emptyThought := gai.ThoughtPart("")
+		emptyThought.Metadata = foreignPartMetadata{}
+
+		req := gai.ChatCompleteRequest{
+			Messages: []gai.Message{
+				{Role: gai.MessageRoleUser, Parts: []gai.Part{emptyThought}},
 			},
 		}
 
 		_, err := cc.ChatComplete(t.Context(), req)
 		is.True(t, err != nil, "expected an error")
-		is.True(t, strings.Contains(err.Error(), "PartTypeThought"), err.Error())
+		is.Equal(t, "google: last message has no sendable parts", err.Error())
+	})
+
+	t.Run("errors when the last message has no sendable parts", func(t *testing.T) {
+		// If only the final message is skipped, sending anyway would silently make the
+		// previous message the current turn, so the client must error instead. This
+		// subtest runs without making a network call.
+		cc := newChatCompleter(t)
+
+		emptyThought := gai.ThoughtPart("")
+		emptyThought.Metadata = foreignPartMetadata{}
+
+		req := gai.ChatCompleteRequest{
+			Messages: []gai.Message{
+				gai.NewUserTextMessage("Hi!"),
+				gai.NewModelTextMessage("Hello! How can I help you today?"),
+				{Role: gai.MessageRoleUser, Parts: []gai.Part{emptyThought}},
+			},
+		}
+
+		_, err := cc.ChatComplete(t.Context(), req)
+		is.True(t, err != nil, "expected an error")
+		is.Equal(t, "google: last message has no sendable parts", err.Error())
 	})
 
 	t.Run("tool choice", func(t *testing.T) {
@@ -836,6 +1074,43 @@ func drainParts(t *testing.T, res gai.ChatCompleteResponse) error {
 	}
 	return nil
 }
+
+// newStubChatCompleter builds a [google.ChatCompleter] talking to a local test server
+// running handler, so request building and response streaming can be exercised without
+// calling the API.
+func newStubChatCompleter(t *testing.T, handler http.HandlerFunc) *google.ChatCompleter {
+	t.Helper()
+
+	server := httptest.NewServer(handler)
+	t.Cleanup(server.Close)
+
+	genaiClient, err := genai.NewClient(t.Context(), &genai.ClientConfig{
+		APIKey:      "test",
+		Backend:     genai.BackendGeminiAPI,
+		HTTPOptions: genai.HTTPOptions{BaseURL: server.URL},
+	})
+	is.NotError(t, err)
+
+	c := google.NewClient(google.NewClientOptions{Key: "test"})
+	c.Client = genaiClient
+
+	return c.NewChatCompleter(google.NewChatCompleterOptions{Model: google.ChatCompleteModelGemini3_5FlashLite})
+}
+
+// writeStreamChunk writes one server-sent event carrying chunk as its JSON payload.
+func writeStreamChunk(t *testing.T, w http.ResponseWriter, chunk string) {
+	t.Helper()
+
+	w.Header().Set("Content-Type", "text/event-stream")
+	_, err := fmt.Fprintf(w, "data: %s\n\n", chunk)
+	is.NotError(t, err)
+}
+
+// foreignPartMetadata stands in for [gai.PartMetadata] set by another provider's client.
+type foreignPartMetadata struct{}
+
+// PartMetadata satisfies [gai.PartMetadata].
+func (foreignPartMetadata) PartMetadata() {}
 
 func assertVertexFlashChatComplete(t *testing.T, c *google.Client) {
 	t.Helper()
