@@ -570,18 +570,24 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			{name: "flash 3.5 + medium", model: google.ChatCompleteModelGemini3_5Flash, level: google.ThinkingLevelMedium, wantThoughtTokens: true},
 			{name: "flash 3.5 + high", model: google.ChatCompleteModelGemini3_5Flash, level: google.ThinkingLevelHigh, wantThoughtTokens: true},
 
-			// Flash Lite 3.5 and Flash 3.6 reject `gai.ThinkingLevelNone` (ThinkingBudget=0)
-			// with a generic 400 INVALID_ARGUMENT, unlike the rest of the Flash line. Minimal
-			// is accepted with zero thoughts_tokens; Low upward populates thoughts_tokens.
-			// Streamed thought parts are sporadic (probes: 0-2 per response), so rows assert
-			// thoughts_tokens only.
+			// Flash Lite 3.5 is the one model in the Flash line that rejects
+			// `gai.ThinkingLevelNone` (ThinkingBudget=0), with a generic 400 INVALID_ARGUMENT.
+			// Minimal is accepted with zero thoughts_tokens; Low upward populates
+			// thoughts_tokens. Streamed thought parts are sporadic (probes: 0-2 per response),
+			// so rows assert thoughts_tokens only.
 			{name: "flash-lite 3.5 + none rejected", model: google.ChatCompleteModelGemini3_5FlashLite, level: gai.ThinkingLevelNone, wantErr: true},
 			{name: "flash-lite 3.5 + minimal", model: google.ChatCompleteModelGemini3_5FlashLite, level: google.ThinkingLevelMinimal},
 			{name: "flash-lite 3.5 + low", model: google.ChatCompleteModelGemini3_5FlashLite, level: google.ThinkingLevelLow, wantThoughtTokens: true},
 			{name: "flash-lite 3.5 + medium", model: google.ChatCompleteModelGemini3_5FlashLite, level: google.ThinkingLevelMedium, wantThoughtTokens: true},
 			{name: "flash-lite 3.5 + high", model: google.ChatCompleteModelGemini3_5FlashLite, level: google.ThinkingLevelHigh, wantThoughtTokens: true},
 
-			{name: "flash 3.6 + none rejected", model: google.ChatCompleteModelGemini3_6Flash, level: gai.ThinkingLevelNone, wantErr: true},
+			// Flash 3.6 accepts every level, including `gai.ThinkingLevelNone`
+			// (ThinkingBudget=0), and unlike 3.7 and 3.8 below it honours the zero budget:
+			// 16 of 16 None probes returned zero thoughts_tokens and no thought parts, so the
+			// None row asserts neither. Minimal is likewise accepted with zero thoughts_tokens;
+			// Low upward populates them. Streamed thought parts are sporadic (probes: 0-2 per
+			// response), so those rows assert thoughts_tokens only.
+			{name: "flash 3.6 + none", model: google.ChatCompleteModelGemini3_6Flash, level: gai.ThinkingLevelNone},
 			{name: "flash 3.6 + minimal", model: google.ChatCompleteModelGemini3_6Flash, level: google.ThinkingLevelMinimal},
 			{name: "flash 3.6 + low", model: google.ChatCompleteModelGemini3_6Flash, level: google.ThinkingLevelLow, wantThoughtTokens: true},
 			{name: "flash 3.6 + medium", model: google.ChatCompleteModelGemini3_6Flash, level: google.ThinkingLevelMedium, wantThoughtTokens: true},
