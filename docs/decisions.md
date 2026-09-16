@@ -177,18 +177,6 @@ Decision, three parts:
 
 Tradeoff: a provider shipping or killing a model reddens CI for unrelated PRs. That is the point — the alternative, silent rot, cost a broken main and two blocked Dependabot PRs this week. Known limitation: the test catches existence drift, not behavior drift (a model changing how it streams thinking parts still needs behavioral tests).
 
-## 2026-08-18: Carry opaque provider metadata on `gai.Part` via a marker-interface field
-
-To fix #250 (Anthropic signed thinking blocks) and #256 (Gemini 3.x `thought_signature`) with one mechanism, `gai.Part` gets a single field of an exported marker-interface type. Each client package defines its own small typed metadata struct (e.g. google's carrying `ThoughtSignature []byte`, anthropic's carrying the thinking-block signature and redacted-thinking data), set by the originating client on stream-read and consumed only by the same provider's request builder; other providers ignore foreign or absent metadata.
-
-Context: both providers require opaque, provider-specific data captured from a response to be echoed back verbatim on the next turn (Gemini 3.x on `functionCall` parts even with thinking disabled; Anthropic on extended-thinking blocks in tool flows). `gai.Part` had nowhere to carry it, so multi-turn tool use 400s on Gemini 3.x and the Anthropic client hard-errors on inbound `PartTypeThought`. This also blocks moving the default test models to Sonnet 5 and Gemini 3.5 Flash Lite (probe evidence in PR #335 and the 2026-08-18 diary).
-
-Alternatives considered (both from the issues' own analysis):
-- `Provider any` field: minimal and honest about leakage, but stringly-typed in spirit — `any` gives no compile-time signal and invites misuse.
-- Sibling part types per provider behind an interface: avoids `any` but multiplies the exported type surface and every consumer's switch statements.
-
-Decision: marker-interface field. One field in core, typed structs in the client packages where the provider specifics already live, compile-time checkable, and the gai core stays provider-agnostic. Known tradeoff: an interface-typed field does not survive naive JSON round-trips of `gai.Part`; callers persisting history must handle metadata themselves, which is acceptable since the data is opaque and provider-session-specific anyway.
-
 ## 2026-09-02: Run the live model conformance test on a schedule, not as a merge gate
 
 Amends the enforcement part of the 2026-08-17 decision. The three `TestModelConformance` functions stay as designed, but they now skip unless `GAI_MODEL_CONFORMANCE` is set, so `make test`, the `CI` workflow, and the `Compatibility` workflow no longer hit the providers' model-list endpoints. A new dedicated `Conformance` workflow runs them daily (plus manual dispatch), is not a required check, and reports drift through a single GitHub issue.
@@ -200,3 +188,16 @@ Alternatives considered: folding the test into the existing daily `Compatibility
 Issue dedup is deliberately minimal: a fixed label and title, create an issue only if no open one exists, close it on the next green run, no per-run comments. This gives at most one open drift issue at a time and auto-resolution when a triage PR lands, at the cost of not announcing when an additional model joins an already-open drift episode. The richer variant (comment when the failing set changes) was considered and deferred as not worth the extra workflow logic.
 
 Tradeoff: drift is now discovered the next morning instead of on the next PR, and a triage PR is a deliberate task rather than a forced one. The behavior tests (thinking-level matrices, embed) stay in merge-gating CI; their live-API flakiness is a separate question.
+
+## 2026-09-16: Carry opaque provider metadata on `gai.Part` as a serializable envelope
+
+To fix #250 (Anthropic signed thinking blocks) and #256 (Gemini 3.x `thought_signature`) with one mechanism, `gai.Part` gets a single metadata field: a small concrete struct holding a provider discriminator plus opaque bytes. The originating client sets the discriminator to its own identifier and encodes its provider-specific data (Gemini `thought_signature`, Anthropic thinking-block signature or redacted data) into the bytes on stream-read; on request-build it checks the discriminator and decodes its own data, ignoring anything else. Other providers treat the field as a black box.
+
+Context: both providers require opaque, provider-specific data captured from a response to be echoed back verbatim on the next turn (Gemini 3.x on `functionCall` parts even with thinking disabled; Anthropic on extended-thinking blocks in tool flows). `gai.Part` had nowhere to carry it, so multi-turn tool use 400'd on Gemini 3.x and the Anthropic client hard-errored on inbound `PartTypeThought`. And `Part` exists to be replayed and persisted (see #169), so whatever carries this data must survive serialization of message history.
+
+Alternatives considered:
+- `Provider any` field: minimal, but `any` gives no compile-time signal, invites misuse, and cannot be unmarshalled.
+- Sibling part types per provider behind an interface: avoids `any` but multiplies the exported type surface and every consumer's switch statements.
+- A marker-interface field implemented by typed per-client structs (the first draft of PR #336): compile-time checkable, but encoding/json cannot restore an interface field without knowing the concrete type, and a caller has no way to know it — persisted history would silently lose the metadata. A registry of provider types behind custom `MarshalJSON`/`UnmarshalJSON` could patch that at the cost of global mutable state and init-time magic.
+
+Decision: the concrete envelope. Compile-time typing of the metadata is traded for serializability; since the data is opaque by design and only its originating client interprets it, the typing bought little. (De)serialization of `Part` with metadata is covered by tests so the round-trip guarantee is enforced rather than promised. The core package documents the envelope contract only and does not reference client packages.

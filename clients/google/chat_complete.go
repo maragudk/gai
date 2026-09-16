@@ -20,33 +20,28 @@ import (
 	"maragu.dev/gai/clients/google/internal/schema"
 )
 
-// PartMetadata carried on [gai.Part] values produced by [ChatCompleter.ChatComplete],
-// implementing [gai.PartMetadata]. When such a part is passed back as message history,
-// the client re-emits the metadata so the API accepts the follow-up turn; metadata from
-// other providers is ignored.
-type PartMetadata struct {
-	// ThoughtSignature is the opaque per-part signature that Gemini 3.x models return on
-	// response parts — function calls, thoughts, or the final text part — and require back
-	// verbatim on the same part in the next turn.
-	// See https://ai.google.dev/gemini-api/docs/thought-signatures.
-	ThoughtSignature []byte
+// partMetadataSource is the [gai.PartMetadata] source this package tags its metadata
+// with, and the only one it reads back. It is the package's import path, so metadata
+// produced elsewhere is never mistaken for this package's own. The value is persisted in
+// message history, so it must stay stable.
+const partMetadataSource = "maragu.dev/gai/clients/google"
+
+// newPartMetadata wraps a Gemini `thought_signature` — the opaque per-part signature that
+// Gemini 3.x models return on response parts (function calls, thoughts, or the final text
+// part) and require back verbatim on the same part in the next turn — for a [gai.Part].
+// See https://ai.google.dev/gemini-api/docs/thought-signatures.
+func newPartMetadata(signature []byte) gai.PartMetadata {
+	return gai.PartMetadata{Source: partMetadataSource, Data: signature}
 }
 
-// PartMetadata satisfies [gai.PartMetadata].
-func (PartMetadata) PartMetadata() {}
-
-// asPartMetadata unwraps the [PartMetadata] of this package from a [gai.PartMetadata],
-// accepting both the value and pointer forms since both satisfy the interface.
-func asPartMetadata(m gai.PartMetadata) (PartMetadata, bool) {
-	switch m := m.(type) {
-	case PartMetadata:
-		return m, true
-	case *PartMetadata:
-		if m != nil {
-			return *m, true
-		}
+// thoughtSignature returns the `thought_signature` carried by m, or nil if m holds no
+// metadata or metadata from another implementation, which is ignored. The signature is
+// the metadata bytes verbatim, so there is nothing to decode and nothing to reject.
+func thoughtSignature(m gai.PartMetadata) []byte {
+	if m.Source != partMetadataSource {
+		return nil
 	}
-	return PartMetadata{}, false
+	return m.Data
 }
 
 // errLastMessageEmpty is returned when the last message of a request has no parts the
@@ -122,6 +117,14 @@ func (c *Client) NewChatCompleter(opts NewChatCompleterOptions) *ChatCompleter {
 	}
 }
 
+// ChatComplete satisfies [gai.ChatCompleter].
+//
+// Gemini 3.x returns an opaque `thought_signature` on response parts — function calls,
+// thoughts, or the final text part — and rejects the next turn unless it comes back
+// verbatim on the same part, so the client carries it in [gai.Part.Metadata]. Pass every
+// streamed part back as history, metadata included, and multi-turn tool use works. Parts
+// whose metadata came from elsewhere are sent unsigned.
+// See https://ai.google.dev/gemini-api/docs/thought-signatures.
 func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRequest) (gai.ChatCompleteResponse, error) {
 	ctx, span := c.tracer.Start(ctx, "google.chat_complete",
 		trace.WithSpanKind(trace.SpanKindClient),
@@ -243,10 +246,7 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 		for _, part := range m.Parts {
 			switch part.Type {
 			case gai.PartTypeText:
-				textPart := &genai.Part{Text: part.Text()}
-				if md, ok := asPartMetadata(part.Metadata); ok {
-					textPart.ThoughtSignature = md.ThoughtSignature
-				}
+				textPart := &genai.Part{Text: part.Text(), ThoughtSignature: thoughtSignature(part.Metadata)}
 				content.Parts = append(content.Parts, textPart)
 
 			case gai.PartTypeToolCall:
@@ -259,12 +259,10 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 				}
 				functionCallPart := genai.NewPartFromFunctionCall(toolCall.Name, args)
 				functionCallPart.FunctionCall.ID = toolCall.ID
-				if md, ok := asPartMetadata(part.Metadata); ok {
-					// Gemini 3.x requires the `thought_signature` back on the same
-					// function-call part it was returned on; without it the follow-up
-					// turn is rejected with a 400.
-					functionCallPart.ThoughtSignature = md.ThoughtSignature
-				}
+				// Gemini 3.x requires the `thought_signature` back on the same
+				// function-call part it was returned on; without it the follow-up
+				// turn is rejected with a 400.
+				functionCallPart.ThoughtSignature = thoughtSignature(part.Metadata)
 				content.Parts = append(content.Parts, functionCallPart)
 
 			case gai.PartTypeToolResult:
@@ -292,15 +290,16 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 				})
 
 			case gai.PartTypeThought:
-				// Re-emit the thought with its `thought_signature` from [PartMetadata], as
-				// Gemini 3.x requires signatures back on the parts they were returned on.
-				// Thoughts without a signature — foreign or absent metadata — are passed
-				// through unsigned rather than rejected, so histories from other providers
-				// still replay; empty ones are skipped because an empty [genai.Part] is
-				// invalid.
-				thoughtPart := &genai.Part{Text: part.Thought(), Thought: true}
-				if md, ok := asPartMetadata(part.Metadata); ok {
-					thoughtPart.ThoughtSignature = md.ThoughtSignature
+				// Re-emit the thought with its `thought_signature` from the part metadata,
+				// as Gemini 3.x requires signatures back on the parts they were returned
+				// on. Thoughts without a signature — foreign or absent metadata — are
+				// passed through unsigned rather than rejected, so histories from other
+				// implementations still replay; empty ones are skipped because an empty
+				// [genai.Part] is invalid.
+				thoughtPart := &genai.Part{
+					Text:             part.Thought(),
+					Thought:          true,
+					ThoughtSignature: thoughtSignature(part.Metadata),
 				}
 				if thoughtPart.Text == "" && len(thoughtPart.ThoughtSignature) == 0 {
 					continue
@@ -394,7 +393,7 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 				// on response parts, so the parts can round-trip on the next turn.
 				var metadata gai.PartMetadata
 				if len(part.ThoughtSignature) > 0 {
-					metadata = PartMetadata{ThoughtSignature: part.ThoughtSignature}
+					metadata = newPartMetadata(part.ThoughtSignature)
 				}
 
 				var yielded bool
@@ -439,7 +438,7 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 				// Gemini also sends parts that carry only a signature, with no text and
 				// no function call. Surface those as empty thought parts so the
 				// signature survives into the next turn rather than being dropped.
-				if !yielded && metadata != nil {
+				if !yielded && len(metadata.Data) > 0 {
 					thoughtPart := gai.ThoughtPart("")
 					thoughtPart.Metadata = metadata
 					if !yield(thoughtPart, nil) {

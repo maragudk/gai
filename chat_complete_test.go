@@ -2,7 +2,9 @@ package gai_test
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -17,6 +19,143 @@ func TestPart_MarshalText(t *testing.T) {
 		text, err := part.MarshalText()
 		is.NotError(t, err)
 		is.Equal(t, "[data: image/jpeg, 10 bytes]", string(text))
+	})
+}
+
+func TestPart_MarshalJSON(t *testing.T) {
+	t.Run("round-trips a part carrying metadata", func(t *testing.T) {
+		part := gai.ThoughtPart("thinking hard")
+		part.Metadata = gai.PartMetadata{Source: "example.com/client", Data: []byte("opaque")}
+
+		data, err := json.Marshal(part)
+		is.NotError(t, err)
+
+		var got gai.Part
+		is.NotError(t, json.Unmarshal(data, &got))
+
+		is.Equal(t, gai.PartTypeThought, got.Type)
+		is.Equal(t, "thinking hard", got.Thought())
+		is.Equal(t, "example.com/client", got.Metadata.Source)
+		is.Equal(t, "opaque", string(got.Metadata.Data))
+		is.True(t, reflect.DeepEqual(part, got), "part should round-trip unchanged")
+	})
+
+	t.Run("omits metadata when there is none", func(t *testing.T) {
+		data, err := json.Marshal(gai.TextPart("hi"))
+		is.NotError(t, err)
+		is.Equal(t, `{"type":"text","text":"hi"}`, string(data))
+	})
+
+	t.Run("writes the metadata envelope as source and data", func(t *testing.T) {
+		// The wire shape is persisted in message histories, so it is pinned here: a
+		// renamed field would strand every history already stored.
+		part := gai.ThoughtPart("thinking hard")
+		part.Metadata = gai.PartMetadata{Source: "example.com/client", Data: []byte("opaque")}
+
+		data, err := json.Marshal(part)
+		is.NotError(t, err)
+		is.Equal(t, `{"type":"thought","text":"thinking hard","metadata":{"source":"example.com/client","data":"b3BhcXVl"}}`, string(data))
+	})
+
+	t.Run("refuses to write a part it could not read back", func(t *testing.T) {
+		_, err := json.Marshal([]gai.Part{gai.TextPart("hi"), {Type: gai.PartTypeThought}})
+		is.True(t, err != nil, "expected an error")
+		is.True(t, strings.Contains(err.Error(), "thought part has no text"), err.Error())
+	})
+
+	t.Run("refuses to write tool call arguments that are not valid JSON", func(t *testing.T) {
+		// A stream cut short mid-tool-call leaves truncated arguments behind, and a
+		// history carrying those cannot be replayed against any provider.
+		_, err := json.Marshal(gai.ToolCallPart("call-1", "read_file", json.RawMessage(`{"path":`)))
+		is.True(t, err != nil, "expected an error")
+		is.True(t, strings.Contains(err.Error(), "tool_call part has tool call arguments that are not valid JSON"), err.Error())
+	})
+
+	t.Run("leaves the part alone when unmarshalling a JSON null", func(t *testing.T) {
+		part := gai.TextPart("hi")
+		is.NotError(t, json.Unmarshal([]byte("null"), &part))
+		is.Equal(t, "hi", part.Text())
+	})
+
+	t.Run("round-trips a tool result error with an empty message", func(t *testing.T) {
+		// An error is an error even with nothing to say; dropping it would turn a failed
+		// tool result back into a successful one on replay.
+		part := gai.NewUserToolResultMessage(gai.ToolResult{
+			ID: "call-1", Name: "read_file", Content: "partial output", Err: errors.New(""),
+		}).Parts[0]
+
+		data, err := json.Marshal(part)
+		is.NotError(t, err)
+
+		var got gai.Part
+		is.NotError(t, json.Unmarshal(data, &got))
+
+		is.True(t, got.ToolResult().Err != nil, "the error should survive")
+		is.Equal(t, "", got.ToolResult().Err.Error())
+	})
+
+	t.Run("round-trips a message history with every part type", func(t *testing.T) {
+		signedToolCall := gai.ToolCallPart("call-1", "read_file", json.RawMessage(`{"path":"readme.txt"}`))
+		signedToolCall.Metadata = gai.PartMetadata{Source: "example.com/client", Data: []byte("sig-123")}
+
+		messages := []gai.Message{
+			gai.NewUserTextMessage("What is in the readme.txt file?"),
+			gai.NewUserDataMessage("image/jpeg", []byte("fake image")),
+			{Role: gai.MessageRoleModel, Parts: []gai.Part{
+				gai.ThoughtPart("I should read the file"),
+				gai.TextPart("Let me look."),
+				signedToolCall,
+			}},
+			gai.NewUserToolResultMessage(gai.ToolResult{ID: "call-1", Name: "read_file", Content: "Hi!\n"}),
+		}
+
+		data, err := json.Marshal(messages)
+		is.NotError(t, err)
+
+		var got []gai.Message
+		is.NotError(t, json.Unmarshal(data, &got))
+
+		is.True(t, reflect.DeepEqual(messages, got), "message history should round-trip unchanged")
+	})
+
+	t.Run("rejects a part missing the content its type requires", func(t *testing.T) {
+		tests := []struct {
+			data     string
+			expected string
+		}{
+			{data: `{"type":"text"}`, expected: "text part has no text"},
+			{data: `{"type":"thought"}`, expected: "thought part has no text"},
+			{data: `{"type":"data","mimeType":"image/jpeg"}`, expected: "data part has no data or MIME type"},
+			{data: `{"type":"tool_call"}`, expected: "tool_call part has no tool call"},
+			{data: `{"type":"tool_result"}`, expected: "tool_result part has no tool result"},
+			// An unknown type would otherwise reach a client that panics on it, and a
+			// history from a future version is exactly where one would come from.
+			{data: `{"type":"video","data":"aGk=","mimeType":"video/mp4"}`, expected: `unknown part type "video"`},
+			{data: `{}`, expected: `unknown part type ""`},
+		}
+
+		for _, test := range tests {
+			t.Run(test.expected, func(t *testing.T) {
+				var part gai.Part
+				err := json.Unmarshal([]byte(test.data), &part)
+				is.True(t, err != nil, "expected an error")
+				is.Equal(t, test.expected, err.Error())
+			})
+		}
+	})
+
+	t.Run("round-trips a tool result error as its message", func(t *testing.T) {
+		part := gai.NewUserToolResultMessage(gai.ToolResult{
+			ID: "call-1", Name: "read_file", Err: errors.New("file not found"),
+		}).Parts[0]
+
+		data, err := json.Marshal(part)
+		is.NotError(t, err)
+
+		var got gai.Part
+		is.NotError(t, json.Unmarshal(data, &got))
+
+		is.Equal(t, "file not found", got.ToolResult().Err.Error())
 	})
 }
 
