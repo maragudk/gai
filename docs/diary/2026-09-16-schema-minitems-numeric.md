@@ -98,3 +98,50 @@ Whether the `,string` removal should be treated as a breaking change for anyone 
 ### Future work
 
 None identified beyond what Step 1 already flagged.
+
+## Step 3: Trim the marshal test to a single assertion
+
+**Author:** schema-builder
+
+### Prompt Context
+
+**Verbatim prompt:** Trim `TestSchema_MarshalJSON` in `/chat_complete_test.go` down to the minimum: marshal the schema and assert once on the emitted bytes, e.g. `is.True(t, strings.Contains(string(data), \`"minItems":4\`))` and the same for `maxItems`. Drop the negative substring checks and the decode-into-map type assertions entirely, along with the comment. Keep the subtest name. Then: `go test -shuffle on .` and `golangci-lint run .` clean, append a short Step 3 to the diary via the diary skill (author `schema-builder`; the reason for trimming is that the test pins the wire contract, not `encoding/json`'s tag handling, so one assertion suffices), and amend nothing: make a new commit with message ``Trim `gai.Schema` marshal test`` (use a here-doc so the backticks survive). Push to `origin worktree-schema-minitems-numeric`. Report the new SHA.
+**Interpretation:** Reduce Step 2's test back down to exactly the two positive `strings.Contains` checks the original task spec asked for, removing the negative substring checks and the decode/type-assert block (and its comment) added during self-review, while keeping the subtest name and the rest of the test body unchanged.
+**Inferred intent:** The negative checks and decode-based type assertion were defensive extras added in response to a code-review nit, but the coordinator judged them unnecessary: this test exists to pin the wire contract (does `gai.Schema` emit `minItems`/`maxItems` as bare numbers), not to re-verify `encoding/json`'s own tag-handling semantics, so a single positive assertion per field is enough.
+
+### What I did
+
+Edited `/chat_complete_test.go`: removed the two `!strings.Contains(...)` negative checks, the `// Decode into a generic map...` comment, and the `json.Unmarshal`-into-`map[string]any` block with its two `float64` type assertions from `TestSchema_MarshalJSON`. The subtest name (`"MinItems and MaxItems marshal as JSON numbers, not strings"`) and the schema construction were left untouched. The test now reads:
+
+```go
+data, err := json.Marshal(schema)
+is.NotError(t, err)
+is.True(t, strings.Contains(string(data), `"minItems":4`))
+is.True(t, strings.Contains(string(data), `"maxItems":4`))
+```
+
+Both `encoding/json` and `strings` remain used elsewhere in the same test, so no import changes were needed. Ran `go test -shuffle on .` (passed, `maragu.dev/gai` package only, since the coordinator scoped the command to `.` rather than `./...` — deliberately sidestepping the client packages' missing-credential failures noted in Step 2) and `golangci-lint run .` (0 issues), plus `gofmt -l chat_complete_test.go` (no output, so already formatted).
+
+### Why
+
+Matches the coordinator's stated rationale: the test's job is to pin the wire contract (numeric, not quoted) that vLLM's xgrammar backend needs, not to double-check that `encoding/json` round-trips a number as a number — that's `encoding/json`'s own concern, well outside this library's test surface. One positive assertion per field does that job with the least code.
+
+### What worked
+
+The trim was mechanical — delete four lines and a comment, nothing else in the test or its imports needed to change since both packages are still referenced by the surviving assertions.
+
+### What didn't work
+
+Nothing failed. No blockers.
+
+### What I learned
+
+Nothing new; this step was a direct, unambiguous instruction to reverse part of Step 2's self-review addition.
+
+### What warrants review
+
+None beyond what Steps 1 and 2 already flagged. The test is now exactly what the original task spec (point 2) asked for, verbatim.
+
+### Future work
+
+None identified.

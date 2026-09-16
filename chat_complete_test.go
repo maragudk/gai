@@ -385,16 +385,6 @@ func TestSchema_MarshalJSON(t *testing.T) {
 		is.NotError(t, err)
 		is.True(t, strings.Contains(string(data), `"minItems":4`))
 		is.True(t, strings.Contains(string(data), `"maxItems":4`))
-		is.True(t, !strings.Contains(string(data), `"minItems":"4"`))
-		is.True(t, !strings.Contains(string(data), `"maxItems":"4"`))
-
-		// Decode into a generic map to confirm the values are JSON numbers, not strings.
-		var decoded map[string]any
-		is.NotError(t, json.Unmarshal(data, &decoded))
-		_, minItemsIsNumber := decoded["minItems"].(float64)
-		is.True(t, minItemsIsNumber)
-		_, maxItemsIsNumber := decoded["maxItems"].(float64)
-		is.True(t, maxItemsIsNumber)
 	})
 }
 
