@@ -453,13 +453,13 @@ type Schema struct {
 	Items *Schema `json:"items,omitempty"`
 
 	// Optional. Maximum number of the elements for Type.ARRAY.
-	MaxItems *int64 `json:"maxItems,omitempty,string"`
+	MaxItems *int64 `json:"maxItems,omitempty"`
 
 	// Optional. Maximum value of the Type.INTEGER and Type.NUMBER
 	Maximum *float64 `json:"maximum,omitempty"`
 
 	// Optional. Minimum number of the elements for Type.ARRAY.
-	MinItems *int64 `json:"minItems,omitempty,string"`
+	MinItems *int64 `json:"minItems,omitempty"`
 
 	// Optional. Minimum value of the Type.INTEGER and Type.NUMBER.
 	Minimum *float64 `json:"minimum,omitempty"`
