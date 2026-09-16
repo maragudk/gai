@@ -3,10 +3,16 @@ package anthropic_test
 import (
 	_ "embed"
 	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
 
+	anthropicsdk "github.com/anthropics/anthropic-sdk-go"
+	"github.com/anthropics/anthropic-sdk-go/option"
 	"go.opentelemetry.io/otel/attribute"
 	"maragu.dev/is"
 
@@ -493,23 +499,314 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 		}
 	})
 
-	t.Run("rejects inbound PartTypeThought as deferred", func(t *testing.T) {
-		// Multi-turn round-trip of the per-block signature is tracked by
-		// https://github.com/maragudk/gai/issues/250. Until that lands, the client
-		// returns a typed error rather than silently dropping the part.
-		cc := newChatCompleter(t)
+	t.Run("can round-trip signed thinking blocks on multi-turn tool use with thinking enabled", func(t *testing.T) {
+		// With thinking enabled and tools in play, the API requires the signed thinking
+		// blocks from the previous assistant turn back verbatim. Sonnet 4.6 is pinned
+		// because it reliably streams thinking blocks at high effort — but only when the
+		// request actually needs reasoning: adaptive thinking skips thought entirely on
+		// a plain "read this file" ask, so the prompt includes a puzzle to reason about
+		// before the tool call. See https://github.com/maragudk/gai/issues/250.
+		cc := newChatCompleter(t, anthropic.ChatCompleteModelClaudeSonnet4_6Latest)
+
+		root, err := os.OpenRoot("testdata")
+		is.NotError(t, err)
+
+		question := "Solve step by step: a farmer has 17 sheep, all but 9 die. How many remain? Then read the readme.txt file and report its content."
 
 		req := gai.ChatCompleteRequest{
 			Messages: []gai.Message{
-				{Role: gai.MessageRoleUser, Parts: []gai.Part{gai.TextPart("Hi!")}},
-				{Role: gai.MessageRoleModel, Parts: []gai.Part{gai.ThoughtPart("the user said hi")}},
-				gai.NewUserTextMessage("And again, hi!"),
+				gai.NewUserTextMessage(question),
+			},
+			ThinkingLevel: gai.Ptr(anthropic.ThinkingLevelHigh),
+			Tools: []gai.Tool{
+				tools.NewReadFile(root),
+			},
+		}
+
+		res, err := cc.ChatComplete(t.Context(), req)
+		is.NotError(t, err)
+
+		parts, result, foundTool, foundSignature := collectToolUseParts(t, res, req.Tools)
+
+		var thoughtParts int
+		for _, part := range parts {
+			if part.Type == gai.PartTypeThought {
+				thoughtParts++
+			}
+		}
+		t.Logf("thoughtParts=%d foundSignature=%v", thoughtParts, foundSignature)
+
+		is.True(t, foundTool, "tool not found")
+		is.True(t, foundSignature, "should surface a thinking-block signature in part metadata")
+		is.Equal(t, "Hi!\n", result.Content)
+		is.NotError(t, result.Err)
+
+		req.Messages = []gai.Message{
+			gai.NewUserTextMessage(question),
+			{Role: gai.MessageRoleModel, Parts: parts},
+			gai.NewUserToolResultMessage(result),
+		}
+		req.System = gai.Ptr("Answer the user's question briefly using the tool result. Do not call any more tools.")
+
+		res, err = cc.ChatComplete(t.Context(), req)
+		is.NotError(t, err)
+
+		var output string
+		for part, err := range res.Parts() {
+			is.NotError(t, err)
+			if part.Type == gai.PartTypeText {
+				output += part.Text()
+			}
+		}
+
+		t.Log(output)
+		is.True(t, strings.Contains(output, "Hi!"), output)
+	})
+
+	t.Run("can resend streamed parts on a model that thinks unprompted", func(t *testing.T) {
+		// Sonnet 5 streams thinking blocks with no thinking level requested at all, so the
+		// plain collect-streamed-parts-and-resend flow must round-trip them. The model is
+		// pinned because the default test model does not think unprompted. Note: no
+		// Temperature here; it is deprecated on the Claude 5 line.
+		assertUnpromptedThinkingResend(t, nil)
+	})
+
+	t.Run("can resend streamed parts through a serialized history", func(t *testing.T) {
+		// The same flow with the history persisted between turns, which is what a caller
+		// storing a conversation does. The signed thinking blocks only survive if
+		// [gai.PartMetadata] survives the JSON round-trip.
+		assertUnpromptedThinkingResend(t, marshalAndUnmarshalMessages)
+	})
+
+	t.Run("can round-trip redacted thinking blocks", func(t *testing.T) {
+		// This magic string is documented by Anthropic to force a redacted thinking
+		// block, so the round-trip of the opaque payload can be tested deliberately. See
+		// https://docs.claude.com/en/docs/build-with-claude/extended-thinking.
+		const trigger = "ANTHROPIC_MAGIC_STRING_TRIGGER_REDACTED_THINKING_46C9A13E193C177646C7398A98432ECCCE4C1253D5E2D82641AC0E52CC2876CB"
+
+		cc := newChatCompleter(t, anthropic.ChatCompleteModelClaudeSonnet4_6Latest)
+
+		req := gai.ChatCompleteRequest{
+			Messages: []gai.Message{
+				gai.NewUserTextMessage(trigger),
+			},
+			ThinkingLevel: gai.Ptr(anthropic.ThinkingLevelHigh),
+		}
+
+		res, err := cc.ChatComplete(t.Context(), req)
+		is.NotError(t, err)
+
+		var parts []gai.Part
+		var foundRedacted bool
+		for part, err := range res.Parts() {
+			is.NotError(t, err)
+			parts = append(parts, part)
+			if decodeMetadata(t, part.Metadata).RedactedThinkingData != "" {
+				foundRedacted = true
+			}
+		}
+		is.True(t, foundRedacted, "should surface redacted thinking data in part metadata")
+
+		req.Messages = append(req.Messages,
+			gai.Message{Role: gai.MessageRoleModel, Parts: parts},
+			gai.NewUserTextMessage("What does the acronym AI stand for? Be brief."),
+		)
+
+		res, err = cc.ChatComplete(t.Context(), req)
+		is.NotError(t, err)
+
+		var output string
+		for part, err := range res.Parts() {
+			is.NotError(t, err)
+			if part.Type == gai.PartTypeText {
+				output += part.Text()
+			}
+		}
+		is.True(t, strings.Contains(strings.ToLower(output), "artificial intelligence"), output)
+	})
+
+	t.Run("ignores thought parts with foreign or absent metadata in history", func(t *testing.T) {
+		// Message history recorded from another implementation can contain thought parts
+		// with that implementation's metadata, or none at all. The API rejects unsigned
+		// thinking blocks, so the client drops such parts silently rather than erroring.
+		cc := newChatCompleter(t)
+
+		foreignThought := gai.ThoughtPart("the user said hi")
+		foreignThought.Metadata = foreignMetadata
+
+		req := gai.ChatCompleteRequest{
+			Messages: []gai.Message{
+				gai.NewUserTextMessage("Hi!"),
+				{Role: gai.MessageRoleModel, Parts: []gai.Part{
+					gai.ThoughtPart("I should greet the user back"),
+					foreignThought,
+					gai.TextPart("Hello! How can I help you today?"),
+				}},
+				gai.NewUserTextMessage("What does the acronym AI stand for? Be brief."),
+			},
+			Temperature: gai.Ptr(gai.Temperature(0)),
+		}
+
+		res, err := cc.ChatComplete(t.Context(), req)
+		is.NotError(t, err)
+
+		var output string
+		for part, err := range res.Parts() {
+			is.NotError(t, err)
+			if part.Type == gai.PartTypeText {
+				output += part.Text()
+			}
+		}
+		is.True(t, strings.Contains(strings.ToLower(output), "artificial intelligence"), output)
+	})
+
+	t.Run("sends a signature from a serialized history to the API", func(t *testing.T) {
+		// A history persisted as JSON and read back must still carry its thinking-block
+		// signature and redacted-thinking payload to the wire, since that is the point of
+		// the metadata envelope. Served from a local transport, so no API call.
+		var body []byte
+		cc := newStubChatCompleter(t, func(w http.ResponseWriter, r *http.Request) {
+			var err error
+			body, err = io.ReadAll(r.Body)
+			is.NotError(t, err)
+			writeMessageStream(t, w)
+		})
+
+		signedThought := gai.ThoughtPart("")
+		signedThought.Metadata = newMetadata(t, "sig-123", "")
+		redactedThought := gai.ThoughtPart("")
+		redactedThought.Metadata = newMetadata(t, "", "redacted-123")
+
+		messages := marshalAndUnmarshalMessages(t, []gai.Message{
+			gai.NewUserTextMessage("Hi!"),
+			{Role: gai.MessageRoleModel, Parts: []gai.Part{
+				gai.ThoughtPart("the user said hi"),
+				signedThought,
+				redactedThought,
+				gai.TextPart("Hello! How can I help you today?"),
+			}},
+			gai.NewUserTextMessage("And now?"),
+		})
+
+		res, err := cc.ChatComplete(t.Context(), gai.ChatCompleteRequest{Messages: messages})
+		is.NotError(t, err)
+		is.NotError(t, drainParts(t, res))
+
+		sent := unmarshalSentMessages(t, body)
+
+		is.Equal(t, 3, len(sent.Messages))
+		is.Equal(t, 3, len(sent.Messages[1].Content))
+		is.Equal(t, "thinking", sent.Messages[1].Content[0].Type)
+		is.Equal(t, "the user said hi", sent.Messages[1].Content[0].Thinking)
+		is.Equal(t, "sig-123", sent.Messages[1].Content[0].Signature)
+		is.Equal(t, "redacted_thinking", sent.Messages[1].Content[1].Type)
+		is.Equal(t, "redacted-123", sent.Messages[1].Content[1].Data)
+		is.Equal(t, "text", sent.Messages[1].Content[2].Type)
+	})
+
+	t.Run("ignores metadata from another implementation", func(t *testing.T) {
+		// Metadata this client did not produce is opaque to it: the thought part it sits
+		// on is dropped like any unsigned one, and nothing of the foreign envelope reaches
+		// the wire. Served from a local transport, so no API call.
+		var body []byte
+		cc := newStubChatCompleter(t, func(w http.ResponseWriter, r *http.Request) {
+			var err error
+			body, err = io.ReadAll(r.Body)
+			is.NotError(t, err)
+			writeMessageStream(t, w)
+		})
+
+		foreignThought := gai.ThoughtPart("the user said hi")
+		foreignThought.Metadata = foreignMetadata
+		// Metadata tagged as this client's own but carrying nothing is an absence, not a
+		// corruption, so it is ignored too.
+		emptyThought := gai.ThoughtPart("and then")
+		emptyThought.Metadata = gai.PartMetadata{Source: metadataSource}
+
+		res, err := cc.ChatComplete(t.Context(), gai.ChatCompleteRequest{
+			Messages: []gai.Message{
+				gai.NewUserTextMessage("Hi!"),
+				{Role: gai.MessageRoleModel, Parts: []gai.Part{
+					foreignThought,
+					emptyThought,
+					gai.TextPart("Hello! How can I help you today?"),
+				}},
+				gai.NewUserTextMessage("And now?"),
+			},
+		})
+		is.NotError(t, err)
+		is.NotError(t, drainParts(t, res))
+
+		sent := unmarshalSentMessages(t, body)
+
+		is.Equal(t, 3, len(sent.Messages))
+		is.Equal(t, 1, len(sent.Messages[1].Content))
+		is.Equal(t, "text", sent.Messages[1].Content[0].Type)
+		is.True(t, !strings.Contains(string(body), "example.com/other"), string(body))
+		is.True(t, !strings.Contains(string(body), "the user said hi"), string(body))
+	})
+
+	t.Run("errors on its own metadata that cannot be decoded", func(t *testing.T) {
+		// Metadata tagged as this client's own but with corrupt bytes — a hand-edited or
+		// truncated history — is caller data, so it fails at the boundary with a typed
+		// error instead of silently dropping the thinking block. This subtest runs
+		// without making a network call.
+		cc := newChatCompleter(t)
+
+		corruptThought := gai.ThoughtPart("the user said hi")
+		corruptThought.Metadata = gai.PartMetadata{Source: metadataSource, Data: []byte("not json")}
+
+		req := gai.ChatCompleteRequest{
+			Messages: []gai.Message{
+				{Role: gai.MessageRoleUser, Parts: []gai.Part{corruptThought}},
 			},
 		}
 
 		_, err := cc.ChatComplete(t.Context(), req)
 		is.True(t, err != nil, "expected an error")
-		is.True(t, strings.Contains(err.Error(), "PartTypeThought"), err.Error())
+		is.True(t, strings.HasPrefix(err.Error(), "anthropic: part metadata is not decodable: "), err.Error())
+	})
+
+	t.Run("errors when the only message has no sendable parts", func(t *testing.T) {
+		// A thought part with foreign metadata is dropped entirely; a request left with
+		// no sendable messages must error cleanly, not send empty content. This subtest
+		// runs without making a network call.
+		cc := newChatCompleter(t)
+
+		foreignThought := gai.ThoughtPart("the user said hi")
+		foreignThought.Metadata = foreignMetadata
+
+		req := gai.ChatCompleteRequest{
+			Messages: []gai.Message{
+				{Role: gai.MessageRoleUser, Parts: []gai.Part{foreignThought}},
+			},
+		}
+
+		_, err := cc.ChatComplete(t.Context(), req)
+		is.True(t, err != nil, "expected an error")
+		is.Equal(t, "anthropic: last message has no sendable parts", err.Error())
+	})
+
+	t.Run("errors when the last message has no sendable parts", func(t *testing.T) {
+		// If only the final message is dropped, sending anyway would make the previous
+		// model message the final turn — a silent prefill continuation — so the client
+		// must error instead. This subtest runs without making a network call.
+		cc := newChatCompleter(t)
+
+		foreignThought := gai.ThoughtPart("the user said hi")
+		foreignThought.Metadata = foreignMetadata
+
+		req := gai.ChatCompleteRequest{
+			Messages: []gai.Message{
+				gai.NewUserTextMessage("Hi!"),
+				gai.NewModelTextMessage("Hello! How can I help you today?"),
+				{Role: gai.MessageRoleUser, Parts: []gai.Part{foreignThought}},
+			},
+		}
+
+		_, err := cc.ChatComplete(t.Context(), req)
+		is.True(t, err != nil, "expected an error")
+		is.Equal(t, "anthropic: last message has no sendable parts", err.Error())
 	})
 
 	t.Run("panics on unsupported thinking level", func(t *testing.T) {
@@ -651,6 +948,222 @@ func drainParts(t *testing.T, res gai.ChatCompleteResponse) error {
 		}
 	}
 	return nil
+}
+
+// collectToolUseParts consumes the response stream of a tool-use turn, executing each
+// matching tool call against tools. It returns all streamed parts, the last tool result,
+// whether a tool call was found, and whether any part carried metadata with a
+// thinking-block signature.
+func collectToolUseParts(t *testing.T, res gai.ChatCompleteResponse, tools []gai.Tool) (parts []gai.Part, result gai.ToolResult, foundTool, foundSignature bool) {
+	t.Helper()
+
+	for part, err := range res.Parts() {
+		is.NotError(t, err)
+
+		parts = append(parts, part)
+
+		if decodeMetadata(t, part.Metadata).Signature != "" {
+			foundSignature = true
+		}
+
+		if part.Type != gai.PartTypeToolCall {
+			continue
+		}
+		toolCall := part.ToolCall()
+		for _, tool := range tools {
+			if tool.Name == toolCall.Name {
+				foundTool = true
+				content, err := tool.Execute(t.Context(), toolCall.Args)
+				result = gai.ToolResult{
+					ID:      toolCall.ID,
+					Name:    toolCall.Name,
+					Content: content,
+					Err:     err,
+				}
+				break
+			}
+		}
+	}
+
+	return parts, result, foundTool, foundSignature
+}
+
+// metadataSource is the [gai.PartMetadata] source the client tags its metadata with, and
+// metadata mirrors the JSON it encodes into the envelope. Both are spelled out here
+// rather than imported, because they are persisted in message history: a change to either
+// must break these tests.
+const metadataSource = "maragu.dev/gai/clients/anthropic"
+
+type metadata struct {
+	Signature            string `json:"signature,omitempty"`
+	RedactedThinkingData string `json:"redactedThinkingData,omitempty"`
+}
+
+// foreignMetadata stands in for [gai.PartMetadata] set by another implementation.
+var foreignMetadata = gai.PartMetadata{Source: "example.com/other", Data: []byte("opaque")}
+
+// newMetadata builds the envelope the client would put on a thought part.
+func newMetadata(t *testing.T, signature, redactedThinkingData string) gai.PartMetadata {
+	t.Helper()
+
+	data, err := json.Marshal(metadata{Signature: signature, RedactedThinkingData: redactedThinkingData})
+	is.NotError(t, err)
+
+	return gai.PartMetadata{Source: metadataSource, Data: data}
+}
+
+// decodeMetadata returns the metadata the client encoded into m, or the zero value if m
+// holds none or holds another implementation's.
+func decodeMetadata(t *testing.T, m gai.PartMetadata) metadata {
+	t.Helper()
+
+	if m.Source != metadataSource {
+		return metadata{}
+	}
+
+	var decoded metadata
+	is.NotError(t, json.Unmarshal(m.Data, &decoded))
+
+	return decoded
+}
+
+// marshalAndUnmarshalMessages persists messages as JSON and reads them back, the way a
+// caller storing a conversation between turns does.
+func marshalAndUnmarshalMessages(t *testing.T, messages []gai.Message) []gai.Message {
+	t.Helper()
+
+	data, err := json.Marshal(messages)
+	is.NotError(t, err)
+
+	var restored []gai.Message
+	is.NotError(t, json.Unmarshal(data, &restored))
+
+	return restored
+}
+
+// sentMessages is the part of an outgoing request body these tests assert on.
+type sentMessages struct {
+	Messages []struct {
+		Role    string `json:"role"`
+		Content []struct {
+			Type      string `json:"type"`
+			Text      string `json:"text"`
+			Thinking  string `json:"thinking"`
+			Signature string `json:"signature"`
+			Data      string `json:"data"`
+		} `json:"content"`
+	} `json:"messages"`
+}
+
+func unmarshalSentMessages(t *testing.T, body []byte) sentMessages {
+	t.Helper()
+
+	var sent sentMessages
+	is.NotError(t, json.Unmarshal(body, &sent))
+
+	return sent
+}
+
+// newStubChatCompleter builds an [anthropic.ChatCompleter] talking to a local test server
+// running handler, so request building can be exercised without calling the API.
+func newStubChatCompleter(t *testing.T, handler http.HandlerFunc) *anthropic.ChatCompleter {
+	t.Helper()
+
+	server := httptest.NewServer(handler)
+	t.Cleanup(server.Close)
+
+	c := anthropic.NewClient(anthropic.NewClientOptions{Key: "test"})
+	c.Client = anthropicsdk.NewClient(option.WithAPIKey("test"), option.WithBaseURL(server.URL))
+
+	return c.NewChatCompleter(anthropic.NewChatCompleterOptions{Model: anthropic.ChatCompleteModelClaudeSonnet5Latest})
+}
+
+// writeMessageStream writes the shortest valid message stream: one text block saying Hi!.
+func writeMessageStream(t *testing.T, w http.ResponseWriter) {
+	t.Helper()
+
+	w.Header().Set("Content-Type", "text/event-stream")
+	for _, event := range []string{
+		`{"type":"message_start","message":{"id":"msg_1","type":"message","role":"assistant","model":"claude-sonnet-5","content":[],"stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":1,"output_tokens":1}}}`,
+		`{"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}`,
+		`{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hi!"}}`,
+		`{"type":"content_block_stop","index":0}`,
+		`{"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":1}}`,
+		`{"type":"message_stop"}`,
+	} {
+		_, err := fmt.Fprintf(w, "data: %s\n\n", event)
+		is.NotError(t, err)
+	}
+}
+
+// assertUnpromptedThinkingResend runs a two-turn tool-use flow on Sonnet 5, which streams
+// thinking blocks with no thinking level requested at all: the model calls a tool, and its
+// streamed parts go back as history with the tool result. The API rejects the follow-up
+// turn unless each thinking block returns with its signature and full text. When persist
+// is non-nil, the history passes through it — a JSON round-trip — on the way back. Note:
+// no Temperature anywhere here; it is deprecated on the Claude 5 line.
+func assertUnpromptedThinkingResend(t *testing.T, persist func(*testing.T, []gai.Message) []gai.Message) {
+	t.Helper()
+
+	cc := newChatCompleter(t, anthropic.ChatCompleteModelClaudeSonnet5Latest)
+
+	root, err := os.OpenRoot("testdata")
+	is.NotError(t, err)
+
+	req := gai.ChatCompleteRequest{
+		Messages: []gai.Message{
+			gai.NewUserTextMessage("What is in the readme.txt file?"),
+		},
+		Tools: []gai.Tool{
+			tools.NewReadFile(root),
+		},
+	}
+
+	res, err := cc.ChatComplete(t.Context(), req)
+	is.NotError(t, err)
+
+	parts, result, foundTool, foundSignature := collectToolUseParts(t, res, req.Tools)
+
+	is.True(t, foundTool, "tool not found")
+	is.Equal(t, "Hi!\n", result.Content)
+	is.NotError(t, result.Err)
+
+	// Unprompted thinking is the model's own choice, so don't require it — but any
+	// thought parts that did stream must end in a signed one for the resend to work.
+	var thoughtParts int
+	for _, part := range parts {
+		if part.Type == gai.PartTypeThought {
+			thoughtParts++
+		}
+	}
+	if thoughtParts > 0 {
+		is.True(t, foundSignature, "streamed thoughts should carry a signature in part metadata")
+	}
+	t.Logf("thoughtParts=%d foundSignature=%v", thoughtParts, foundSignature)
+
+	req.Messages = []gai.Message{
+		gai.NewUserTextMessage("What is in the readme.txt file?"),
+		{Role: gai.MessageRoleModel, Parts: parts},
+		gai.NewUserToolResultMessage(result),
+	}
+	if persist != nil {
+		req.Messages = persist(t, req.Messages)
+	}
+	req.System = gai.Ptr("Answer the user's question in a single sentence using the tool result. Do not call any more tools.")
+
+	res, err = cc.ChatComplete(t.Context(), req)
+	is.NotError(t, err)
+
+	var output string
+	for part, err := range res.Parts() {
+		is.NotError(t, err)
+		if part.Type == gai.PartTypeText {
+			output += part.Text()
+		}
+	}
+
+	t.Log(output)
+	is.True(t, strings.Contains(output, "Hi!"), output)
 }
 
 // newChatCompleter builds a [anthropic.ChatCompleter] for tests. With no model argument,

@@ -188,3 +188,16 @@ Alternatives considered: folding the test into the existing daily `Compatibility
 Issue dedup is deliberately minimal: a fixed label and title, create an issue only if no open one exists, close it on the next green run, no per-run comments. This gives at most one open drift issue at a time and auto-resolution when a triage PR lands, at the cost of not announcing when an additional model joins an already-open drift episode. The richer variant (comment when the failing set changes) was considered and deferred as not worth the extra workflow logic.
 
 Tradeoff: drift is now discovered the next morning instead of on the next PR, and a triage PR is a deliberate task rather than a forced one. The behavior tests (thinking-level matrices, embed) stay in merge-gating CI; their live-API flakiness is a separate question.
+
+## 2026-09-16: Carry opaque provider metadata on `gai.Part` as a serializable envelope
+
+To fix #250 (Anthropic signed thinking blocks) and #256 (Gemini 3.x `thought_signature`) with one mechanism, `gai.Part` gets a single metadata field: a small concrete struct holding a provider discriminator plus opaque bytes. The originating client sets the discriminator to its own identifier and encodes its provider-specific data (Gemini `thought_signature`, Anthropic thinking-block signature or redacted data) into the bytes on stream-read; on request-build it checks the discriminator and decodes its own data, ignoring anything else. Other providers treat the field as a black box.
+
+Context: both providers require opaque, provider-specific data captured from a response to be echoed back verbatim on the next turn (Gemini 3.x on `functionCall` parts even with thinking disabled; Anthropic on extended-thinking blocks in tool flows). `gai.Part` had nowhere to carry it, so multi-turn tool use 400'd on Gemini 3.x and the Anthropic client hard-errored on inbound `PartTypeThought`. And `Part` exists to be replayed and persisted (see #169), so whatever carries this data must survive serialization of message history.
+
+Alternatives considered:
+- `Provider any` field: minimal, but `any` gives no compile-time signal, invites misuse, and cannot be unmarshalled.
+- Sibling part types per provider behind an interface: avoids `any` but multiplies the exported type surface and every consumer's switch statements.
+- A marker-interface field implemented by typed per-client structs (the first draft of PR #336): compile-time checkable, but encoding/json cannot restore an interface field without knowing the concrete type, and a caller has no way to know it — persisted history would silently lose the metadata. A registry of provider types behind custom `MarshalJSON`/`UnmarshalJSON` could patch that at the cost of global mutable state and init-time magic.
+
+Decision: the concrete envelope. Compile-time typing of the metadata is traded for serializability; since the data is opaque by design and only its originating client interprets it, the typing bought little. (De)serialization of `Part` with metadata is covered by tests so the round-trip guarantee is enforced rather than promised. The core package documents the envelope contract only and does not reference client packages.

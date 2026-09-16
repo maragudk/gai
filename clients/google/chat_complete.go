@@ -20,11 +20,35 @@ import (
 	"maragu.dev/gai/clients/google/internal/schema"
 )
 
-// errThoughtRoundTripUnsupported is returned when a caller passes [gai.PartTypeThought]
-// back into the Google client. Multi-turn thinking on Gemini 3.x requires forwarding the
-// per-part `thought_signature` returned by the API, which is not yet plumbed through
-// [gai.Part]. Tracked by https://github.com/maragudk/gai/issues/256.
-var errThoughtRoundTripUnsupported = errors.New("inbound PartTypeThought not supported (https://github.com/maragudk/gai/issues/256)")
+// partMetadataSource is the [gai.PartMetadata] source this package tags its metadata
+// with, and the only one it reads back. It is the package's import path, so metadata
+// produced elsewhere is never mistaken for this package's own. The value is persisted in
+// message history, so it must stay stable.
+const partMetadataSource = "maragu.dev/gai/clients/google"
+
+// newPartMetadata wraps a Gemini `thought_signature` — the opaque per-part signature that
+// Gemini 3.x models return on response parts (function calls, thoughts, or the final text
+// part) and require back verbatim on the same part in the next turn — for a [gai.Part].
+// See https://ai.google.dev/gemini-api/docs/thought-signatures.
+func newPartMetadata(signature []byte) gai.PartMetadata {
+	return gai.PartMetadata{Source: partMetadataSource, Data: signature}
+}
+
+// thoughtSignature returns the `thought_signature` carried by m, or nil if m holds no
+// metadata or metadata from another implementation, which is ignored. The signature is
+// the metadata bytes verbatim, so there is nothing to decode and nothing to reject.
+func thoughtSignature(m gai.PartMetadata) []byte {
+	if m.Source != partMetadataSource {
+		return nil
+	}
+	return m.Data
+}
+
+// errLastMessageEmpty is returned when the last message of a request has no parts the
+// client can send — for example only empty thought parts without a `thought_signature`,
+// which are skipped. Sending the request anyway would ask the model to continue from an
+// earlier turn than the caller intended, so the client rejects it instead.
+var errLastMessageEmpty = errors.New("last message has no sendable parts")
 
 // ChatCompleteModel is a Google Gemini model identifier accepted by the chat-completions
 // surface. See https://ai.google.dev/gemini-api/docs/models for the full list and current
@@ -93,6 +117,14 @@ func (c *Client) NewChatCompleter(opts NewChatCompleterOptions) *ChatCompleter {
 	}
 }
 
+// ChatComplete satisfies [gai.ChatCompleter].
+//
+// Gemini 3.x returns an opaque `thought_signature` on response parts — function calls,
+// thoughts, or the final text part — and rejects the next turn unless it comes back
+// verbatim on the same part, so the client carries it in [gai.Part.Metadata]. Pass every
+// streamed part back as history, metadata included, and multi-turn tool use works. Parts
+// whose metadata came from elsewhere are sent unsigned.
+// See https://ai.google.dev/gemini-api/docs/thought-signatures.
 func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRequest) (gai.ChatCompleteResponse, error) {
 	ctx, span := c.tracer.Start(ctx, "google.chat_complete",
 		trace.WithSpanKind(trace.SpanKindClient),
@@ -197,7 +229,8 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 		span.SetAttributes(attribute.Bool("ai.has_response_schema", true))
 	}
 
-	var history []*genai.Content
+	var contents []*genai.Content
+	var lastMessageSent bool
 	for _, m := range req.Messages {
 		var content genai.Content
 
@@ -213,7 +246,8 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 		for _, part := range m.Parts {
 			switch part.Type {
 			case gai.PartTypeText:
-				content.Parts = append(content.Parts, &genai.Part{Text: part.Text()})
+				textPart := &genai.Part{Text: part.Text(), ThoughtSignature: thoughtSignature(part.Metadata)}
+				content.Parts = append(content.Parts, textPart)
 
 			case gai.PartTypeToolCall:
 				toolCall := part.ToolCall()
@@ -223,9 +257,13 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 					span.SetStatus(codes.Error, "request tool call args unmarshal failed")
 					return gai.ChatCompleteResponse{}, fmt.Errorf("error unmarshaling request tool call args: %w", err)
 				}
-				part := genai.NewPartFromFunctionCall(toolCall.Name, args)
-				part.FunctionCall.ID = toolCall.ID
-				content.Parts = append(content.Parts, part)
+				functionCallPart := genai.NewPartFromFunctionCall(toolCall.Name, args)
+				functionCallPart.FunctionCall.ID = toolCall.ID
+				// Gemini 3.x requires the `thought_signature` back on the same
+				// function-call part it was returned on; without it the follow-up
+				// turn is rejected with a 400.
+				functionCallPart.ThoughtSignature = thoughtSignature(part.Metadata)
+				content.Parts = append(content.Parts, functionCallPart)
 
 			case gai.PartTypeToolResult:
 				toolResult := part.ToolResult()
@@ -252,31 +290,43 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 				})
 
 			case gai.PartTypeThought:
-				// Round-tripping thought parts back to Gemini requires preserving the
-				// per-part `thought_signature` returned by the API, which we don't yet
-				// plumb through [gai.Part]. See
-				// https://github.com/maragudk/gai/issues/256.
-				err := fmt.Errorf("google: %w", errThoughtRoundTripUnsupported)
-				span.RecordError(err)
-				span.SetStatus(codes.Error, "unsupported part type")
-				return gai.ChatCompleteResponse{}, err
+				// Re-emit the thought with its `thought_signature` from the part metadata,
+				// as Gemini 3.x requires signatures back on the parts they were returned
+				// on. Thoughts without a signature — foreign or absent metadata — are
+				// passed through unsigned rather than rejected, so histories from other
+				// implementations still replay; empty ones are skipped because an empty
+				// [genai.Part] is invalid.
+				thoughtPart := &genai.Part{
+					Text:             part.Thought(),
+					Thought:          true,
+					ThoughtSignature: thoughtSignature(part.Metadata),
+				}
+				if thoughtPart.Text == "" && len(thoughtPart.ThoughtSignature) == 0 {
+					continue
+				}
+				content.Parts = append(content.Parts, thoughtPart)
 
 			default:
 				panic("unknown part type " + part.Type)
 			}
 		}
 
-		history = append(history, &content)
+		// A message whose parts were all skipped would reach the API as empty content
+		// and be rejected, so skip the whole message instead.
+		lastMessageSent = len(content.Parts) > 0
+		if lastMessageSent {
+			contents = append(contents, &content)
+		}
 	}
 
-	// Delete the last content from the history, because SendMessageStream expects it as varargs
-	lastContent := history[len(history)-1]
-	history = history[:len(history)-1]
-
-	chat, err := c.Client.Chats.Create(ctx, string(c.model), &config, history)
-	if err != nil {
+	// If the final message lost all its parts to skipping, the request would ask the
+	// model to continue from an earlier turn instead of the one the caller sent, so
+	// reject it rather than silently answering a different question.
+	if !lastMessageSent {
+		err := fmt.Errorf("google: %w", errLastMessageEmpty)
 		span.RecordError(err)
-		span.SetStatus(codes.Error, "chat session creation failed")
+		span.SetStatus(codes.Error, "last message empty")
+		span.End()
 		return gai.ChatCompleteResponse{}, err
 	}
 
@@ -307,7 +357,12 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 			)
 		}()
 
-		for chunk, err := range chat.SendStream(ctx, lastContent.Parts...) {
+		// Send the full contents list rather than a chat session: genai's chat history
+		// curation drops any model turn whose parts it considers invalid — and it does
+		// not recognise a part carrying only a `thought_signature` — silently taking the
+		// preceding user message with it. This client owns the history already, so it
+		// passes it to the model verbatim.
+		for chunk, err := range c.Client.Models.GenerateContentStream(ctx, string(c.model), contents, &config) {
 			if err != nil {
 				span.RecordError(err)
 				span.SetStatus(codes.Error, "chat stream send failed")
@@ -334,19 +389,34 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 			for _, part := range chunk.Candidates[0].Content.Parts {
 				recordFirstToken()
 
+				// Preserve the per-part `thought_signature` that Gemini 3.x models return
+				// on response parts, so the parts can round-trip on the next turn.
+				var metadata gai.PartMetadata
+				if len(part.ThoughtSignature) > 0 {
+					metadata = newPartMetadata(part.ThoughtSignature)
+				}
+
+				var yielded bool
+
 				if part.Text != "" {
+					yielded = true
 					if part.Thought {
-						if !yield(gai.ThoughtPart(part.Text), nil) {
+						thoughtPart := gai.ThoughtPart(part.Text)
+						thoughtPart.Metadata = metadata
+						if !yield(thoughtPart, nil) {
 							return
 						}
 					} else {
-						if !yield(gai.TextPart(part.Text), nil) {
+						textPart := gai.TextPart(part.Text)
+						textPart.Metadata = metadata
+						if !yield(textPart, nil) {
 							return
 						}
 					}
 				}
 
 				if part.FunctionCall != nil {
+					yielded = true
 					args, err := json.Marshal(part.FunctionCall.Args)
 					if err != nil {
 						span.RecordError(err)
@@ -358,7 +428,20 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 					if id == "" {
 						id = createRandomID()
 					}
-					if !yield(gai.ToolCallPart(id, part.FunctionCall.Name, args), nil) {
+					toolCallPart := gai.ToolCallPart(id, part.FunctionCall.Name, args)
+					toolCallPart.Metadata = metadata
+					if !yield(toolCallPart, nil) {
+						return
+					}
+				}
+
+				// Gemini also sends parts that carry only a signature, with no text and
+				// no function call. Surface those as empty thought parts so the
+				// signature survives into the next turn rather than being dropped.
+				if !yielded && len(metadata.Data) > 0 {
+					thoughtPart := gai.ThoughtPart("")
+					thoughtPart.Metadata = metadata
+					if !yield(thoughtPart, nil) {
 						return
 					}
 				}
