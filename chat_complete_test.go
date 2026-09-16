@@ -1,7 +1,9 @@
 package gai_test
 
 import (
+	"encoding/json"
 	"fmt"
+	"strings"
 	"testing"
 
 	"maragu.dev/is"
@@ -366,6 +368,33 @@ func TestGenerateSchema(t *testing.T) {
 		is.Equal(t, len(schema.Properties), 2)
 		is.NotNil(t, schema.Properties["FirstName"])
 		is.NotNil(t, schema.Properties["LastName"])
+	})
+}
+
+func TestSchema_MarshalJSON(t *testing.T) {
+	t.Run("MinItems and MaxItems marshal as JSON numbers, not strings", func(t *testing.T) {
+		minItems := int64(4)
+		maxItems := int64(4)
+		schema := gai.Schema{
+			Type:     gai.SchemaTypeArray,
+			MinItems: &minItems,
+			MaxItems: &maxItems,
+		}
+
+		data, err := json.Marshal(schema)
+		is.NotError(t, err)
+		is.True(t, strings.Contains(string(data), `"minItems":4`))
+		is.True(t, strings.Contains(string(data), `"maxItems":4`))
+		is.True(t, !strings.Contains(string(data), `"minItems":"4"`))
+		is.True(t, !strings.Contains(string(data), `"maxItems":"4"`))
+
+		// Decode into a generic map to confirm the values are JSON numbers, not strings.
+		var decoded map[string]any
+		is.NotError(t, json.Unmarshal(data, &decoded))
+		_, minItemsIsNumber := decoded["minItems"].(float64)
+		is.True(t, minItemsIsNumber)
+		_, maxItemsIsNumber := decoded["maxItems"].(float64)
+		is.True(t, maxItemsIsNumber)
 	})
 }
 
