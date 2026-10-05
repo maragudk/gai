@@ -188,3 +188,16 @@ Alternatives considered: folding the test into the existing daily `Compatibility
 Issue dedup is deliberately minimal: a fixed label and title, create an issue only if no open one exists, close it on the next green run, no per-run comments. This gives at most one open drift issue at a time and auto-resolution when a triage PR lands, at the cost of not announcing when an additional model joins an already-open drift episode. The richer variant (comment when the failing set changes) was considered and deferred as not worth the extra workflow logic.
 
 Tradeoff: drift is now discovered the next morning instead of on the next PR, and a triage PR is a deliberate task rather than a forced one. The behavior tests (thinking-level matrices, embed) stay in merge-gating CI; their live-API flakiness is a separate question.
+
+## 2026-10-05: Remove model constants when the provider deprecates them, not at shutdown
+
+Amends the curation policy of the 2026-08-17 decision. That policy removed a model when the provider killed it server-side, and otherwise let superseded models age out as the generation window rolls. From now on, a model is also removed as soon as the provider deprecates it. In practice the signal is the provider SDK marking the constant deprecated, or a deprecation announcement where there is no SDK constant, as with Google. A deprecated model that is still live moves to the ignore list, in a commented group with its shutdown date. Its entry is pruned once the model disappears from the live list.
+
+Context: while fixing drift issue #363 (PR #378), the newest `anthropic-sdk-go` (v1.78.0) and `openai-go/v3` (v3.71.1) marked `claude-sonnet-4-5` (end of life 2026-11-30) and `gpt-5`/`gpt-5-mini`/`gpt-5-nano` (shutdown 2026-12-11) as deprecated. Referencing them makes `golangci-lint` fail with SA1019. Every SDK bump that deprecates an exported model would hit the same wall.
+
+Alternatives considered:
+- Pin the SDKs to the newest versions without the deprecations. Rejected: it blocks new model constants and Dependabot bumps until shutdown.
+- Keep the constants and suppress the lint warning with `nolint`. Rejected: it hides a real signal and leaves a constant that will stop working on a known date.
+- Keep a deprecated alias for a release. Rejected: aliases buy little, because callers see the same breakage on the shutdown date anyway.
+
+Tradeoff: removal is a breaking change for callers who use the constant, weeks before the model actually stops working. That is accepted, because a compile error now is better than a runtime 404 later, and the shutdown date is what forces callers to migrate either way. Known gap: `TestModelConformance` does not flag ignore entries that no longer match a live model, so stale deprecated entries must be pruned by hand.
