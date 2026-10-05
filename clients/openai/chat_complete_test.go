@@ -658,6 +658,61 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 		})
 	})
 
+	t.Run("respects max completion tokens", func(t *testing.T) {
+		const maxCompletionTokens = 5
+
+		sr := oteltest.NewSpanRecorder(t)
+		cc := newChatCompleter(t)
+
+		// Reasoning tokens count towards the cap, so turn reasoning off to get a deterministic result.
+		req := gai.ChatCompleteRequest{
+			Messages: []gai.Message{
+				gai.NewUserTextMessage("Write a poem of at least 20 words about gophers."),
+			},
+			Temperature:         gai.Ptr(gai.Temperature(0)),
+			ThinkingLevel:       gai.Ptr(gai.ThinkingLevelNone),
+			MaxCompletionTokens: gai.Ptr(maxCompletionTokens),
+		}
+
+		res, err := cc.ChatComplete(t.Context(), req)
+		is.NotError(t, err)
+
+		var limitedOutput string
+		for part, err := range res.Parts() {
+			is.NotError(t, err)
+			if part.Type == gai.PartTypeText {
+				limitedOutput += part.Text()
+			}
+		}
+
+		is.NotNil(t, res.Meta)
+		is.True(t, res.Meta.Usage.CompletionTokens > 0, "should have completion tokens")
+		is.True(t, res.Meta.Usage.CompletionTokens <= maxCompletionTokens, "should respect max completion tokens")
+
+		req.MaxCompletionTokens = nil
+
+		res, err = cc.ChatComplete(t.Context(), req)
+		is.NotError(t, err)
+
+		var fullOutput string
+		for part, err := range res.Parts() {
+			is.NotError(t, err)
+			if part.Type == gai.PartTypeText {
+				fullOutput += part.Text()
+			}
+		}
+
+		is.NotNil(t, res.Meta)
+		is.True(t, res.Meta.Usage.CompletionTokens > maxCompletionTokens, "should exceed limit when not constrained")
+		is.True(t, len(fullOutput) > len(limitedOutput), "should produce more output without limit")
+
+		spans := oteltest.SpansByName(sr.Ended(), "openai.chat_complete")
+		is.Equal(t, 2, len(spans))
+		is.True(t, oteltest.HasAttribute(spans[0].Attributes(), attribute.Int("ai.max_completion_tokens", maxCompletionTokens)), "should record the cap when set")
+		_, found := oteltest.FindAttribute(spans[1].Attributes(), "ai.max_completion_tokens")
+		is.True(t, !found, "should not record the cap when unset")
+	})
+
 	t.Run("records standard attributes on the chat-complete span", func(t *testing.T) {
 		sr := oteltest.NewSpanRecorder(t)
 		cc := newChatCompleter(t)
