@@ -316,6 +316,10 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 		params.Temperature = openai.Opt(req.Temperature.Float64())
 		span.SetAttributes(attribute.Float64("ai.temperature", req.Temperature.Float64()))
 	}
+	if req.MaxCompletionTokens != nil {
+		params.MaxCompletionTokens = openai.Int(int64(*req.MaxCompletionTokens))
+		span.SetAttributes(attribute.Int("ai.max_completion_tokens", *req.MaxCompletionTokens))
+	}
 	if req.ThinkingLevel != nil {
 		switch *req.ThinkingLevel {
 		case gai.ThinkingLevelNone:

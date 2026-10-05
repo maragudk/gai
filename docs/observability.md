@@ -56,7 +56,7 @@ only when the request carries the matching field.
 | `ai.message_count` | int | — | Number of request messages | all |
 | `ai.temperature` | double | — | Sampling temperature; set only when the request specifies one | all |
 | `ai.thinking_level` | string | — | Reasoning effort; set only when the request specifies one | all |
-| `ai.max_completion_tokens` | int | tokens | Completion-token cap. Anthropic always emits it (default 16384); Google only when the request sets one | anthropic, google |
+| `ai.max_completion_tokens` | int | tokens | Completion-token cap. Anthropic always emits it (default 16384); Google and OpenAI only when the request sets one | anthropic, google, openai |
 | `ai.tool_count` | int | — | Number of tools offered | all |
 | `ai.tools` | string[] | — | Sorted tool names | all |
 | `ai.tool_choice` | string | — | Forced tool-choice mode (`any` or `tool`); set only when forcing | all |
