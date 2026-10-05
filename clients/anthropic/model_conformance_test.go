@@ -26,6 +26,8 @@ var exportedModels = []string{
 	string(anthropic.ChatCompleteModelClaudeFable5_1Latest),
 	string(anthropic.ChatCompleteModelClaudeSonnet5Latest),
 	string(anthropic.ChatCompleteModelClaudeOpus5Latest),
+	string(anthropic.ChatCompleteModelClaudeSonnet5_5Latest),
+	string(anthropic.ChatCompleteModelClaudeOpus5_5Latest),
 }
 
 // ignoredModels are provider model IDs deliberately not exported as constants,

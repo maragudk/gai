@@ -45,6 +45,9 @@ const (
 	ChatCompleteModelGPT5_6Sol   = ChatCompleteModel(openai.ChatModelGPT5_6Sol)
 	ChatCompleteModelGPT5_6Terra = ChatCompleteModel(openai.ChatModelGPT5_6Terra)
 	ChatCompleteModelGPT6Astra   = ChatCompleteModel(openai.ChatModelGPT6Astra)
+	ChatCompleteModelGPT6Luna    = ChatCompleteModel(openai.ChatModelGPT6Luna)
+	ChatCompleteModelGPT6Sol     = ChatCompleteModel(openai.ChatModelGPT6Sol)
+	ChatCompleteModelGPT6_1Sol   = ChatCompleteModel(openai.ChatModelGPT6_1Sol)
 )
 
 // Per-client [gai.ThinkingLevel] constants. The set covers the union of reasoning_effort
@@ -57,15 +60,19 @@ const (
 //   - gpt-5.4 / gpt-5.4-mini / gpt-5.4-nano: none/low/medium/high/xhigh
 //   - gpt-5.5: none/low/medium/high/xhigh — frontier model, reasons eagerly at every
 //     non-`none` level
-//   - gpt-6-astra: low/medium/high/xhigh — the only model that rejects both `none` and
-//     `minimal`, so reasoning cannot be turned off
+//   - gpt-6-astra: low/medium/high/xhigh — rejects both `none` and `minimal`, so reasoning
+//     cannot be turned off
+//   - gpt-6-luna / gpt-6-sol: none/low/medium/high/xhigh
+//   - gpt-6.1-sol: low/medium/high/xhigh — like gpt-6-astra, rejects both `none` and
+//     `minimal`
 //
 // The gpt-5.6 family is not probed yet, so the list above and the per-level notes below
 // say nothing about which levels it accepts.
 //
-// Pass [gai.ThinkingLevelNone] to opt out — accepted by gpt-5.1 through gpt-5.5; rejected
-// by gpt-5 and gpt-6-astra. Using a level a given model does not support surfaces a 400
-// from the API. Levels not in this list panic at the client boundary.
+// Pass [gai.ThinkingLevelNone] to opt out — accepted by gpt-5.1 through gpt-5.5, gpt-6-luna,
+// and gpt-6-sol; rejected by gpt-5, gpt-6-astra, and gpt-6.1-sol. Using a level a given
+// model does not support surfaces a 400 from the API. Levels not in this list panic at the
+// client boundary.
 const (
 	// ThinkingLevelMinimal applies the cheapest reasoning effort. gpt-5 only.
 	ThinkingLevelMinimal gai.ThinkingLevel = "minimal"
@@ -76,7 +83,7 @@ const (
 	// ThinkingLevelHigh applies high reasoning effort.
 	ThinkingLevelHigh gai.ThinkingLevel = "high"
 	// ThinkingLevelXHigh applies extra-high reasoning effort. gpt-5.2, gpt-5.4*, gpt-5.5,
-	// and gpt-6-astra.
+	// and the gpt-6 family.
 	ThinkingLevelXHigh gai.ThinkingLevel = "xhigh"
 )
 

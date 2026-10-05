@@ -27,6 +27,9 @@ var exportedModels = []string{
 	string(openai.ChatCompleteModelGPT5_6Sol),
 	string(openai.ChatCompleteModelGPT5_6Terra),
 	string(openai.ChatCompleteModelGPT6Astra),
+	string(openai.ChatCompleteModelGPT6Luna),
+	string(openai.ChatCompleteModelGPT6Sol),
+	string(openai.ChatCompleteModelGPT6_1Sol),
 	string(openai.EmbedModelTextEmbedding3Large),
 	string(openai.EmbedModelTextEmbedding3Small),
 }
@@ -67,6 +70,8 @@ var ignoredModels = []string{
 	"chatgpt-image-latest",
 	"gpt-audio*",
 	"gpt-image*",
+	// gpt-live-1 is a live surface: the chat-completions endpoint answers it with 404 Not Found.
+	"gpt-live-1",
 	"gpt-live-transcribe",
 	"gpt-realtime*",
 	"gpt-transcribe",

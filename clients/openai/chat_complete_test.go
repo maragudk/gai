@@ -496,7 +496,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			{name: "gpt-5.5 + high", model: openai.ChatCompleteModelGPT5_5, level: openai.ThinkingLevelHigh, wantThoughtTokens: true},
 			{name: "gpt-5.5 + xhigh", model: openai.ChatCompleteModelGPT5_5, level: openai.ThinkingLevelXHigh, wantThoughtTokens: true},
 
-			// gpt-6-astra: the only model that rejects `none` as well as `minimal`, so the
+			// gpt-6-astra: rejects `none` as well as `minimal`, so the
 			// accepted range starts at low. The API says so itself: "does not support 'none'
 			// with this model. Supported values are: 'low', 'medium', 'high', and 'xhigh'."
 			// Probe returned 0 reasoning tokens at low across repeated runs, so that row
@@ -507,6 +507,33 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			{name: "gpt-6-astra + medium", model: openai.ChatCompleteModelGPT6Astra, level: openai.ThinkingLevelMedium, wantThoughtTokens: true},
 			{name: "gpt-6-astra + high", model: openai.ChatCompleteModelGPT6Astra, level: openai.ThinkingLevelHigh, wantThoughtTokens: true},
 			{name: "gpt-6-astra + xhigh", model: openai.ChatCompleteModelGPT6Astra, level: openai.ThinkingLevelXHigh, wantThoughtTokens: true},
+
+			// gpt-6-luna: accepts `none` but rejects `minimal`. The low row makes no thought-token
+			// assertion, because low effort is not guaranteed to reason.
+			{name: "gpt-6-luna + none", model: openai.ChatCompleteModelGPT6Luna, level: gai.ThinkingLevelNone},
+			{name: "gpt-6-luna + minimal rejected", model: openai.ChatCompleteModelGPT6Luna, level: openai.ThinkingLevelMinimal, wantErr: true},
+			{name: "gpt-6-luna + low", model: openai.ChatCompleteModelGPT6Luna, level: openai.ThinkingLevelLow},
+			{name: "gpt-6-luna + medium", model: openai.ChatCompleteModelGPT6Luna, level: openai.ThinkingLevelMedium, wantThoughtTokens: true},
+			{name: "gpt-6-luna + high", model: openai.ChatCompleteModelGPT6Luna, level: openai.ThinkingLevelHigh, wantThoughtTokens: true},
+			{name: "gpt-6-luna + xhigh", model: openai.ChatCompleteModelGPT6Luna, level: openai.ThinkingLevelXHigh, wantThoughtTokens: true},
+
+			// gpt-6-sol: same accepted range as gpt-6-luna. Probe returned 0 reasoning tokens
+			// at low, so that row makes no assertion.
+			{name: "gpt-6-sol + none", model: openai.ChatCompleteModelGPT6Sol, level: gai.ThinkingLevelNone},
+			{name: "gpt-6-sol + minimal rejected", model: openai.ChatCompleteModelGPT6Sol, level: openai.ThinkingLevelMinimal, wantErr: true},
+			{name: "gpt-6-sol + low", model: openai.ChatCompleteModelGPT6Sol, level: openai.ThinkingLevelLow},
+			{name: "gpt-6-sol + medium", model: openai.ChatCompleteModelGPT6Sol, level: openai.ThinkingLevelMedium, wantThoughtTokens: true},
+			{name: "gpt-6-sol + high", model: openai.ChatCompleteModelGPT6Sol, level: openai.ThinkingLevelHigh, wantThoughtTokens: true},
+			{name: "gpt-6-sol + xhigh", model: openai.ChatCompleteModelGPT6Sol, level: openai.ThinkingLevelXHigh, wantThoughtTokens: true},
+
+			// gpt-6.1-sol: like gpt-6-astra, rejects both `none` and `minimal`. Probe returned
+			// 0 reasoning tokens at low, so that row makes no assertion.
+			{name: "gpt-6.1-sol + none rejected", model: openai.ChatCompleteModelGPT6_1Sol, level: gai.ThinkingLevelNone, wantErr: true},
+			{name: "gpt-6.1-sol + minimal rejected", model: openai.ChatCompleteModelGPT6_1Sol, level: openai.ThinkingLevelMinimal, wantErr: true},
+			{name: "gpt-6.1-sol + low", model: openai.ChatCompleteModelGPT6_1Sol, level: openai.ThinkingLevelLow},
+			{name: "gpt-6.1-sol + medium", model: openai.ChatCompleteModelGPT6_1Sol, level: openai.ThinkingLevelMedium, wantThoughtTokens: true},
+			{name: "gpt-6.1-sol + high", model: openai.ChatCompleteModelGPT6_1Sol, level: openai.ThinkingLevelHigh, wantThoughtTokens: true},
+			{name: "gpt-6.1-sol + xhigh", model: openai.ChatCompleteModelGPT6_1Sol, level: openai.ThinkingLevelXHigh, wantThoughtTokens: true},
 		}
 
 		for _, test := range tests {
