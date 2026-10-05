@@ -332,7 +332,9 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 		span.SetAttributes(attribute.Int64("ai.time_to_first_token_ms", time.Since(streamStart).Milliseconds()))
 	}
 
-	return gai.NewChatCompleteResponse(func(yield func(gai.Part, error) bool) {
+	meta := &gai.ChatCompleteResponseMetadata{}
+
+	res := gai.NewChatCompleteResponse(func(yield func(gai.Part, error) bool) {
 		defer span.End()
 
 		defer func() {
@@ -343,15 +345,15 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 
 		var message anthropic.Message
 		defer func() {
-			// ai.prompt_tokens is normalised to include cache tokens, matching
-			// OpenAI's PromptTokens and Google's PromptTokenCount semantics, so
-			// ai.cache_read_tokens is always a subset of ai.prompt_tokens.
 			span.SetAttributes(
-				attribute.Int("ai.prompt_tokens", int(message.Usage.InputTokens+message.Usage.CacheReadInputTokens+message.Usage.CacheCreationInputTokens)),
-				attribute.Int("ai.completion_tokens", int(message.Usage.OutputTokens)),
+				attribute.Int("ai.prompt_tokens", meta.Usage.PromptTokens),
+				attribute.Int("ai.completion_tokens", meta.Usage.CompletionTokens),
 				attribute.Int("ai.cache_read_tokens", int(message.Usage.CacheReadInputTokens)),
 				attribute.Int("ai.cache_creation_tokens", int(message.Usage.CacheCreationInputTokens)),
 			)
+			if meta.FinishReason != nil {
+				span.SetAttributes(attribute.String("ai.finish_reason", string(*meta.FinishReason)))
+			}
 		}()
 
 		for stream.Next() {
@@ -365,6 +367,20 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 					yield(gai.Part{}, fmt.Errorf("error accumulating message: %w", err))
 					return
 				}
+			}
+
+			// The accumulator holds cumulative usage and, from the message_delta event near the
+			// end of the stream, the stop reason, so refresh meta from it after every event.
+			// PromptTokens is normalised to include cache tokens, matching OpenAI's PromptTokens
+			// and Google's PromptTokenCount semantics, so ai.cache_read_tokens is always a subset
+			// of ai.prompt_tokens. ThoughtsTokens is a subset of CompletionTokens, as with OpenAI.
+			meta.Usage = gai.ChatCompleteResponseUsage{
+				PromptTokens:     int(message.Usage.InputTokens + message.Usage.CacheReadInputTokens + message.Usage.CacheCreationInputTokens),
+				ThoughtsTokens:   int(message.Usage.OutputTokensDetails.ThinkingTokens),
+				CompletionTokens: int(message.Usage.OutputTokens),
+			}
+			if message.StopReason != "" {
+				meta.FinishReason = gai.Ptr(mapChatFinishReason(message.StopReason))
 			}
 
 			switch event := event.AsAny().(type) {
@@ -420,7 +436,27 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 			span.SetStatus(codes.Error, "stream error")
 			yield(gai.Part{}, stream.Err())
 		}
-	}), nil
+	})
+
+	res.Meta = meta
+
+	return res, nil
+}
+
+// mapChatFinishReason normalises an Anthropic [anthropic.StopReason] into a [gai.ChatCompleteFinishReason].
+func mapChatFinishReason(reason anthropic.StopReason) gai.ChatCompleteFinishReason {
+	switch reason {
+	case anthropic.StopReasonEndTurn, anthropic.StopReasonStopSequence:
+		return gai.ChatCompleteFinishReasonStop
+	case anthropic.StopReasonMaxTokens, anthropic.StopReasonModelContextWindowExceeded:
+		return gai.ChatCompleteFinishReasonLength
+	case anthropic.StopReasonToolUse:
+		return gai.ChatCompleteFinishReasonToolCalls
+	case anthropic.StopReasonRefusal:
+		return gai.ChatCompleteFinishReasonRefusal
+	default:
+		return gai.ChatCompleteFinishReasonUnknown
+	}
 }
 
 // schemaToMap converts a gai.Schema to a map[string]any for the Anthropic API.

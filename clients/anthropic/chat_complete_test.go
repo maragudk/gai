@@ -130,6 +130,9 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 		is.True(t, found, "tool not found")
 		is.Equal(t, "Hi!\n", result.Content)
 		is.NotError(t, result.Err)
+		is.NotNil(t, res.Meta, "metadata should be populated")
+		is.NotNil(t, res.Meta.FinishReason, "finish reason should be set")
+		is.Equal(t, gai.ChatCompleteFinishReasonToolCalls, *res.Meta.FinishReason)
 
 		req.Messages = []gai.Message{
 			gai.NewUserTextMessage("What is in the readme.txt file?"),
@@ -155,6 +158,31 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 		}
 
 		is.True(t, strings.Contains(strings.ToLower(output), "readme") && strings.Contains(output, "Hi!"), output)
+		is.NotNil(t, res.Meta.FinishReason, "finish reason should be set")
+		is.Equal(t, gai.ChatCompleteFinishReasonStop, *res.Meta.FinishReason)
+	})
+
+	t.Run("reports a length finish reason when max completion tokens cuts the response off", func(t *testing.T) {
+		const maxCompletionTokens = 5
+
+		cc := newChatCompleter(t)
+
+		res, err := cc.ChatComplete(t.Context(), gai.ChatCompleteRequest{
+			Messages: []gai.Message{
+				gai.NewUserTextMessage("Write a poem of at least 20 words about gophers."),
+			},
+			Temperature:         gai.Ptr(gai.Temperature(0)),
+			MaxCompletionTokens: gai.Ptr(maxCompletionTokens),
+		})
+		is.NotError(t, err)
+		is.NotError(t, drainParts(t, res))
+
+		is.NotNil(t, res.Meta, "metadata should be populated")
+		is.True(t, res.Meta.Usage.PromptTokens > 0, "should have prompt tokens")
+		is.True(t, res.Meta.Usage.CompletionTokens > 0, "should have completion tokens")
+		is.True(t, res.Meta.Usage.CompletionTokens <= maxCompletionTokens, "should respect max completion tokens")
+		is.NotNil(t, res.Meta.FinishReason, "finish reason should be set")
+		is.Equal(t, gai.ChatCompleteFinishReasonLength, *res.Meta.FinishReason)
 	})
 
 	t.Run("can use a tool with no args", func(t *testing.T) {
@@ -484,11 +512,10 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 				is.True(t, textParts > 0, "should produce text parts")
 				if test.requireThoughts {
 					is.True(t, thoughtParts > 0, "should stream PartTypeThought parts")
+					is.True(t, res.Meta.Usage.ThoughtsTokens > 0, "thoughts tokens should be populated")
+					is.True(t, res.Meta.Usage.ThoughtsTokens <= res.Meta.Usage.CompletionTokens, "thoughts tokens should be a subset of completion tokens")
 				}
-				// Anthropic does not separately count thinking tokens in the SDK Usage
-				// struct; they're bundled into OutputTokens. So we don't assert on
-				// res.Meta.Usage.ThoughtsTokens here.
-				t.Logf("thoughtParts=%d textParts=%d", thoughtParts, textParts)
+				t.Logf("thoughtParts=%d textParts=%d thoughtsTokens=%d", thoughtParts, textParts, res.Meta.Usage.ThoughtsTokens)
 			})
 		}
 	})
@@ -634,6 +661,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 		span := oteltest.FindSpan(t, sr.Ended(), "anthropic.chat_complete")
 		is.True(t, oteltest.HasAttribute(span.Attributes(), attribute.String("ai.model", string(anthropic.ChatCompleteModelClaudeHaiku4_5Latest))))
 		is.True(t, oteltest.HasAttribute(span.Attributes(), attribute.Bool("ai.has_system_prompt", true)))
+		is.True(t, oteltest.HasAttribute(span.Attributes(), attribute.String("ai.finish_reason", string(gai.ChatCompleteFinishReasonStop))))
 		oteltest.RequireAttributePresent(t, span.Attributes(), "ai.time_to_first_token_ms")
 		oteltest.RequirePositiveIntAttribute(t, span.Attributes(), "ai.prompt_tokens")
 		oteltest.RequirePositiveIntAttribute(t, span.Attributes(), "ai.completion_tokens")
