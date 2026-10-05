@@ -5,9 +5,9 @@ go 1.25.8
 require (
 	cloud.google.com/go/auth v0.20.0
 	github.com/agnivade/levenshtein v1.2.1
-	github.com/anthropics/anthropic-sdk-go v1.77.0
+	github.com/anthropics/anthropic-sdk-go v1.78.0
 	github.com/invopop/jsonschema v0.14.0
-	github.com/openai/openai-go/v3 v3.70.0
+	github.com/openai/openai-go/v3 v3.71.1
 	go.opentelemetry.io/otel v1.45.0
 	go.opentelemetry.io/otel/sdk v1.45.0
 	go.opentelemetry.io/otel/trace v1.45.0

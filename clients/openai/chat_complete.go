@@ -32,9 +32,6 @@ type ChatCompleteModel string
 // removed immediately. The set is enforced by TestModelConformance and its ignore list.
 // The same policy applies to the [EmbedModel] constants.
 const (
-	ChatCompleteModelGPT5        = ChatCompleteModel(openai.ChatModelGPT5)
-	ChatCompleteModelGPT5Mini    = ChatCompleteModel(openai.ChatModelGPT5Mini)
-	ChatCompleteModelGPT5Nano    = ChatCompleteModel(openai.ChatModelGPT5Nano)
 	ChatCompleteModelGPT5_1      = ChatCompleteModel(openai.ChatModelGPT5_1)
 	ChatCompleteModelGPT5_2      = ChatCompleteModel(openai.ChatModelGPT5_2)
 	ChatCompleteModelGPT5_4      = ChatCompleteModel(openai.ChatModelGPT5_4)
@@ -54,7 +51,6 @@ const (
 // values across the exported chat-completions models. Individual models accept a subset
 // (probed empirically against the live API):
 //
-//   - gpt-5: minimal/low/medium/high
 //   - gpt-5.1: none/low/medium/high
 //   - gpt-5.2: none/low/medium/high/xhigh
 //   - gpt-5.4 / gpt-5.4-mini / gpt-5.4-nano: none/low/medium/high/xhigh
@@ -70,11 +66,12 @@ const (
 // say nothing about which levels it accepts.
 //
 // Pass [gai.ThinkingLevelNone] to opt out — accepted by gpt-5.1 through gpt-5.5, gpt-6-luna,
-// and gpt-6-sol; rejected by gpt-5, gpt-6-astra, and gpt-6.1-sol. Using a level a given
-// model does not support surfaces a 400 from the API. Levels not in this list panic at the
-// client boundary.
+// and gpt-6-sol; rejected by gpt-6-astra and gpt-6.1-sol. Using a level a given model does
+// not support surfaces a 400 from the API. Levels not in this list panic at the client
+// boundary.
 const (
-	// ThinkingLevelMinimal applies the cheapest reasoning effort. gpt-5 only.
+	// ThinkingLevelMinimal applies the cheapest reasoning effort. Only the older gpt-5 base
+	// family accepts it; every exported model rejects it with a 400.
 	ThinkingLevelMinimal gai.ThinkingLevel = "minimal"
 	// ThinkingLevelLow applies low reasoning effort.
 	ThinkingLevelLow gai.ThinkingLevel = "low"

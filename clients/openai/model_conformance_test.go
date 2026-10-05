@@ -14,9 +14,6 @@ import (
 // exportedModels are the values of all exported chat and embed model constants,
 // checked against the live API by [TestModelConformance].
 var exportedModels = []string{
-	string(openai.ChatCompleteModelGPT5),
-	string(openai.ChatCompleteModelGPT5Mini),
-	string(openai.ChatCompleteModelGPT5Nano),
 	string(openai.ChatCompleteModelGPT5_1),
 	string(openai.ChatCompleteModelGPT5_2),
 	string(openai.ChatCompleteModelGPT5_4),
@@ -48,6 +45,11 @@ var ignoredModels = []string{
 	"gpt-5.4-mini-2*",
 	"gpt-5.4-nano-2*",
 	"gpt-5.5-2*",
+	// Deprecated by the provider but still live: the gpt-5 base family shuts down on
+	// 2026-12-11. Drop each entry once the model disappears from the live list.
+	"gpt-5",
+	"gpt-5-mini",
+	"gpt-5-nano",
 	// Floating aliases that track ChatGPT; the exported constants pin versions instead.
 	"chat-latest",
 	"gpt-5-chat-latest",
