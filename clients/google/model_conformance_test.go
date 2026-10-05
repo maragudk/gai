@@ -60,6 +60,8 @@ var ignoredModels = []string{
 	"gemini-3.1-flash-lite-image*",
 	"gemini-3.1-flash-tts-preview",
 	"gemini-3.5-transcribe",
+	"gemini-3.8-flash-lite-tts",
+	"gemini-3.8-flash-tts",
 	"gemini-robotics-*",
 	"lyria-*",
 	"nano-banana-*",
