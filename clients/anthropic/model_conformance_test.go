@@ -16,7 +16,6 @@ import (
 // checked against the live API by [TestModelConformance].
 var exportedModels = []string{
 	string(anthropic.ChatCompleteModelClaudeHaiku4_5Latest),
-	string(anthropic.ChatCompleteModelClaudeSonnet4_5Latest),
 	string(anthropic.ChatCompleteModelClaudeOpus4_5Latest),
 	string(anthropic.ChatCompleteModelClaudeSonnet4_6Latest),
 	string(anthropic.ChatCompleteModelClaudeOpus4_6Latest),
@@ -26,6 +25,8 @@ var exportedModels = []string{
 	string(anthropic.ChatCompleteModelClaudeFable5_1Latest),
 	string(anthropic.ChatCompleteModelClaudeSonnet5Latest),
 	string(anthropic.ChatCompleteModelClaudeOpus5Latest),
+	string(anthropic.ChatCompleteModelClaudeSonnet5_5Latest),
+	string(anthropic.ChatCompleteModelClaudeOpus5_5Latest),
 }
 
 // ignoredModels are provider model IDs deliberately not exported as constants,
@@ -36,6 +37,9 @@ var ignoredModels = []string{
 	"claude-haiku-4-5-2*",
 	"claude-opus-4-5-2*",
 	"claude-sonnet-4-5-2*",
+	// Deprecated by the provider but still live: Sonnet 4.5 reaches end of life on
+	// 2026-11-30. Drop the entry once the model disappears from the live list.
+	"claude-sonnet-4-5",
 }
 
 // isIgnoredModel reports whether the given model ID matches an entry in [ignoredModels].

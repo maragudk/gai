@@ -438,9 +438,9 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 
 			// Older 4.x models: adaptive thinking is not supported. The API returns
 			// `400 adaptive thinking is not supported on this model` for all levels.
-			// Haiku 4.5 confirms the rejection; Sonnet 4.5 confirms it on the older mid-tier.
+			// Haiku 4.5 confirms the rejection; Opus 4.5 confirms it on the older top tier.
 			{name: "haiku 4.5 rejects adaptive", model: anthropic.ChatCompleteModelClaudeHaiku4_5Latest, level: anthropic.ThinkingLevelMedium, wantErr: true},
-			{name: "sonnet 4.5 rejects adaptive", model: anthropic.ChatCompleteModelClaudeSonnet4_5Latest, level: anthropic.ThinkingLevelMedium, wantErr: true},
+			{name: "opus 4.5 rejects adaptive", model: anthropic.ChatCompleteModelClaudeOpus4_5Latest, level: anthropic.ThinkingLevelMedium, wantErr: true},
 		}
 
 		for _, test := range tests {

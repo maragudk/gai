@@ -34,8 +34,10 @@ type ChatCompleteModel string
 // The model constants below are hand-curated: stable, generally-available models of the
 // current and recent generations, with previews included case-by-case. Dated snapshots,
 // modality variants, and models that cannot work through the client's implemented API
-// surface (e.g. Responses-API-only) are excluded, and models killed server-side are
-// removed immediately. The set is enforced by TestModelConformance and its ignore list.
+// surface (e.g. Responses-API-only) are excluded. Models the provider has deprecated or
+// killed server-side are removed immediately, and deprecated models that are still live
+// move to the ignore list until they disappear. The set is enforced by
+// TestModelConformance and its ignore list.
 // The same policy applies to the [EmbedModel] constants.
 // The genai SDK exports no model constants, hence the bare strings.
 const (

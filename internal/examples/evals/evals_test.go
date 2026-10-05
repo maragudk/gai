@@ -22,7 +22,7 @@ func TestEvalSeagull(t *testing.T) {
 	})
 
 	cc := c.NewChatCompleter(openai.NewChatCompleterOptions{
-		Model: openai.ChatCompleteModelGPT5Nano,
+		Model: openai.ChatCompleteModelGPT5_4Nano,
 	})
 
 	embedder := c.NewEmbedder(openai.NewEmbedderOptions{

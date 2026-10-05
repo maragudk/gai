@@ -35,30 +35,31 @@ type ChatCompleteModel string
 // The model constants below are hand-curated: stable, generally-available models of the
 // current and recent generations, with previews included case-by-case. Dated snapshots,
 // modality variants, and models that cannot work through the client's implemented API
-// surface (e.g. Responses-API-only) are excluded, and models killed server-side are
-// removed immediately. The set is enforced by TestModelConformance and its ignore list.
+// surface (e.g. Responses-API-only) are excluded. Models the provider has deprecated or
+// killed server-side are removed immediately, and deprecated models that are still live
+// move to the ignore list until they disappear. The set is enforced by
+// TestModelConformance and its ignore list.
 const (
 	ChatCompleteModelClaudeHaiku4_5Latest  = ChatCompleteModel(anthropic.ModelClaudeHaiku4_5)
-	ChatCompleteModelClaudeSonnet4_5Latest = ChatCompleteModel(anthropic.ModelClaudeSonnet4_5)
 	ChatCompleteModelClaudeOpus4_5Latest   = ChatCompleteModel(anthropic.ModelClaudeOpus4_5)
 	ChatCompleteModelClaudeSonnet4_6Latest = ChatCompleteModel(anthropic.ModelClaudeSonnet4_6)
 	ChatCompleteModelClaudeOpus4_6Latest   = ChatCompleteModel(anthropic.ModelClaudeOpus4_6)
 	ChatCompleteModelClaudeOpus4_7Latest   = ChatCompleteModel(anthropic.ModelClaudeOpus4_7)
 	ChatCompleteModelClaudeOpus4_8Latest   = ChatCompleteModel(anthropic.ModelClaudeOpus4_8)
 	ChatCompleteModelClaudeFable5Latest    = ChatCompleteModel(anthropic.ModelClaudeFable5)
-	// ChatCompleteModelClaudeFable5_1Latest is the claude-fable-5-1 model. The pinned
-	// anthropic-sdk-go (v1.66.0) does not yet ship a `ModelClaudeFable5_1` constant, so the
-	// value is the bare API string. Switch to `ModelClaudeFable5_1` once the SDK exposes it.
-	ChatCompleteModelClaudeFable5_1Latest = ChatCompleteModel("claude-fable-5-1")
-	ChatCompleteModelClaudeSonnet5Latest  = ChatCompleteModel(anthropic.ModelClaudeSonnet5)
-	ChatCompleteModelClaudeOpus5Latest    = ChatCompleteModel(anthropic.ModelClaudeOpus5)
+	ChatCompleteModelClaudeFable5_1Latest  = ChatCompleteModel(anthropic.ModelClaudeFable5_1)
+	ChatCompleteModelClaudeSonnet5Latest   = ChatCompleteModel(anthropic.ModelClaudeSonnet5)
+	ChatCompleteModelClaudeOpus5Latest     = ChatCompleteModel(anthropic.ModelClaudeOpus5)
+	ChatCompleteModelClaudeSonnet5_5Latest = ChatCompleteModel(anthropic.ModelClaudeSonnet5_5)
+	ChatCompleteModelClaudeOpus5_5Latest   = ChatCompleteModel(anthropic.ModelClaudeOpus5_5)
 )
 
 // Per-client [gai.ThinkingLevel] constants. These map onto the `output_config.effort` enum
 // used by Sonnet 4.6 / Opus 4.6 / Opus 4.7. The API expects two coupled fields for adaptive
 // thinking — `thinking.type=adaptive` enables thinking, `output_config.effort` sets the
 // level — so non-`None` levels populate both. There is no Minimal: the Anthropic enum starts
-// at Low. XHigh is currently Opus-4.7-only; Sonnet 4.6 and Opus 4.6 reject it with a 400.
+// at Low. Sonnet 4.6 and Opus 4.6 reject XHigh with a 400; Opus 4.7, Sonnet 5.5, and Opus 5.5
+// accept it.
 // Pass [gai.ThinkingLevelNone] to opt out of thinking entirely (no fields set). Levels not
 // in this list panic at the client boundary.
 const (
@@ -68,7 +69,7 @@ const (
 	ThinkingLevelMedium gai.ThinkingLevel = "medium"
 	// ThinkingLevelHigh applies high reasoning effort.
 	ThinkingLevelHigh gai.ThinkingLevel = "high"
-	// ThinkingLevelXHigh applies extra-high reasoning effort. Opus 4.7+ only.
+	// ThinkingLevelXHigh applies extra-high reasoning effort. Not accepted by Sonnet 4.6 and Opus 4.6.
 	ThinkingLevelXHigh gai.ThinkingLevel = "xhigh"
 	// ThinkingLevelMax applies maximum reasoning effort.
 	ThinkingLevelMax gai.ThinkingLevel = "max"
