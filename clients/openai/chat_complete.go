@@ -383,6 +383,21 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 			}
 		}()
 
+		var hasUsage bool
+		defer func() {
+			if !hasUsage {
+				return
+			}
+			span.SetAttributes(
+				attribute.Int("ai.prompt_tokens", meta.Usage.PromptTokens),
+				attribute.Int("ai.cache_read_tokens", meta.Usage.CacheReadTokens),
+				attribute.Int("ai.cache_creation_tokens", meta.Usage.CacheWriteTokens),
+				attribute.Int("ai.completion_tokens", meta.Usage.CompletionTokens),
+				attribute.Int("ai.thoughts_tokens", meta.Usage.ThoughtsTokens),
+				attribute.Int("ai.total_tokens", meta.Usage.PromptTokens+meta.Usage.CompletionTokens),
+			)
+		}()
+
 		var acc openai.ChatCompletionAccumulator
 		for stream.Next() {
 			chunk := stream.Current()
@@ -434,18 +449,9 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 				continue
 			}
 
-			meta.Usage = gai.ChatCompleteResponseUsage{
-				PromptTokens:     int(chunk.Usage.PromptTokens),
-				ThoughtsTokens:   int(chunk.Usage.CompletionTokensDetails.ReasoningTokens),
-				CompletionTokens: int(chunk.Usage.CompletionTokens),
-			}
-			span.SetAttributes(
-				attribute.Int("ai.prompt_tokens", int(chunk.Usage.PromptTokens)),
-				attribute.Int("ai.thoughts_tokens", int(chunk.Usage.CompletionTokensDetails.ReasoningTokens)),
-				attribute.Int("ai.completion_tokens", int(chunk.Usage.CompletionTokens)),
-				attribute.Int("ai.total_tokens", int(chunk.Usage.TotalTokens)),
-				attribute.Int("ai.cache_read_tokens", int(chunk.Usage.PromptTokensDetails.CachedTokens)),
-			)
+			// OpenAI sends usage on the final chunk only. The span attributes are emitted once via the defer above.
+			meta.Usage = mapChatUsage(chunk.Usage)
+			hasUsage = true
 		}
 
 		if meta.FinishReason == nil && len(acc.Choices) > 0 {
@@ -598,6 +604,18 @@ func responseSchemaName(schema *gai.Schema) string {
 	}
 
 	return b.String()
+}
+
+// mapChatUsage normalises an OpenAI [openai.CompletionUsage] into a [gai.ChatCompleteResponseUsage].
+// OpenAI already counts cached and cache write tokens in the prompt tokens, and reasoning tokens in the completion tokens.
+func mapChatUsage(usage openai.CompletionUsage) gai.ChatCompleteResponseUsage {
+	return gai.ChatCompleteResponseUsage{
+		PromptTokens:     int(usage.PromptTokens),
+		CacheReadTokens:  int(usage.PromptTokensDetails.CachedTokens),
+		CacheWriteTokens: int(usage.PromptTokensDetails.CacheWriteTokens),
+		CompletionTokens: int(usage.CompletionTokens),
+		ThoughtsTokens:   int(usage.CompletionTokensDetails.ReasoningTokens),
+	}
 }
 
 func mapChatFinishReason(reason string) gai.ChatCompleteFinishReason {

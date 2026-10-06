@@ -63,13 +63,17 @@ only when the request carries the matching field.
 | `ai.has_system_prompt` | bool | — | Whether a system prompt was sent. The prompt text is **not** recorded | all |
 | `ai.has_response_schema` | bool | — | Whether the request asked for structured output | all |
 | `ai.time_to_first_token_ms` | int | ms | Latency from the streaming call to the first part yielded | all |
-| `ai.prompt_tokens` | int | tokens | Input tokens, including cache-read and cache-creation tokens (gai sums Anthropic's split; OpenAI and Google already report the combined count) | all |
-| `ai.completion_tokens` | int | tokens | Output tokens | all |
+| `ai.prompt_tokens` | int | tokens | All input tokens, including cache-read and cache-creation tokens (gai sums Anthropic's split; OpenAI and Google already report the combined count) | all |
 | `ai.cache_read_tokens` | int | tokens | Input tokens served from the provider cache; a subset of `ai.prompt_tokens` | all |
-| `ai.cache_creation_tokens` | int | tokens | Input tokens written to the provider cache | anthropic |
-| `ai.thoughts_tokens` | int | tokens | Reasoning tokens | openai, google |
-| `ai.total_tokens` | int | tokens | Provider-reported total tokens | openai |
-| `ai.finish_reason` | string | — | Provider finish reason | all |
+| `ai.cache_creation_tokens` | int | tokens | Input tokens written to the provider cache; a subset of `ai.prompt_tokens`. Google does not report cache writes, so it does not emit this attribute | anthropic, openai |
+| `ai.completion_tokens` | int | tokens | All output tokens, including thinking tokens. This is what the provider bills as output and what `ai.max_completion_tokens` caps (gai adds Google's thoughts to its candidates count; OpenAI and Anthropic already report the combined count) | all |
+| `ai.thoughts_tokens` | int | tokens | Thinking (reasoning) tokens; a subset of `ai.completion_tokens`. Zero when the model does not think. Anthropic's count is re-tokenised by the provider, so it is approximate | all |
+| `ai.total_tokens` | int | tokens | `ai.prompt_tokens` + `ai.completion_tokens`, the total billed token count | all |
+| `ai.finish_reason` | string | — | Normalised finish reason (`stop`, `length`, `content_filter`, `tool_calls`, `refusal`, or `unknown`) | all |
+
+The token attributes carry the same values as `gai.ChatCompleteResponseUsage` on the response
+metadata. They are set once, when the stream ends, and only if the provider reported usage. A
+call that fails before the provider sends usage has no token attributes.
 
 ## Embedding attributes
 
@@ -102,9 +106,14 @@ The root span carries the configuration; each attempt span carries its position 
 
 ## Invariants
 
-- `ai.cache_read_tokens` ≤ `ai.prompt_tokens` on every chat span, across all three providers.
-  `ai.prompt_tokens` is normalised to include cached tokens so this holds uniformly; a test
-  enforces it (`internal/oteltest.RequireCacheReadSubsetOfPromptTokens`).
+- `ai.cache_read_tokens` ≤ `ai.prompt_tokens` and `ai.cache_creation_tokens` ≤ `ai.prompt_tokens`
+  on every chat span, across all providers that emit them. `ai.prompt_tokens` is normalised to
+  include cache tokens so this holds uniformly; a test enforces the cache-read case
+  (`internal/oteltest.RequireCacheReadSubsetOfPromptTokens`).
+- `ai.thoughts_tokens` ≤ `ai.completion_tokens` on every chat span, across all three providers.
+  `ai.completion_tokens` is normalised to include thinking tokens, so do not add the two together.
+- `ai.total_tokens` = `ai.prompt_tokens` + `ai.completion_tokens`, so summing the cache or thoughts
+  attributes on top double-counts.
 - `ai.time_to_first_token_ms` fires on the first part of any kind, including a thinking block or a
   tool call, not only on the first text token.
 
@@ -131,7 +140,7 @@ If you query a `gen_ai.*` backend today, translate the settled core attributes i
 | span `<provider>.chat_complete` | span `{gen_ai.operation.name} {gen_ai.request.model}` |
 | `ai.model` | `gen_ai.request.model` |
 | `ai.prompt_tokens` | `gen_ai.usage.input_tokens` (gai includes cache tokens; the convention splits them out) |
-| `ai.completion_tokens` | `gen_ai.usage.output_tokens` |
+| `ai.completion_tokens` | `gen_ai.usage.output_tokens` (gai includes thinking tokens) |
 | `ai.cache_read_tokens` | `gen_ai.usage.cache_read.input_tokens` |
 | `ai.cache_creation_tokens` | `gen_ai.usage.cache_creation.input_tokens` |
 

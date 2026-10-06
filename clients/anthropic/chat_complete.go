@@ -344,16 +344,22 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 		}()
 
 		var message anthropic.Message
+		var hasUsage bool
 		defer func() {
-			span.SetAttributes(
-				attribute.Int("ai.prompt_tokens", meta.Usage.PromptTokens),
-				attribute.Int("ai.completion_tokens", meta.Usage.CompletionTokens),
-				attribute.Int("ai.cache_read_tokens", int(message.Usage.CacheReadInputTokens)),
-				attribute.Int("ai.cache_creation_tokens", int(message.Usage.CacheCreationInputTokens)),
-			)
 			if meta.FinishReason != nil {
 				span.SetAttributes(attribute.String("ai.finish_reason", string(*meta.FinishReason)))
 			}
+			if !hasUsage {
+				return
+			}
+			span.SetAttributes(
+				attribute.Int("ai.prompt_tokens", meta.Usage.PromptTokens),
+				attribute.Int("ai.cache_read_tokens", meta.Usage.CacheReadTokens),
+				attribute.Int("ai.cache_creation_tokens", meta.Usage.CacheWriteTokens),
+				attribute.Int("ai.completion_tokens", meta.Usage.CompletionTokens),
+				attribute.Int("ai.thoughts_tokens", meta.Usage.ThoughtsTokens),
+				attribute.Int("ai.total_tokens", meta.Usage.PromptTokens+meta.Usage.CompletionTokens),
+			)
 		}()
 
 		for stream.Next() {
@@ -371,14 +377,9 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 
 			// The accumulator holds cumulative usage and, from the message_delta event near the
 			// end of the stream, the stop reason, so refresh meta from it after every event.
-			// PromptTokens is normalised to include cache tokens, matching OpenAI's PromptTokens
-			// and Google's PromptTokenCount semantics, so ai.cache_read_tokens is always a subset
-			// of ai.prompt_tokens. ThoughtsTokens is a subset of CompletionTokens, as with OpenAI.
-			meta.Usage = gai.ChatCompleteResponseUsage{
-				PromptTokens:     int(message.Usage.InputTokens + message.Usage.CacheReadInputTokens + message.Usage.CacheCreationInputTokens),
-				ThoughtsTokens:   int(message.Usage.OutputTokensDetails.ThinkingTokens),
-				CompletionTokens: int(message.Usage.OutputTokens),
-			}
+			// The first event, message_start, already carries usage.
+			meta.Usage = mapChatUsage(message.Usage)
+			hasUsage = true
 			if message.StopReason != "" {
 				meta.FinishReason = gai.Ptr(mapChatFinishReason(message.StopReason))
 			}
@@ -441,6 +442,19 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 	res.Meta = meta
 
 	return res, nil
+}
+
+// mapChatUsage normalises an Anthropic [anthropic.Usage] into a [gai.ChatCompleteResponseUsage].
+// Anthropic's input tokens exclude cache reads and cache writes, so both are added to get the prompt tokens.
+// The output tokens already include thinking tokens.
+func mapChatUsage(usage anthropic.Usage) gai.ChatCompleteResponseUsage {
+	return gai.ChatCompleteResponseUsage{
+		PromptTokens:     int(usage.InputTokens + usage.CacheReadInputTokens + usage.CacheCreationInputTokens),
+		CacheReadTokens:  int(usage.CacheReadInputTokens),
+		CacheWriteTokens: int(usage.CacheCreationInputTokens),
+		CompletionTokens: int(usage.OutputTokens),
+		ThoughtsTokens:   int(usage.OutputTokensDetails.ThinkingTokens),
+	}
 }
 
 // mapChatFinishReason normalises an Anthropic [anthropic.StopReason] into a [gai.ChatCompleteFinishReason].

@@ -181,6 +181,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 		is.True(t, res.Meta.Usage.PromptTokens > 0, "should have prompt tokens")
 		is.True(t, res.Meta.Usage.CompletionTokens > 0, "should have completion tokens")
 		is.True(t, res.Meta.Usage.CompletionTokens <= maxCompletionTokens, "should respect max completion tokens")
+		requireUsageSubsets(t, res.Meta.Usage)
 		is.NotNil(t, res.Meta.FinishReason, "finish reason should be set")
 		is.Equal(t, gai.ChatCompleteFinishReasonLength, *res.Meta.FinishReason)
 	})
@@ -513,8 +514,8 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 				if test.requireThoughts {
 					is.True(t, thoughtParts > 0, "should stream PartTypeThought parts")
 					is.True(t, res.Meta.Usage.ThoughtsTokens > 0, "thoughts tokens should be populated")
-					is.True(t, res.Meta.Usage.ThoughtsTokens <= res.Meta.Usage.CompletionTokens, "thoughts tokens should be a subset of completion tokens")
 				}
+				requireUsageSubsets(t, res.Meta.Usage)
 				t.Logf("thoughtParts=%d textParts=%d thoughtsTokens=%d", thoughtParts, textParts, res.Meta.Usage.ThoughtsTokens)
 			})
 		}
@@ -665,6 +666,8 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 		oteltest.RequireAttributePresent(t, span.Attributes(), "ai.time_to_first_token_ms")
 		oteltest.RequirePositiveIntAttribute(t, span.Attributes(), "ai.prompt_tokens")
 		oteltest.RequirePositiveIntAttribute(t, span.Attributes(), "ai.completion_tokens")
+		oteltest.RequirePositiveIntAttribute(t, span.Attributes(), "ai.total_tokens")
+		oteltest.RequireAttributePresent(t, span.Attributes(), "ai.thoughts_tokens")
 		oteltest.RequireAttributePresent(t, span.Attributes(), "ai.cache_creation_tokens")
 		oteltest.RequireCacheReadSubsetOfPromptTokens(t, span.Attributes())
 	})
@@ -679,6 +682,15 @@ func drainParts(t *testing.T, res gai.ChatCompleteResponse) error {
 		}
 	}
 	return nil
+}
+
+// requireUsageSubsets fails the test unless the subset fields of [gai.ChatCompleteResponseUsage] fit inside their totals.
+func requireUsageSubsets(t *testing.T, usage gai.ChatCompleteResponseUsage) {
+	t.Helper()
+	t.Logf("usage=%+v", usage)
+	is.True(t, usage.ThoughtsTokens <= usage.CompletionTokens, "thoughts tokens should be a subset of completion tokens")
+	is.True(t, usage.CacheReadTokens <= usage.PromptTokens, "cache read tokens should be a subset of prompt tokens")
+	is.True(t, usage.CacheWriteTokens <= usage.PromptTokens, "cache write tokens should be a subset of prompt tokens")
 }
 
 // newChatCompleter builds a [anthropic.ChatCompleter] for tests. With no model argument,

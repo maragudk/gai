@@ -324,10 +324,23 @@ func ToolCallPart(id, name string, args json.RawMessage) Part {
 	}
 }
 
+// ChatCompleteResponseUsage is the token usage of a chat completion, with the same meaning for every [ChatCompleter].
+// The fields nest: cache read and cache write tokens are subsets of prompt tokens, and thoughts tokens are a subset
+// of completion tokens. So PromptTokens + CompletionTokens is the total billed token count.
+// Fields the provider does not report are zero.
+// The values are final only once [ChatCompleteResponse.Parts] has been fully consumed.
 type ChatCompleteResponseUsage struct {
-	PromptTokens     int
-	ThoughtsTokens   int
+	// PromptTokens is the number of all input tokens, including cache read and cache write tokens.
+	PromptTokens int
+	// CacheReadTokens is the number of input tokens read from the provider's prompt cache. It is a subset of PromptTokens.
+	CacheReadTokens int
+	// CacheWriteTokens is the number of input tokens written to the provider's prompt cache. It is a subset of PromptTokens.
+	CacheWriteTokens int
+	// CompletionTokens is the number of all output tokens, including thoughts tokens.
+	// It is what the provider bills as output, and what [ChatCompleteRequest.MaxCompletionTokens] caps.
 	CompletionTokens int
+	// ThoughtsTokens is the number of output tokens the model spent on thinking. It is a subset of CompletionTokens.
+	ThoughtsTokens int
 }
 
 // ChatCompleteFinishReason describes why the model stopped generating tokens.
