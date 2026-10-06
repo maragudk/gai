@@ -201,3 +201,22 @@ Alternatives considered:
 - Keep the constants as string literals marked `// Deprecated:`, with the replacement and the shutdown date, and remove them at shutdown. A second opinion (OpenAI `gpt-6-astra`) argued for this, and it is a real option: it keeps lint clean, because staticcheck does not flag deprecated identifiers used inside their own package, and it gives callers the provider's migration window without a compile break. Rejected anyway: the library makes no compatibility promise (no tags, and the README warns that things will break), callers can keep a deprecated model with a one-line `ChatCompleteModel("gpt-5-nano")` conversion, and removing at deprecation saves a second cleanup pass at shutdown.
 
 Tradeoff: removal is a breaking change for callers who use the constant, weeks before the model actually stops working. That is accepted because the break is cheap to work around, and the curated set should only list models we would recommend today. Known gaps: `TestModelConformance` checks existence and coverage, not deprecation. A deprecated model that is still live passes it, so deprecations must be noticed by hand, either from SDK lint warnings or, for Google, from announcements. The test also does not flag ignore entries that no longer match a live model, so stale entries must be pruned by hand.
+
+## Token usage normalisation (2026-10-06)
+
+`ChatCompleteResponseUsage` had no documented semantics, and the clients disagreed: OpenAI and Anthropic count thinking tokens inside `CompletionTokens`, while Google's `CandidatesTokenCount` excludes them. Summing `CompletionTokens + ThoughtsTokens` double-counted two providers; using `CompletionTokens` alone under-counted Google's billed output. Cache token counts existed only as span attributes, so callers could not compute cost.
+
+Decision: follow the OpenAI convention, as the finish reason normalisation does, and make the fields nested subsets of two billing-authoritative totals:
+
+- `PromptTokens`: all input tokens, including cache reads and cache writes.
+  - `CacheReadTokens` and `CacheWriteTokens` (new): subsets of `PromptTokens`. Zero where the provider does not report them.
+- `CompletionTokens`: all output tokens, including thinking.
+  - `ThoughtsTokens`: subset of `CompletionTokens`.
+
+`PromptTokens + CompletionTokens` is the billed token count for every client, so there is no separate total field. Gemini also reports `ToolUsePromptTokenCount`, which is not mapped: it only counts tokens from Gemini's built-in server-side tools (such as Search grounding or code execution), and gai will not support those, so it is always zero.
+
+Alternatives considered:
+- Thoughts separate from completion (Google's shape). Rejected: two of three providers report the inclusive number natively, and the inclusive number is what `MaxCompletionTokens` caps and what the providers bill as output.
+- Cache counts on spans only. Rejected: cached input is priced differently, so usage without it cannot be costed.
+
+Tradeoff: Google's `CompletionTokens` rises on thinking models, a silent change for existing callers. Accepted because the library makes no compatibility promise and the old number was inconsistent with the other clients. Out of scope for now: usage on embeddings, aggregation across `robust` attempts, and usage in eval logs.

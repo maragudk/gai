@@ -42,3 +42,76 @@ func TestMapChatFinishReason(t *testing.T) {
 		})
 	}
 }
+
+func TestMapChatUsage(t *testing.T) {
+	tests := []struct {
+		name     string
+		usage    genai.GenerateContentResponseUsageMetadata
+		expected gai.ChatCompleteResponseUsage
+	}{
+		{
+			name:     "maps zero usage to zero",
+			usage:    genai.GenerateContentResponseUsageMetadata{},
+			expected: gai.ChatCompleteResponseUsage{},
+		},
+		{
+			name: "maps prompt and candidates tokens",
+			usage: genai.GenerateContentResponseUsageMetadata{
+				PromptTokenCount:     10,
+				CandidatesTokenCount: 20,
+				TotalTokenCount:      30,
+			},
+			expected: gai.ChatCompleteResponseUsage{
+				PromptTokens:     10,
+				CompletionTokens: 20,
+			},
+		},
+		{
+			name: "adds thoughts tokens to completion tokens, because candidates tokens exclude them",
+			usage: genai.GenerateContentResponseUsageMetadata{
+				PromptTokenCount:     10,
+				CandidatesTokenCount: 20,
+				ThoughtsTokenCount:   100,
+				TotalTokenCount:      130,
+			},
+			expected: gai.ChatCompleteResponseUsage{
+				PromptTokens:     10,
+				CompletionTokens: 120,
+				ThoughtsTokens:   100,
+			},
+		},
+		{
+			name: "maps cached content tokens to cache read tokens, keeping them inside prompt tokens",
+			usage: genai.GenerateContentResponseUsageMetadata{
+				PromptTokenCount:        2000,
+				CachedContentTokenCount: 1024,
+				CandidatesTokenCount:    5,
+				TotalTokenCount:         2005,
+			},
+			expected: gai.ChatCompleteResponseUsage{
+				PromptTokens:     2000,
+				CacheReadTokens:  1024,
+				CompletionTokens: 5,
+			},
+		},
+		{
+			name: "leaves tool use prompt tokens out of prompt tokens",
+			usage: genai.GenerateContentResponseUsageMetadata{
+				PromptTokenCount:        10,
+				ToolUsePromptTokenCount: 50,
+				CandidatesTokenCount:    5,
+				TotalTokenCount:         65,
+			},
+			expected: gai.ChatCompleteResponseUsage{
+				PromptTokens:     10,
+				CompletionTokens: 5,
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			is.Equal(t, test.expected, mapChatUsage(test.usage))
+		})
+	}
+}

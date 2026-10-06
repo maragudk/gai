@@ -31,3 +31,64 @@ func TestMapChatFinishReason(t *testing.T) {
 		})
 	}
 }
+
+func TestMapChatUsage(t *testing.T) {
+	tests := []struct {
+		name     string
+		usage    anthropic.Usage
+		expected gai.ChatCompleteResponseUsage
+	}{
+		{
+			name:     "maps zero usage to zero",
+			usage:    anthropic.Usage{},
+			expected: gai.ChatCompleteResponseUsage{},
+		},
+		{
+			name: "maps input and output tokens",
+			usage: anthropic.Usage{
+				InputTokens:  10,
+				OutputTokens: 20,
+			},
+			expected: gai.ChatCompleteResponseUsage{
+				PromptTokens:     10,
+				CompletionTokens: 20,
+			},
+		},
+		{
+			name: "maps thinking tokens to thoughts tokens, keeping them inside completion tokens",
+			usage: anthropic.Usage{
+				InputTokens:  10,
+				OutputTokens: 120,
+				OutputTokensDetails: anthropic.OutputTokensDetails{
+					ThinkingTokens: 100,
+				},
+			},
+			expected: gai.ChatCompleteResponseUsage{
+				PromptTokens:     10,
+				CompletionTokens: 120,
+				ThoughtsTokens:   100,
+			},
+		},
+		{
+			name: "adds cache read and cache creation tokens to prompt tokens, because input tokens exclude them",
+			usage: anthropic.Usage{
+				InputTokens:              10,
+				CacheReadInputTokens:     1024,
+				CacheCreationInputTokens: 512,
+				OutputTokens:             5,
+			},
+			expected: gai.ChatCompleteResponseUsage{
+				PromptTokens:     1546,
+				CacheReadTokens:  1024,
+				CacheWriteTokens: 512,
+				CompletionTokens: 5,
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			is.Equal(t, test.expected, mapChatUsage(test.usage))
+		})
+	}
+}

@@ -296,19 +296,21 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 	res := gai.NewChatCompleteResponse(func(yield func(gai.Part, error) bool) {
 		defer span.End()
 
-		var lastUsage *genai.GenerateContentResponseUsageMetadata
+		var hasUsage bool
 		defer func() {
 			if meta.FinishReason != nil {
 				span.SetAttributes(attribute.String("ai.finish_reason", string(*meta.FinishReason)))
 			}
-			if lastUsage == nil {
+			if !hasUsage {
 				return
 			}
+			// Gemini cannot report cache write tokens, so there is no ai.cache_creation_tokens attribute.
 			span.SetAttributes(
-				attribute.Int("ai.prompt_tokens", int(lastUsage.PromptTokenCount)),
-				attribute.Int("ai.thoughts_tokens", int(lastUsage.ThoughtsTokenCount)),
-				attribute.Int("ai.completion_tokens", int(lastUsage.CandidatesTokenCount)),
-				attribute.Int("ai.cache_read_tokens", int(lastUsage.CachedContentTokenCount)),
+				attribute.Int("ai.prompt_tokens", meta.Usage.PromptTokens),
+				attribute.Int("ai.cache_read_tokens", meta.Usage.CacheReadTokens),
+				attribute.Int("ai.completion_tokens", meta.Usage.CompletionTokens),
+				attribute.Int("ai.thoughts_tokens", meta.Usage.ThoughtsTokens),
+				attribute.Int("ai.total_tokens", meta.Usage.PromptTokens+meta.Usage.CompletionTokens),
 			)
 		}()
 
@@ -324,12 +326,8 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 			// partial counts, the final chunk is authoritative. Track the last
 			// non-nil value and emit span attributes once via the defer above.
 			if chunk.UsageMetadata != nil {
-				lastUsage = chunk.UsageMetadata
-				meta.Usage = gai.ChatCompleteResponseUsage{
-					PromptTokens:     int(chunk.UsageMetadata.PromptTokenCount),
-					ThoughtsTokens:   int(chunk.UsageMetadata.ThoughtsTokenCount),
-					CompletionTokens: int(chunk.UsageMetadata.CandidatesTokenCount),
-				}
+				meta.Usage = mapChatUsage(*chunk.UsageMetadata)
+				hasUsage = true
 			}
 
 			if len(chunk.Candidates) == 0 {
@@ -385,6 +383,19 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 	res.Meta = meta
 
 	return res, nil
+}
+
+// mapChatUsage normalises Gemini [genai.GenerateContentResponseUsageMetadata] into a [gai.ChatCompleteResponseUsage].
+// The prompt token count already includes cached content, but the candidates token count excludes thoughts,
+// so thoughts are added to get the completion tokens.
+// Gemini does not report cache write tokens, and tool use prompt tokens are not counted.
+func mapChatUsage(usage genai.GenerateContentResponseUsageMetadata) gai.ChatCompleteResponseUsage {
+	return gai.ChatCompleteResponseUsage{
+		PromptTokens:     int(usage.PromptTokenCount),
+		CacheReadTokens:  int(usage.CachedContentTokenCount),
+		CompletionTokens: int(usage.CandidatesTokenCount + usage.ThoughtsTokenCount),
+		ThoughtsTokens:   int(usage.ThoughtsTokenCount),
+	}
 }
 
 // mapChatFinishReason normalises a Gemini [genai.FinishReason] into a [gai.ChatCompleteFinishReason].
