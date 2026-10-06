@@ -69,7 +69,7 @@ only when the request carries the matching field.
 | `ai.cache_creation_tokens` | int | tokens | Input tokens written to the provider cache | anthropic |
 | `ai.thoughts_tokens` | int | tokens | Reasoning tokens | openai, google |
 | `ai.total_tokens` | int | tokens | Provider-reported total tokens | openai |
-| `ai.finish_reason` | string | — | Provider finish reason | openai |
+| `ai.finish_reason` | string | — | Provider finish reason | all |
 
 ## Embedding attributes
 
