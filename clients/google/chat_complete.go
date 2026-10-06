@@ -298,6 +298,9 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 
 		var lastUsage *genai.GenerateContentResponseUsageMetadata
 		defer func() {
+			if meta.FinishReason != nil {
+				span.SetAttributes(attribute.String("ai.finish_reason", string(*meta.FinishReason)))
+			}
 			if lastUsage == nil {
 				return
 			}
@@ -329,7 +332,18 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 				}
 			}
 
-			if len(chunk.Candidates) == 0 || chunk.Candidates[0].Content == nil {
+			if len(chunk.Candidates) == 0 {
+				continue
+			}
+
+			// The finish reason usually arrives on the last chunk only, and a policy stop
+			// can arrive on a chunk without content, so check it before the content guard.
+			// The span attribute is emitted once via the defer above.
+			if reason := chunk.Candidates[0].FinishReason; reason != "" {
+				meta.FinishReason = gai.Ptr(mapChatFinishReason(reason))
+			}
+
+			if chunk.Candidates[0].Content == nil {
 				continue
 			}
 
@@ -371,6 +385,29 @@ func (c *ChatCompleter) ChatComplete(ctx context.Context, req gai.ChatCompleteRe
 	res.Meta = meta
 
 	return res, nil
+}
+
+// mapChatFinishReason normalises a Gemini [genai.FinishReason] into a [gai.ChatCompleteFinishReason].
+// [genai.FinishReasonStop] stays [gai.ChatCompleteFinishReasonStop] even when the response
+// contains function calls, since Gemini has no dedicated tool-call finish reason.
+func mapChatFinishReason(reason genai.FinishReason) gai.ChatCompleteFinishReason {
+	switch reason {
+	case genai.FinishReasonStop:
+		return gai.ChatCompleteFinishReasonStop
+	case genai.FinishReasonMaxTokens:
+		return gai.ChatCompleteFinishReasonLength
+	case genai.FinishReasonSafety,
+		genai.FinishReasonRecitation,
+		genai.FinishReasonBlocklist,
+		genai.FinishReasonProhibitedContent,
+		genai.FinishReasonSPII,
+		genai.FinishReasonImageSafety,
+		genai.FinishReasonImageProhibitedContent,
+		genai.FinishReasonImageRecitation:
+		return gai.ChatCompleteFinishReasonContentFilter
+	default:
+		return gai.ChatCompleteFinishReasonUnknown
+	}
 }
 
 var _ gai.ChatCompleter = (*ChatCompleter)(nil)

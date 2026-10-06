@@ -132,6 +132,10 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 		is.True(t, found, "tool not found")
 		is.Equal(t, "Hi!\n", result.Content)
 		is.NotError(t, result.Err)
+		// Gemini reports STOP even when the response is a function call.
+		is.NotNil(t, res.Meta, "metadata should be populated")
+		is.NotNil(t, res.Meta.FinishReason, "finish reason should be set")
+		is.Equal(t, gai.ChatCompleteFinishReasonStop, *res.Meta.FinishReason)
 
 		req.Messages = []gai.Message{
 			gai.NewUserTextMessage("What is in the readme.txt file?"),
@@ -160,6 +164,8 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 		lower := strings.ToLower(output)
 		is.True(t, strings.Contains(lower, "readme.txt"), output)
 		is.True(t, strings.Contains(output, "Hi"), output)
+		is.NotNil(t, res.Meta.FinishReason, "finish reason should be set")
+		is.Equal(t, gai.ChatCompleteFinishReasonStop, *res.Meta.FinishReason)
 	})
 
 	t.Run("can use a tool with no args", func(t *testing.T) {
@@ -455,6 +461,8 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 
 		is.NotNil(t, res.Meta)
 		is.True(t, res.Meta.Usage.CompletionTokens <= maxCompletionTokens, "should respect max completion tokens")
+		is.NotNil(t, res.Meta.FinishReason, "finish reason should be set")
+		is.Equal(t, gai.ChatCompleteFinishReasonLength, *res.Meta.FinishReason)
 
 		req.MaxCompletionTokens = nil
 
@@ -471,6 +479,8 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 
 		is.NotNil(t, res.Meta)
 		is.True(t, res.Meta.Usage.CompletionTokens > maxCompletionTokens, "should exceed limit when not constrained")
+		is.NotNil(t, res.Meta.FinishReason, "finish reason should be set")
+		is.Equal(t, gai.ChatCompleteFinishReasonStop, *res.Meta.FinishReason)
 		is.True(t, len(fullOutput) > len(limitedOutput), "should produce more output without limit")
 	})
 
@@ -825,6 +835,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 		span := oteltest.FindSpan(t, sr.Ended(), "google.chat_complete")
 		is.True(t, oteltest.HasAttribute(span.Attributes(), attribute.String("ai.model", string(google.ChatCompleteModelGemini2_5Flash))))
 		is.True(t, oteltest.HasAttribute(span.Attributes(), attribute.Bool("ai.has_system_prompt", true)))
+		is.True(t, oteltest.HasAttribute(span.Attributes(), attribute.String("ai.finish_reason", string(gai.ChatCompleteFinishReasonStop))))
 		oteltest.RequireAttributePresent(t, span.Attributes(), "ai.time_to_first_token_ms")
 		oteltest.RequirePositiveIntAttribute(t, span.Attributes(), "ai.prompt_tokens")
 		oteltest.RequirePositiveIntAttribute(t, span.Attributes(), "ai.completion_tokens")
