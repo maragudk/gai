@@ -41,7 +41,6 @@ type ChatCompleteModel string
 // The same policy applies to the [EmbedModel] constants.
 // The genai SDK exports no model constants, hence the bare strings.
 const (
-	ChatCompleteModelGemini2_0Flash      = ChatCompleteModel("gemini-2.0-flash")
 	ChatCompleteModelGemini2_5Flash      = ChatCompleteModel("gemini-2.5-flash")
 	ChatCompleteModelGemini2_5FlashLite  = ChatCompleteModel("gemini-2.5-flash-lite")
 	ChatCompleteModelGemini2_5Pro        = ChatCompleteModel("gemini-2.5-pro")
