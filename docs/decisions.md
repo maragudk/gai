@@ -189,6 +189,19 @@ Issue dedup is deliberately minimal: a fixed label and title, create an issue on
 
 Tradeoff: drift is now discovered the next morning instead of on the next PR, and a triage PR is a deliberate task rather than a forced one. The behavior tests (thinking-level matrices, embed) stay in merge-gating CI; their live-API flakiness is a separate question.
 
+## 2026-09-16: Carry opaque provider metadata on `gai.Part` as a serializable envelope
+
+To fix #250 (Anthropic signed thinking blocks) and #256 (Gemini 3.x `thought_signature`) with one mechanism, `gai.Part` gets a single metadata field: a small concrete struct holding a provider discriminator plus opaque bytes. The originating client sets the discriminator to its own identifier and encodes its provider-specific data (Gemini `thought_signature`, Anthropic thinking-block signature or redacted data) into the bytes on stream-read; on request-build it checks the discriminator and decodes its own data, ignoring anything else. Other providers treat the field as a black box.
+
+Context: both providers require opaque, provider-specific data captured from a response to be echoed back verbatim on the next turn (Gemini 3.x on `functionCall` parts even with thinking disabled; Anthropic on extended-thinking blocks in tool flows). `gai.Part` had nowhere to carry it, so multi-turn tool use 400'd on Gemini 3.x and the Anthropic client hard-errored on inbound `PartTypeThought`. And `Part` exists to be replayed and persisted (see #169), so whatever carries this data must survive serialization of message history.
+
+Alternatives considered:
+- `Provider any` field: minimal, but `any` gives no compile-time signal, invites misuse, and cannot be unmarshalled.
+- Sibling part types per provider behind an interface: avoids `any` but multiplies the exported type surface and every consumer's switch statements.
+- A marker-interface field implemented by typed per-client structs (the first draft of PR #336): compile-time checkable, but encoding/json cannot restore an interface field without knowing the concrete type, and a caller has no way to know it — persisted history would silently lose the metadata. A registry of provider types behind custom `MarshalJSON`/`UnmarshalJSON` could patch that at the cost of global mutable state and init-time magic.
+
+Decision: the concrete envelope. Compile-time typing of the metadata is traded for serializability; since the data is opaque by design and only its originating client interprets it, the typing bought little. (De)serialization of `Part` with metadata is covered by tests so the round-trip guarantee is enforced rather than promised. The core package documents the envelope contract only and does not reference client packages.
+
 ## 2026-10-05: Remove model constants when the provider deprecates them, not at shutdown
 
 Amends the curation policy of the 2026-08-17 decision. That policy removed a model when the provider killed it server-side, and otherwise let superseded models age out as the generation window rolls. From now on, a model is also removed as soon as the provider deprecates it. In practice the signal is the provider SDK marking the constant deprecated, or a deprecation announcement where there is no SDK constant, as with Google. A deprecated model that is still live moves to the ignore list, in a commented group with its shutdown date. Its entry is pruned once a get-by-ID lookup of the model fails. Absence from the list output is not enough, because the 2026-08-17 decision found that aliases such as `claude-sonnet-4-5` can resolve on lookup without appearing in the list.

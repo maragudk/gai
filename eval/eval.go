@@ -4,6 +4,7 @@ package eval
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math"
 	"strings"
@@ -20,6 +21,52 @@ type Sample struct {
 	Input    []gai.Part
 	Expected []gai.Part
 	Output   []gai.Part
+}
+
+// MarshalJSON satisfies [json.Marshaler], rendering each part as the short summary from
+// [gai.Part.MarshalText] instead of its full JSON form. Evaluation reports are read by
+// humans, and the full form would spell out the bytes of every data part.
+func (s Sample) MarshalJSON() ([]byte, error) {
+	input, err := partSummaries(s.Input)
+	if err != nil {
+		return nil, err
+	}
+	expected, err := partSummaries(s.Expected)
+	if err != nil {
+		return nil, err
+	}
+	output, err := partSummaries(s.Output)
+	if err != nil {
+		return nil, err
+	}
+
+	return json.Marshal(struct {
+		Input    []string
+		Expected []string
+		Output   []string
+	}{
+		Input:    input,
+		Expected: expected,
+		Output:   output,
+	})
+}
+
+// partSummaries renders each part with [gai.Part.MarshalText], keeping a nil slice nil so
+// that an unset field still logs as null.
+func partSummaries(parts []gai.Part) ([]string, error) {
+	if parts == nil {
+		return nil, nil
+	}
+
+	summaries := make([]string, 0, len(parts))
+	for _, p := range parts {
+		summary, err := p.MarshalText()
+		if err != nil {
+			return nil, err
+		}
+		summaries = append(summaries, string(summary))
+	}
+	return summaries, nil
 }
 
 // NewTextSample is a convenience function to create a text-only [Sample].

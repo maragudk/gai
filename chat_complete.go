@@ -3,6 +3,7 @@ package gai
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"iter"
 
@@ -177,12 +178,167 @@ type Part struct {
 	Data     []byte
 	MIMEType string
 
+	// Metadata carries opaque data that a [ChatCompleter] can attach to the parts it
+	// produces, to be echoed back when the part is passed as message history.
+	// See [PartMetadata] for the contract. The zero value means no metadata.
+	Metadata PartMetadata
+
 	text       *string
 	toolCall   *ToolCall
 	toolResult *ToolResult
 }
 
-// MarshalText satisfies [encoding.TextMarshaler].
+// PartMetadata is an envelope for data a [ChatCompleter] must see again on a later turn,
+// such as the signatures some models return on their own output and require back verbatim.
+// The implementation that produces a part sets Source to its own identifier and writes
+// whatever it needs into Data, and it is the only one that can interpret those bytes.
+// Every other implementation treats the envelope as a black box and ignores a Source it
+// does not own, so that a history recorded against one implementation still replays
+// against another. The zero value means no metadata.
+//
+// The envelope is a plain struct rather than an interface so that a [Part], and with it a
+// whole persisted message history, survives a JSON round-trip.
+type PartMetadata struct {
+	// Source identifies the implementation that produced Data, conventionally its package
+	// import path. An empty Source means there is no metadata.
+	Source string `json:"source,omitempty"`
+	// Data is opaque to everyone but the implementation named by Source, which decides
+	// how to encode it.
+	Data []byte `json:"data,omitempty"`
+}
+
+// partJSON is the wire format of [Part]. It exists because the content behind
+// [Part.Text], [Part.Thought], [Part.ToolCall], and [Part.ToolResult] lives in unexported
+// fields, and because a [ToolResult] error is an interface that cannot be unmarshalled.
+type partJSON struct {
+	Type       PartType        `json:"type"`
+	Text       *string         `json:"text,omitempty"`
+	Data       []byte          `json:"data,omitempty"`
+	MIMEType   string          `json:"mimeType,omitempty"`
+	ToolCall   *toolCallJSON   `json:"toolCall,omitempty"`
+	ToolResult *toolResultJSON `json:"toolResult,omitempty"`
+	Metadata   PartMetadata    `json:"metadata,omitzero"`
+}
+
+type toolCallJSON struct {
+	ID   string          `json:"id,omitempty"`
+	Name string          `json:"name,omitempty"`
+	Args json.RawMessage `json:"args,omitempty"`
+}
+
+type toolResultJSON struct {
+	ID      string  `json:"id,omitempty"`
+	Name    string  `json:"name,omitempty"`
+	Content string  `json:"content,omitempty"`
+	Err     *string `json:"err,omitempty"`
+}
+
+// validate reports whether the wire form carries the content its type requires, so that a
+// malformed part is rejected at the serialization boundary instead of panicking later in
+// [Part.Text], [Part.Thought], [Part.ToolCall], or [Part.ToolResult], or reaching a
+// [ChatCompleter] that knows no such part type.
+func (p partJSON) validate() error {
+	switch p.Type {
+	case PartTypeText, PartTypeThought:
+		if p.Text == nil {
+			return fmt.Errorf("%v part has no text", p.Type)
+		}
+	case PartTypeData:
+		if len(p.Data) == 0 || p.MIMEType == "" {
+			return fmt.Errorf("%v part has no data or MIME type", p.Type)
+		}
+	case PartTypeToolCall:
+		if p.ToolCall == nil {
+			return fmt.Errorf("%v part has no tool call", p.Type)
+		}
+		if len(p.ToolCall.Args) > 0 && !json.Valid(p.ToolCall.Args) {
+			return fmt.Errorf("%v part has tool call arguments that are not valid JSON", p.Type)
+		}
+	case PartTypeToolResult:
+		if p.ToolResult == nil {
+			return fmt.Errorf("%v part has no tool result", p.Type)
+		}
+	default:
+		return fmt.Errorf("unknown part type %q", p.Type)
+	}
+
+	return nil
+}
+
+// MarshalJSON satisfies [json.Marshaler], so that a message history can be persisted and
+// replayed with its content and [Part.Metadata] intact. A [ToolResult] error travels as
+// its message alone, and so comes back as a plain error with the same text rather than as
+// the original error value. A part that does not carry the content its type requires is
+// rejected here rather than written out, so that what is written can always be read back.
+func (m Part) MarshalJSON() ([]byte, error) {
+	p := partJSON{
+		Type:     m.Type,
+		Text:     m.text,
+		Data:     m.Data,
+		MIMEType: m.MIMEType,
+		Metadata: m.Metadata,
+	}
+
+	if m.toolCall != nil {
+		p.ToolCall = &toolCallJSON{ID: m.toolCall.ID, Name: m.toolCall.Name, Args: m.toolCall.Args}
+	}
+
+	if m.toolResult != nil {
+		p.ToolResult = &toolResultJSON{ID: m.toolResult.ID, Name: m.toolResult.Name, Content: m.toolResult.Content}
+		if m.toolResult.Err != nil {
+			p.ToolResult.Err = Ptr(m.toolResult.Err.Error())
+		}
+	}
+
+	if err := p.validate(); err != nil {
+		return nil, err
+	}
+
+	return json.Marshal(p)
+}
+
+// UnmarshalJSON satisfies [json.Unmarshaler]. See [Part.MarshalJSON] for the round-trip
+// guarantees. A part that does not carry the content its type requires is rejected, so
+// that a truncated or hand-edited history fails here rather than deeper in the library.
+func (m *Part) UnmarshalJSON(data []byte) error {
+	// By convention, unmarshalling a JSON null leaves the value alone.
+	if string(data) == "null" {
+		return nil
+	}
+
+	var p partJSON
+	if err := json.Unmarshal(data, &p); err != nil {
+		return err
+	}
+
+	if err := p.validate(); err != nil {
+		return err
+	}
+
+	*m = Part{
+		Type:     p.Type,
+		Data:     p.Data,
+		MIMEType: p.MIMEType,
+		Metadata: p.Metadata,
+		text:     p.Text,
+	}
+
+	if p.ToolCall != nil {
+		m.toolCall = &ToolCall{ID: p.ToolCall.ID, Name: p.ToolCall.Name, Args: p.ToolCall.Args}
+	}
+
+	if p.ToolResult != nil {
+		m.toolResult = &ToolResult{ID: p.ToolResult.ID, Name: p.ToolResult.Name, Content: p.ToolResult.Content}
+		if p.ToolResult.Err != nil {
+			m.toolResult.Err = errors.New(*p.ToolResult.Err)
+		}
+	}
+
+	return nil
+}
+
+// MarshalText satisfies [encoding.TextMarshaler]. It renders a [Part] as a short, readable
+// summary, for logs and reports; [Part.MarshalJSON] is the lossless form.
 func (m Part) MarshalText() ([]byte, error) {
 	switch m.Type {
 	case PartTypeText:
