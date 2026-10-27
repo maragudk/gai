@@ -34,11 +34,9 @@ type ChatCompleteModel string
 // TestModelConformance and its ignore list.
 // The same policy applies to the [EmbedModel] constants.
 const (
-	ChatCompleteModelGPT5_1      = ChatCompleteModel(openai.ChatModelGPT5_1)
 	ChatCompleteModelGPT5_2      = ChatCompleteModel(openai.ChatModelGPT5_2)
 	ChatCompleteModelGPT5_4      = ChatCompleteModel(openai.ChatModelGPT5_4)
 	ChatCompleteModelGPT5_4Mini  = ChatCompleteModel(openai.ChatModelGPT5_4Mini)
-	ChatCompleteModelGPT5_4Nano  = ChatCompleteModel(openai.ChatModelGPT5_4Nano)
 	ChatCompleteModelGPT5_5      = ChatCompleteModel(openai.ChatModelGPT5_5)
 	ChatCompleteModelGPT5_6Luna  = ChatCompleteModel(openai.ChatModelGPT5_6Luna)
 	ChatCompleteModelGPT5_6Sol   = ChatCompleteModel(openai.ChatModelGPT5_6Sol)
@@ -47,30 +45,36 @@ const (
 	ChatCompleteModelGPT6Luna    = ChatCompleteModel(openai.ChatModelGPT6Luna)
 	ChatCompleteModelGPT6Sol     = ChatCompleteModel(openai.ChatModelGPT6Sol)
 	ChatCompleteModelGPT6_1Sol   = ChatCompleteModel(openai.ChatModelGPT6_1Sol)
+	ChatCompleteModelGPT6_1Terra = ChatCompleteModel(openai.ChatModelGPT6_1Terra)
 )
 
 // Per-client [gai.ThinkingLevel] constants. The set covers the union of reasoning_effort
 // values across the exported chat-completions models. Individual models accept a subset
 // (probed empirically against the live API):
 //
-//   - gpt-5.1: none/low/medium/high
 //   - gpt-5.2: none/low/medium/high/xhigh
-//   - gpt-5.4 / gpt-5.4-mini / gpt-5.4-nano: none/low/medium/high/xhigh
+//   - gpt-5.4 / gpt-5.4-mini: none/low/medium/high/xhigh
 //   - gpt-5.5: none/low/medium/high/xhigh — frontier model, reasons eagerly at every
 //     non-`none` level
 //   - gpt-6-astra: low/medium/high/xhigh — rejects both `none` and `minimal`, so reasoning
 //     cannot be turned off
-//   - gpt-6-luna / gpt-6-sol: none/low/medium/high/xhigh
+//   - gpt-6-luna / gpt-6-sol / gpt-6.1-terra: none/low/medium/high/xhigh
 //   - gpt-6.1-sol: low/medium/high/xhigh — like gpt-6-astra, rejects both `none` and
 //     `minimal`
 //
-// The gpt-5.6 family is not probed yet, so the list above and the per-level notes below
-// say nothing about which levels it accepts.
+// The gpt-5.6 family is only partly probed: it accepts `none` and `low`, and the list above
+// and the per-level notes below say nothing about the other levels.
 //
-// Pass [gai.ThinkingLevelNone] to opt out — accepted by gpt-5.1 through gpt-5.5, gpt-6-luna,
-// and gpt-6-sol; rejected by gpt-6-astra and gpt-6.1-sol. Using a level a given model does
-// not support surfaces a 400 from the API. Levels not in this list panic at the client
-// boundary.
+// Pass [gai.ThinkingLevelNone] to opt out — accepted by gpt-5.2 through gpt-5.5, gpt-6-luna,
+// gpt-6-sol, and gpt-6.1-terra; rejected by gpt-6-astra and gpt-6.1-sol. Using a level a
+// given model does not support surfaces a 400 from the API. Levels not in this list panic
+// at the client boundary.
+//
+// Function tools: the chat-completions endpoint rejects tools combined with any level other
+// than `none` on every exported model except gpt-5.2. gpt-5.2, gpt-5.4*, and gpt-5.5 default
+// to `none`, so tools work there without a level. The gpt-5.6 and gpt-6 models default to
+// reasoning, so tool requests to them need [gai.ThinkingLevelNone]; gpt-6-astra and
+// gpt-6.1-sol reject `none` and so cannot use function tools at all.
 const (
 	// ThinkingLevelMinimal applies the cheapest reasoning effort. Only the older gpt-5 base
 	// family accepts it; every exported model rejects it with a 400.

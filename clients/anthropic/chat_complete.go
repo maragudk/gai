@@ -52,14 +52,15 @@ const (
 	ChatCompleteModelClaudeOpus5Latest     = ChatCompleteModel(anthropic.ModelClaudeOpus5)
 	ChatCompleteModelClaudeSonnet5_5Latest = ChatCompleteModel(anthropic.ModelClaudeSonnet5_5)
 	ChatCompleteModelClaudeOpus5_5Latest   = ChatCompleteModel(anthropic.ModelClaudeOpus5_5)
+	ChatCompleteModelClaudeHaiku5_5Latest  = ChatCompleteModel(anthropic.ModelClaudeHaiku5_5)
 )
 
 // Per-client [gai.ThinkingLevel] constants. These map onto the `output_config.effort` enum
 // used by Sonnet 4.6 / Opus 4.6 / Opus 4.7. The API expects two coupled fields for adaptive
 // thinking — `thinking.type=adaptive` enables thinking, `output_config.effort` sets the
 // level — so non-`None` levels populate both. There is no Minimal: the Anthropic enum starts
-// at Low. Sonnet 4.6 and Opus 4.6 reject XHigh with a 400; Opus 4.7, Sonnet 5.5, and Opus 5.5
-// accept it.
+// at Low. Sonnet 4.6 and Opus 4.6 reject XHigh with a 400; Opus 4.7, Sonnet 5.5, Opus 5.5,
+// and Haiku 5.5 accept it.
 // Pass [gai.ThinkingLevelNone] to opt out of thinking entirely (no fields set). Levels not
 // in this list panic at the client boundary.
 const (

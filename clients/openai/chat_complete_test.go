@@ -284,8 +284,8 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			}
 		}
 
-		// Accept either "bonjour" (formal) or "salut" (informal). GPT-5-nano picks either
-		// depending on its read of the register, and both satisfy the "respond in French" intent.
+		// Accept either "bonjour" (formal) or "salut" (informal). The default model picks
+		// either depending on its read of the register, and both satisfy the "respond in French" intent.
 		requireContainsAny(t, output, "bonjour", "salut")
 	})
 
@@ -421,14 +421,6 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			wantErr           bool
 			wantThoughtTokens bool
 		}{
-			// gpt-5.1: none/low/medium/high accepted, minimal and xhigh rejected.
-			{name: "gpt-5.1 + none", model: openai.ChatCompleteModelGPT5_1, level: gai.ThinkingLevelNone},
-			{name: "gpt-5.1 + minimal rejected", model: openai.ChatCompleteModelGPT5_1, level: openai.ThinkingLevelMinimal, wantErr: true},
-			{name: "gpt-5.1 + low", model: openai.ChatCompleteModelGPT5_1, level: openai.ThinkingLevelLow},
-			{name: "gpt-5.1 + medium", model: openai.ChatCompleteModelGPT5_1, level: openai.ThinkingLevelMedium},
-			{name: "gpt-5.1 + high", model: openai.ChatCompleteModelGPT5_1, level: openai.ThinkingLevelHigh},
-			{name: "gpt-5.1 + xhigh rejected", model: openai.ChatCompleteModelGPT5_1, level: openai.ThinkingLevelXHigh, wantErr: true},
-
 			// gpt-5.2: none/low/medium/high/xhigh accepted, minimal rejected.
 			{name: "gpt-5.2 + none", model: openai.ChatCompleteModelGPT5_2, level: gai.ThinkingLevelNone},
 			{name: "gpt-5.2 + minimal rejected", model: openai.ChatCompleteModelGPT5_2, level: openai.ThinkingLevelMinimal, wantErr: true},
@@ -452,17 +444,6 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			{name: "gpt-5.4-mini + medium", model: openai.ChatCompleteModelGPT5_4Mini, level: openai.ThinkingLevelMedium},
 			{name: "gpt-5.4-mini + high", model: openai.ChatCompleteModelGPT5_4Mini, level: openai.ThinkingLevelHigh, wantThoughtTokens: true},
 			{name: "gpt-5.4-mini + xhigh", model: openai.ChatCompleteModelGPT5_4Mini, level: openai.ThinkingLevelXHigh, wantThoughtTokens: true},
-
-			// gpt-5.4-nano: same matrix; nano is much more reluctant to reason than the
-			// full-size 5.4 model — probe returned 0 reasoning tokens at low/medium and
-			// flaky non-zero at high. Only assert thought tokens at xhigh, where reasoning
-			// is reliable.
-			{name: "gpt-5.4-nano + none", model: openai.ChatCompleteModelGPT5_4Nano, level: gai.ThinkingLevelNone},
-			{name: "gpt-5.4-nano + minimal rejected", model: openai.ChatCompleteModelGPT5_4Nano, level: openai.ThinkingLevelMinimal, wantErr: true},
-			{name: "gpt-5.4-nano + low", model: openai.ChatCompleteModelGPT5_4Nano, level: openai.ThinkingLevelLow},
-			{name: "gpt-5.4-nano + medium", model: openai.ChatCompleteModelGPT5_4Nano, level: openai.ThinkingLevelMedium},
-			{name: "gpt-5.4-nano + high", model: openai.ChatCompleteModelGPT5_4Nano, level: openai.ThinkingLevelHigh},
-			{name: "gpt-5.4-nano + xhigh", model: openai.ChatCompleteModelGPT5_4Nano, level: openai.ThinkingLevelXHigh, wantThoughtTokens: true},
 
 			// gpt-5.5: frontier model, same matrix as 5.4. Reasons more eagerly than 5.4.
 			{name: "gpt-5.5 + none", model: openai.ChatCompleteModelGPT5_5, level: gai.ThinkingLevelNone},
@@ -510,6 +491,16 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			{name: "gpt-6.1-sol + medium", model: openai.ChatCompleteModelGPT6_1Sol, level: openai.ThinkingLevelMedium, wantThoughtTokens: true},
 			{name: "gpt-6.1-sol + high", model: openai.ChatCompleteModelGPT6_1Sol, level: openai.ThinkingLevelHigh, wantThoughtTokens: true},
 			{name: "gpt-6.1-sol + xhigh", model: openai.ChatCompleteModelGPT6_1Sol, level: openai.ThinkingLevelXHigh, wantThoughtTokens: true},
+
+			// gpt-6.1-terra: same accepted range as gpt-6-luna, but it holds back on reasoning.
+			// Probes returned 0 reasoning tokens at low in 5 of 5 runs, at medium in 2 of 5, and
+			// at high in 1 of 21, so only the xhigh row (21 of 21 non-zero) asserts them.
+			{name: "gpt-6.1-terra + none", model: openai.ChatCompleteModelGPT6_1Terra, level: gai.ThinkingLevelNone},
+			{name: "gpt-6.1-terra + minimal rejected", model: openai.ChatCompleteModelGPT6_1Terra, level: openai.ThinkingLevelMinimal, wantErr: true},
+			{name: "gpt-6.1-terra + low", model: openai.ChatCompleteModelGPT6_1Terra, level: openai.ThinkingLevelLow},
+			{name: "gpt-6.1-terra + medium", model: openai.ChatCompleteModelGPT6_1Terra, level: openai.ThinkingLevelMedium},
+			{name: "gpt-6.1-terra + high", model: openai.ChatCompleteModelGPT6_1Terra, level: openai.ThinkingLevelHigh},
+			{name: "gpt-6.1-terra + xhigh", model: openai.ChatCompleteModelGPT6_1Terra, level: openai.ThinkingLevelXHigh, wantThoughtTokens: true},
 		}
 
 		for _, test := range tests {
@@ -728,7 +719,7 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 		}
 
 		span := oteltest.FindSpan(t, sr.Ended(), "openai.chat_complete")
-		is.True(t, oteltest.HasAttribute(span.Attributes(), attribute.String("ai.model", string(openai.ChatCompleteModelGPT5_4Nano))))
+		is.True(t, oteltest.HasAttribute(span.Attributes(), attribute.String("ai.model", string(openai.ChatCompleteModelGPT5_4Mini))))
 		is.True(t, oteltest.HasAttribute(span.Attributes(), attribute.Bool("ai.has_system_prompt", true)))
 		oteltest.RequireAttributePresent(t, span.Attributes(), "ai.time_to_first_token_ms")
 		oteltest.RequirePositiveIntAttribute(t, span.Attributes(), "ai.prompt_tokens")
@@ -761,12 +752,13 @@ func requireUsageSubsets(t *testing.T, usage gai.ChatCompleteResponseUsage) {
 }
 
 // newChatCompleter builds an [openai.ChatCompleter] for tests. With no model argument,
-// the default is `gpt-5.4-nano` — the cheapest current model, which keeps the bulk of the
-// integration tests fast and inexpensive. Tests that need a specific capability (gpt-5.4
-// reasoning, gpt-5.5 frontier behaviour, etc.) pass the model explicitly.
+// the default is `gpt-5.4-mini` — the cheapest current model that defaults to `none`
+// reasoning effort, so the tool tests run without setting a thinking level (see the
+// function-tools note on the [gai.ThinkingLevel] constants). Tests that need a specific
+// capability (gpt-5.4 reasoning, gpt-5.5 frontier behaviour, etc.) pass the model explicitly.
 func newChatCompleter(t *testing.T, model ...openai.ChatCompleteModel) *openai.ChatCompleter {
 	t.Helper()
-	m := openai.ChatCompleteModelGPT5_4Nano
+	m := openai.ChatCompleteModelGPT5_4Mini
 	if len(model) > 0 {
 		m = model[0]
 	}
