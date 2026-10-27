@@ -26,6 +26,7 @@ var exportedModels = []string{
 	string(google.ChatCompleteModelGemini3_6Flash),
 	string(google.ChatCompleteModelGemini3_7Flash),
 	string(google.ChatCompleteModelGemini3_8Flash),
+	string(google.ChatCompleteModelGemini4Argon),
 	string(google.EmbedModelGeminiEmbedding001),
 	string(google.EmbedModelGeminiEmbedding2),
 }
@@ -62,6 +63,7 @@ var ignoredModels = []string{
 	"gemini-3.5-transcribe",
 	"gemini-3.8-flash-lite-tts",
 	"gemini-3.8-flash-tts",
+	"gemini-nano-banana-*",
 	"gemini-robotics-*",
 	"lyria-*",
 	"nano-banana-*",

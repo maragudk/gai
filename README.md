@@ -61,7 +61,7 @@ func main() {
 	})
 
 	cc := c.NewChatCompleter(openai.NewChatCompleterOptions{
-		Model: openai.ChatCompleteModelGPT5_4Nano,
+		Model: openai.ChatCompleteModelGPT5_4Mini,
 	})
 
 	req := gai.ChatCompleteRequest{
@@ -207,7 +207,7 @@ func main() {
 	})
 
 	cc := c.NewChatCompleter(openai.NewChatCompleterOptions{
-		Model: openai.ChatCompleteModelGPT5_4Nano,
+		Model: openai.ChatCompleteModelGPT5_4Mini,
 	})
 
 	req := gai.ChatCompleteRequest{
@@ -326,7 +326,7 @@ func TestEvalSeagull(t *testing.T) {
 	})
 
 	cc := c.NewChatCompleter(openai.NewChatCompleterOptions{
-		Model: openai.ChatCompleteModelGPT5_4Nano,
+		Model: openai.ChatCompleteModelGPT5_4Mini,
 	})
 
 	embedder := c.NewEmbedder(openai.NewEmbedderOptions{

@@ -627,6 +627,17 @@ func TestChatCompleter_ChatComplete(t *testing.T) {
 			{name: "flash 3.8 + medium", model: google.ChatCompleteModelGemini3_8Flash, level: google.ThinkingLevelMedium, wantThoughtTokens: true},
 			{name: "flash 3.8 + high", model: google.ChatCompleteModelGemini3_8Flash, level: google.ThinkingLevelHigh, wantThoughtTokens: true},
 
+			// Argon 4 accepts `gai.ThinkingLevelNone` and honours the zero budget, and rejects
+			// MINIMAL with `Thinking level MINIMAL is not supported for this model`. Low and
+			// Medium returned 0 thoughts tokens in 15 of 15 probes each, so like the None row
+			// they only verify that the level is accepted. High returned 422-717 thoughts
+			// tokens in 15 of 15 probes and keeps the assertion.
+			{name: "argon 4 + none", model: google.ChatCompleteModelGemini4Argon, level: gai.ThinkingLevelNone},
+			{name: "argon 4 + minimal rejected", model: google.ChatCompleteModelGemini4Argon, level: google.ThinkingLevelMinimal, wantErr: true},
+			{name: "argon 4 + low", model: google.ChatCompleteModelGemini4Argon, level: google.ThinkingLevelLow},
+			{name: "argon 4 + medium", model: google.ChatCompleteModelGemini4Argon, level: google.ThinkingLevelMedium},
+			{name: "argon 4 + high", model: google.ChatCompleteModelGemini4Argon, level: google.ThinkingLevelHigh, wantThoughtTokens: true},
+
 			// Pro 3.1 rejects the off path entirely: `This model only works in thinking
 			// mode`. It also rejects MINIMAL: `Thinking level MINIMAL is not supported for
 			// this model`. Low/Medium/High all populate the thoughts-tokens count. Streamed
