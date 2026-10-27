@@ -14,7 +14,6 @@ import (
 // exportedModels are the values of all exported chat and embed model constants,
 // checked against the live API by [TestModelConformance].
 var exportedModels = []string{
-	string(google.ChatCompleteModelGemini2_0Flash),
 	string(google.ChatCompleteModelGemini2_5Flash),
 	string(google.ChatCompleteModelGemini2_5FlashLite),
 	string(google.ChatCompleteModelGemini2_5Pro),
