@@ -34,10 +34,9 @@ var exportedModels = []string{
 // per the curation policy above the model const blocks. An entry ending in "*"
 // matches every model ID with that prefix; any other entry matches exactly.
 var ignoredModels = []string{
-	// Floating aliases that track the newest model, and experimental variants of those
-	// aliases; the exported constants pin versions instead.
+	// Floating aliases that track the newest model; the exported constants pin versions
+	// instead.
 	"gemini-flash-latest",
-	"gemini-flash-latest-high-res-exp",
 	"gemini-flash-lite-latest",
 	"gemini-pro-latest",
 	// Previews without an exported stable counterpart, or superseded by one.
